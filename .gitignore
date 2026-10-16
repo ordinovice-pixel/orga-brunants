@@ -1,0 +1,111 @@
+# =====================================================================
+#  .gitignore — Outil de gestion « Les Brunants »
+#  Trois familles exclues : CONFIDENTIEL · TROP LOURD · SANS INTÉRÊT
+#  Pour forcer l'ajout d'un fichier exclu : git add -f <fichier>
+#  (à ne faire que si l'on est sûr qu'il ne contient rien de confidentiel)
+# =====================================================================
+
+# ---------------------------------------------------------------------
+# 1. CONFIDENTIEL — mots de passe, clés, jetons, identifiants
+# ---------------------------------------------------------------------
+.env
+.env.*
+!.env.exemple
+*.pem
+*.key
+*.p12
+*.pfx
+*.kdbx
+id_rsa*
+*secret*
+*Secret*
+*password*
+*mot_de_passe*
+*mots_de_passe*
+*identifiants*
+credentials*.json
+client_secret*.json
+token*.json
+service-account*.json
+.clasprc.json
+
+# ---------------------------------------------------------------------
+# 2. CONFIDENTIEL — données personnelles réelles (RGPD)
+#    Fichiers d'adhérents, sauvegardes du classeur, fiches d'inscription
+#    remplies : ils restent sur le Drive des Brunants, jamais dans Git.
+# ---------------------------------------------------------------------
+donnees_reelles/
+Donnees_reelles/
+*adherents*.xlsx
+*adherents*.csv
+*Adherents*.xlsx
+*Adherents*.csv
+*Brunants_Donnees*
+Sauvegarde_Brunants_*
+Sauvegardes/
+Fiches_inscription/
+*rapport_import*
+# Le modèle d'import (vide) reste autorisé
+!**/Modele_import_*.xlsx
+
+# ---------------------------------------------------------------------
+# 3. TROP LOURD — vidéos, sons, archives, images disque
+# ---------------------------------------------------------------------
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.wmv
+*.m4v
+*.mp3
+*.wav
+*.m4a
+*.aac
+*.flac
+*.ogg
+*.iso
+*.dmg
+*.zip
+*.7z
+*.rar
+*.tar
+*.tar.gz
+*.tgz
+# Les ZIP de livraison (Outil_Brunants_LotN.zip) se reconstruisent depuis le dépôt
+
+# ---------------------------------------------------------------------
+# 4. SANS INTÉRÊT — journaux, temporaires, fichiers générés
+# ---------------------------------------------------------------------
+*.log
+logs/
+*.tmp
+*.temp
+*.bak
+*.old
+*.swp
+*~
+~$*
+.~lock.*
+tmp/
+temp/
+captures/
+scratchpad/
+
+# Python / Node
+__pycache__/
+*.pyc
+.venv/
+venv/
+node_modules/
+npm-debug.log*
+
+# Systèmes d'exploitation
+.DS_Store
+Thumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# Éditeurs
+.vscode/
+.idea/
