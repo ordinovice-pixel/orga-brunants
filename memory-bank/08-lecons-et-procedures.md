@@ -26,12 +26,13 @@ Mise à jour : 16/10/2026
 | Dossiers créés à la racine du Drive | Ancienne version de `Code.gs` | Corrigé : les dossiers sont créés à côté du classeur |
 | Accents cassés dans les infobulles des graphiques | Entités HTML dans les libellés Chart.js | Écrire les caractères UTF-8 directement |
 | Chiffres faussés après un lot qui ajoute des colonnes | Anciennes données d'entraînement incomplètes | Réinitialiser les données d'entraînement |
+| Claude ne voit aucun dépôt alors que GitHub est « connecté » | L'application GitHub Claude est autorisée mais pas **installée** (elle n'est pas dans la Marketplace) | Installer via https://github.com/apps/claude/installations/new et sélectionner le dépôt |
 | Annonce mail refusée en mode réel | Quota ≈ 100 e-mails par jour (compte gratuit) | Liste de diffusion (voir Q-06) |
 
 ## Procédure : versionner sur GitHub
 
 - À chaque étape (lot livré, correction, décision), Claude met à jour la memory bank puis **commite** dans le dépôt privé, avec un message en français : `Lot 5 : tableau de bord et calendrier`.
-- Une version livrée reçoit une étiquette `lot-N`.
+- Une version livrée se repère par son message de commit (`Lot N : …`). Les étiquettes (tags) ne passent pas depuis les sessions de Claude ; Jeff peut en créer depuis GitHub (Releases) s'il le souhaite.
 - Avant tout ajout, vérifier qu'aucun fichier confidentiel n'est pris : `git status` ; en cas de doute, ne pas forcer (`git add -f`).
 - Les vraies données des adhérents ne vont **jamais** dans Git : elles restent sur le Drive des Brunants.
 

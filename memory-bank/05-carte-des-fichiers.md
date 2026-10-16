@@ -6,7 +6,7 @@ But : savoir **quel fichier fait quoi** sans parcourir les dossiers. À complét
 
 ## 0. Dépôt GitHub (référence de tout le projet)
 
-Dépôt privé dans l'espace GitHub `orga-brunants` (nom exact du dépôt à confirmer, voir Q-26).
+Dépôt privé **https://github.com/ordinovice-pixel/orga-brunants** (compte personnel de Jeff), branche `main`. L'application GitHub « Claude » y est installée (accès limité à ce dépôt).
 
 | Élément du dépôt | Contenu |
 |---|---|

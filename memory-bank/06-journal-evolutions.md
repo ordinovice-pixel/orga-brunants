@@ -6,7 +6,7 @@ Une ligne par étape, la plus récente en haut. Le détail des décisions est da
 
 | Date | Version / étape | Ce qui a changé | Décisions |
 |---|---|---|---|
-| 16/10/2026 | Dépôt GitHub | Dépôt local préparé (README, `.gitignore`, memory bank, docs) ; premier commit en attente d'envoi vers `orga-brunants` | DEC-033 |
+| 16/10/2026 | Dépôt GitHub | Premier commit envoyé sur `ordinovice-pixel/orga-brunants` (README, `.gitignore`, memory bank, docs) | DEC-033 |
 | 16/10/2026 | Memory bank | Création de la memory bank (9 fichiers) | — |
 | 12/10/2026 | **Lot 4 — Activités** | Inscriptions et échéances, recettes / dépenses automatiques, remboursement, mobil-home avec campings et plafond 2 × 60 €, mode de paiement / justificatif / commentaire, fiche d'inscription Doc + PDF, notification mail, coût par activité, réinitialisation. 11 fichiers modifiés ; nouvelle autorisation Google (Docs) | DEC-051, 052, 054, 055 |
 | 10-12/10/2026 | **Lot 3 — Budget & Prestataires** | Budget prévu / réalisé par catégorie, solde budget, graphiques, factures par prestataire, renommage de catégories en cascade. 9 fichiers modifiés | DEC-053 |

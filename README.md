@@ -27,4 +27,4 @@ Voir `.gitignore` : mots de passe et clés, **données personnelles réelles** (
 
 - Un commit par étape cohérente (un lot, une correction, une mise à jour de la memory bank).
 - Message en français, au présent : `Lot 5 : tableau de bord et calendrier`.
-- Une version livrée au bureau reçoit une étiquette : `lot-4`, `lot-5`…
+- Une version livrée au bureau se repère par son message de commit : `Lot 4 : …`, `Lot 5 : …`.

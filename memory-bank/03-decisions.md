@@ -28,7 +28,7 @@ Format : **DEC-xxx** · date · décision · source (qui a demandé ou validé).
 - **DEC-030** · 08/2026 · Chaque version est un **delta ciblé** sur la précédente, jamais une réécriture ; les éléments inchangés ne sont pas touchés. · Jeff
 - **DEC-031** · 10/2026 · Développement **par lots** ; à chaque lot : tests automatiques chez Claude, ZIP + assistant de mise à jour + LISEZMOI avec tests manuels ; Jeff valide avant le lot suivant. · Prompt §8
 - **DEC-032** · 10/2026 · Libellés Chart.js en **UTF-8 direct**, jamais d'entités HTML. · Leçon POC
-- **DEC-033** · 16/10/2026 · Le projet est versionné dans un **dépôt GitHub privé** (espace `orga-brunants`). Claude commite à chaque étape (lot, correction, mise à jour de la memory bank). Le `.gitignore` exclut le confidentiel (mots de passe, clés, **données personnelles réelles**), le lourd (vidéos, archives) et l'inutile (journaux, temporaires). · Jeff
+- **DEC-033** · 16/10/2026 · Le projet est versionné dans le **dépôt GitHub privé** `ordinovice-pixel/orga-brunants` (https://github.com/ordinovice-pixel/orga-brunants), branche `main`. Claude commite à chaque étape (lot, correction, mise à jour de la memory bank). Le `.gitignore` exclut le confidentiel (mots de passe, clés, **données personnelles réelles**), le lourd (vidéos, archives) et l'inutile (journaux, temporaires). · Jeff
 
 ## Architecture
 

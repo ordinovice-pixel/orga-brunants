@@ -36,5 +36,4 @@ Quand une question est tranchée, elle devient une décision dans `03-decisions.
 | Q-22 | Plafond de 600 € de participation par personne : contrôle automatique dans la fiche activité ou simple mention ? |
 | Q-23 | Format de la formation du CA |
 | Q-24 | Volet RGPD : responsable du fichier, politique de conformité, durée de conservation des archives |
-| Q-26 | **GitHub** : relier le compte GitHub de Jeff à Claude, et confirmer si `orga-brunants` est le nom de l'organisation ou du dépôt (et le nom du dépôt) |
 | Q-25 | Date et modalités du partage de l'outil avec le bureau, puis du passage en mode réel |
