@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide d'utilisation — Les Brunants</title>
+<style>
+/* =====================================================================
+   Guide d'utilisation de l'outil « Les Brunants »
+   Charte de l'outil : Calibri · bleu #1A5276 / #2E86C1 · ambre #F39C12
+   Volet des rubriques en vert foncé · zones bleu / vert / jaune comme l'outil
+   ===================================================================== */
+:root {
+  --volet: #1E5631;
+  --volet-clair: #2D7A47;
+  --primary: #1A5276;
+  --secondary: #2E86C1;
+  --accent: #F39C12;
+  --annot: #D35400;
+  --green: #27AE60;
+  --red: #C0392B;
+  --dark: #1C2833;
+  --mid: #5D6D7E;
+  --light-bg: #F8F9FA;
+  --border: #DEE2E6;
+  --white: #FFFFFF;
+  --zone-ind: #E3F2FD;  --bord-ind: #2E86C1;
+  --zone-sai: #E8F5E9;  --bord-sai: #27AE60;
+  --zone-lis: #FFF8E1;  --bord-lis: #F39C12;
+  --tuto: #FFFFFF;      --bord-tuto: #D35400;
+  --info: #EBF5FB; --attention: #FDEDEC; --auto: #E9F7EF; --astuce: #FEF9E7;
+  --haut: 64px;
+}
+* { box-sizing: border-box; }
+
+body {
+  margin: 0; font-family: Calibri, 'Segoe UI', Carlito, Arial, sans-serif; font-size: 16px; line-height: 1.55;
+  color: var(--dark); background: var(--light-bg);
+}
+a { color: var(--secondary); }
+a:hover { color: var(--primary); }
+img { max-width: 100%; }
+.app { display: grid; grid-template-columns: 270px minmax(0, 1fr); min-height: 100vh; }
+.voile { display: none; }
+
+/* ---------- Volet des rubriques (vert foncé) ---------- */
+.volet { background: var(--volet); color: #fff; position: sticky; top: 0; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; z-index: 30; }
+.volet-entete { padding: 18px 18px 16px; text-align: center; border-bottom: 3px solid var(--accent); background: rgba(255,255,255,.05); }
+.volet-logo { width: 76px; height: 76px; margin: 0 auto 8px; background: #fff; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+.volet-logo img { width: 66px; height: 66px; object-fit: contain; }
+.volet-titre { font-size: 18px; font-weight: 700; }
+.volet-sous { font-size: 14px; opacity: .85; }
+.volet nav { padding: 10px 0 20px; flex: 1; }
+.volet .groupe { font-size: 12px; letter-spacing: .08em; text-transform: uppercase; opacity: .7; padding: 14px 20px 4px; }
+.volet a.nav { display: flex; gap: 10px; align-items: center; color: #fff; text-decoration: none; padding: 9px 20px; font-size: 15.5px; border-left: 4px solid transparent; }
+.volet a.nav:hover { background: rgba(255,255,255,.08); }
+.volet a.nav.actif { background: rgba(255,255,255,.14); border-left-color: var(--accent); font-weight: 700; }
+.volet .sous-nav { display: none; padding: 2px 0 6px 50px; }
+.volet .sous-nav.ouvert { display: block; }
+.volet .sous-nav a { display: block; color: #E8F5E9; text-decoration: none; font-size: 14px; padding: 3px 0; }
+.volet .sous-nav a:hover { color: #fff; text-decoration: underline; }
+.volet .sous-nav a::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; background: #fff; opacity: .5; }
+.volet .sous-nav a.z-ind::before { background: #7FB3D5; opacity: 1; }
+.volet .sous-nav a.z-sai::before { background: #82E0AA; opacity: 1; }
+.volet .sous-nav a.z-lis::before { background: #F8C471; opacity: 1; }
+.volet .sous-nav a.z-tuto::before { background: #F0B27A; opacity: 1; }
+.volet-pied { font-size: 13px; opacity: .75; padding: 14px 20px; border-top: 1px solid rgba(255,255,255,.15); }
+
+/* ---------- Barre du haut + recherche ---------- */
+.contenu { min-width: 0; }
+.barre { position: sticky; top: 0; z-index: 25; background: var(--white); border-bottom: 1px solid var(--border); height: var(--haut);
+  display: flex; align-items: center; gap: 14px; padding: 0 28px; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+.bouton-menu { display: none; border: 1px solid var(--border); background: #fff; border-radius: 8px; padding: 8px 12px; font: inherit; font-weight: 700; color: var(--volet); cursor: pointer; }
+.barre-titre { font-weight: 700; color: var(--primary); white-space: nowrap; }
+.recherche { position: relative; flex: 1; max-width: 640px; margin-left: auto; }
+.recherche input { width: 100%; font: inherit; font-size: 16px; padding: 10px 40px 10px 42px; border: 2px solid var(--border); border-radius: 24px; background: var(--light-bg); outline: none; }
+input[type=search]::-webkit-search-cancel-button { display: none; }
+.recherche input:focus { border-color: var(--secondary); background: #fff; }
+.recherche .loupe { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--mid); pointer-events: none; }
+.recherche .effacer { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); border: 0; background: none; font-size: 20px; color: var(--mid); cursor: pointer; display: none; }
+.resultats { position: absolute; left: 0; right: 0; top: calc(100% + 6px); background: #fff; border: 1px solid var(--border); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,.15); max-height: 70vh; overflow-y: auto; display: none; }
+.resultats.ouvert { display: block; }
+.resultats .entete-res { font-size: 13px; color: var(--mid); padding: 10px 16px 6px; border-bottom: 1px solid var(--border); }
+.resultats a { display: block; padding: 10px 16px; text-decoration: none; color: var(--dark); border-bottom: 1px solid #F0F0F0; }
+.resultats a:hover, .resultats a.choisi { background: #F4F9FD; }
+.resultats .res-titre { font-weight: 700; color: var(--primary); }
+.resultats .res-rub { font-size: 13px; color: var(--mid); }
+.resultats .res-ext { font-size: 14px; color: #444; margin-top: 2px; }
+.resultats mark, .trouve { background: #FDEBD0; color: inherit; padding: 0 1px; border-radius: 2px; }
+.resultats .vide { padding: 14px 16px; color: var(--mid); }
+.puce { display: inline-block; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; padding: 1px 7px; border-radius: 10px; margin-right: 6px; vertical-align: 1px; }
+.puce.p-ind { background: var(--zone-ind); color: #1F618D; } .puce.p-sai { background: var(--zone-sai); color: #1E8449; }
+.puce.p-lis { background: var(--zone-lis); color: #9A6A00; } .puce.p-tuto { background: #FBEEE6; color: var(--annot); }
+.puce.p-base { background: #EAECEE; color: #34495E; } .puce.p-glo { background: #F4ECF7; color: #6C3483; }
+
+/* ---------- Pages ---------- */
+main { max-width: 1060px; margin: 0 auto; padding: 26px 32px 60px; }
+section.rubrique { padding-top: 10px; margin-bottom: 56px; scroll-margin-top: calc(var(--haut) + 10px); }
+[id] { scroll-margin-top: calc(var(--haut) + 14px); }
+h1, h2, h3, h4 { line-height: 1.25; color: var(--primary); }
+h2.titre-rub { font-size: 30px; margin: 0 0 6px; display: flex; align-items: center; gap: 12px; border-bottom: 3px solid var(--accent); padding-bottom: 10px; }
+h2.titre-rub .num { background: var(--volet); color: #fff; border-radius: 10px; font-size: 18px; padding: 3px 10px; }
+.resume { font-size: 17.5px; background: #fff; border-left: 5px solid var(--volet); padding: 14px 18px; border-radius: 0 10px 10px 0; margin: 16px 0 22px; box-shadow: 0 1px 3px rgba(0,0,0,.05); }
+.resume strong { color: var(--volet); }
+.zone { border-radius: 14px; padding: 18px 20px 6px; margin: 0 0 26px; }
+.zone.ind { background: var(--zone-ind); } .zone.sai { background: var(--zone-sai); } .zone.lis { background: var(--zone-lis); }
+.zone.tutos { background: #FBF3EC; }
+h3.zone-titre { font-size: 15px; letter-spacing: .08em; text-transform: uppercase; margin: 0 0 14px; display: flex; align-items: center; gap: 8px; color: var(--primary); }
+h3.zone-titre::before { content: ''; width: 12px; height: 12px; border-radius: 50%; }
+.zone.ind h3.zone-titre::before { background: var(--secondary); }
+.zone.sai h3.zone-titre::before { background: var(--green); }
+.zone.lis h3.zone-titre::before { background: var(--accent); }
+.zone.tutos h3.zone-titre::before { background: var(--annot); }
+.zone > p.zone-intro { margin: -6px 0 14px; color: #34495E; }
+
+/* fiches */
+.fiche { background: #fff; border-radius: 10px; padding: 14px 18px 10px; margin-bottom: 16px; border-top: 4px solid var(--border); box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.zone.ind .fiche { border-top-color: var(--bord-ind); }
+.zone.sai .fiche { border-top-color: var(--bord-sai); }
+.zone.lis .fiche { border-top-color: var(--bord-lis); }
+.fiche h4 { margin: 0 0 8px; font-size: 19px; }
+.fiche h4 .ou { font-size: 13.5px; font-weight: 400; color: var(--mid); margin-left: 6px; }
+.fiches-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 16px; }
+.fiches-2 .fiche { display: flex; flex-direction: column; }
+dl.grille { display: grid; grid-template-columns: 175px 1fr; gap: 6px 14px; margin: 0 0 6px; }
+dl.grille dt { font-weight: 700; color: var(--mid); font-size: 14px; text-transform: uppercase; letter-spacing: .02em; padding-top: 2px; }
+dl.grille dd { margin: 0; }
+.fiches-2 dl.grille { grid-template-columns: 1fr; gap: 2px; }
+.fiches-2 dl.grille dd { margin-bottom: 6px; }
+ul.serre { margin: 4px 0 8px; padding-left: 22px; } ul.serre li { margin: 2px 0; }
+.formule { display: inline-block; background: #F4F6F7; border: 1px solid #E5E8E8; border-radius: 6px; padding: 1px 8px; font-weight: 700; color: #34495E; }
+.exemple { color: #34495E; font-style: italic; }
+kbd, .bouton { display: inline-block; font: inherit; font-size: 14.5px; font-weight: 700; padding: 0 8px; border-radius: 6px; border: 1px solid #C9D3DC; background: #fff; color: var(--primary); white-space: nowrap; }
+.bouton.plein { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+/* encadrés */
+.encadre { border-radius: 8px; padding: 9px 14px 9px 44px; margin: 10px 0; position: relative; font-size: 15.5px; }
+.encadre::before { position: absolute; left: 13px; top: 8px; font-size: 18px; }
+.encadre.astuce { background: var(--astuce); border-left: 4px solid #F1C40F; } .encadre.astuce::before { content: '💡'; }
+.encadre.attention { background: var(--attention); border-left: 4px solid var(--red); } .encadre.attention::before { content: '⚠️'; }
+.encadre.auto { background: var(--auto); border-left: 4px solid var(--green); } .encadre.auto::before { content: '🔁'; }
+.encadre.info { background: var(--info); border-left: 4px solid var(--secondary); } .encadre.info::before { content: 'ℹ️'; }
+.encadre > strong:first-child { display: block; }
+
+/* captures */
+figure.capture { margin: 12px 0 16px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 8px; }
+figure.capture img { display: block; width: 100%; height: auto; border-radius: 6px; cursor: zoom-in; }
+figure.capture.etroite { max-width: 560px; }
+figure.capture.moyenne { max-width: 760px; }
+figure.capture figcaption { font-size: 14px; color: var(--mid); padding: 6px 4px 0; }
+ol.legende { list-style: none; counter-reset: l; padding: 0; margin: 8px 0 12px; }
+ol.legende li { counter-increment: l; position: relative; padding: 3px 0 3px 40px; }
+ol.legende li::before { content: counter(l); position: absolute; left: 0; top: 3px; width: 27px; height: 27px; border-radius: 50%; background: var(--annot); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 15px; }
+.cote { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+
+/* tutos */
+.tuto { background: var(--tuto); border-radius: 12px; border-left: 6px solid var(--bord-tuto); padding: 16px 20px 10px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(0,0,0,.07); }
+.tuto h4 { margin: 0 0 4px; font-size: 20px; color: var(--annot); }
+.tuto .objectif { color: var(--mid); margin: 0 0 10px; }
+.tuto .duree { font-size: 13px; background: #FBEEE6; color: var(--annot); border-radius: 10px; padding: 1px 8px; margin-left: 8px; font-weight: 700; vertical-align: 2px; }
+ol.etapes { counter-reset: e; list-style: none; padding: 0; margin: 6px 0 10px; }
+ol.etapes > li { counter-increment: e; position: relative; padding: 4px 0 8px 44px; }
+ol.etapes > li::before { content: counter(e); position: absolute; left: 0; top: 2px; width: 31px; height: 31px; border-radius: 50%; background: var(--annot); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; border: 2px solid #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.resultat { background: var(--auto); border-radius: 8px; padding: 8px 14px; margin: 6px 0 10px; }
+.resultat strong:first-child { color: #1E8449; }
+
+/* Accueil */
+.hero { background: linear-gradient(135deg, var(--volet) 0%, #2D7A47 60%, #3E8E57 100%); color: #fff; border-radius: 18px; padding: 30px 32px; margin-bottom: 26px; position: relative; overflow: hidden; }
+.hero h1 { color: #fff; font-size: 34px; margin: 0 0 8px; }
+.hero p { font-size: 18px; margin: 0 0 18px; max-width: 720px; opacity: .95; }
+.hero .recherche { max-width: none; margin: 0; }
+.hero .recherche input { font-size: 18px; padding: 14px 44px 14px 46px; border-color: transparent; background: #fff; }
+.hero .exemples { margin-top: 10px; font-size: 14.5px; opacity: .95; }
+.hero .exemples button { font: inherit; font-size: 14px; background: rgba(255,255,255,.16); color: #fff; border: 1px solid rgba(255,255,255,.35); border-radius: 14px; padding: 2px 10px; margin: 3px 3px 0 0; cursor: pointer; }
+.hero .exemples button:hover { background: rgba(255,255,255,.3); }
+.lecture { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 0 0 26px; }
+.lecture div { border-radius: 10px; padding: 10px 12px; font-size: 14.5px; }
+.lecture strong { display: block; font-size: 15.5px; }
+.jeveux { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 26px; }
+.jeveux .bloc { background: #fff; border-radius: 12px; padding: 14px 18px; box-shadow: 0 1px 3px rgba(0,0,0,.06); border-top: 4px solid var(--volet); }
+.jeveux h3 { margin: 0 0 6px; font-size: 18px; color: var(--volet); }
+.jeveux ul { margin: 0; padding-left: 0; list-style: none; }
+.jeveux li { padding: 3px 0; border-bottom: 1px dashed #EEE; }
+.jeveux li:last-child { border-bottom: 0; }
+.jeveux a { text-decoration: none; }
+.jeveux a::before { content: '→ '; color: var(--accent); font-weight: 700; }
+.index-rub { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+.index-rub .carte { background: #fff; border-radius: 12px; padding: 12px 16px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+.index-rub h3 { margin: 0 0 6px; font-size: 18px; }
+.index-rub h3 a { text-decoration: none; color: var(--primary); }
+.index-rub .grp { margin: 6px 0; font-size: 14.5px; }
+.index-rub .grp a { text-decoration: none; }
+.index-rub .grp a:not(:last-child)::after { content: ' · '; color: #BBB; }
+h2.titre-acc { font-size: 24px; margin: 26px 0 12px; }
+
+/* glossaire */
+dl.glossaire { background: #fff; border-radius: 12px; padding: 8px 20px; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
+dl.glossaire .terme { padding: 10px 0; border-bottom: 1px solid #F0F0F0; }
+dl.glossaire dt { font-weight: 700; color: var(--primary); font-size: 17px; }
+dl.glossaire dd { margin: 2px 0 0; }
+.lettres { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.lettres a { background: #fff; border: 1px solid var(--border); border-radius: 6px; padding: 2px 10px; text-decoration: none; font-weight: 700; }
+
+/* surlignage à l'arrivée */
+.flash { animation: flash 2.6s ease-out; }
+@keyframes flash { 0%, 35% { box-shadow: 0 0 0 4px var(--accent), 0 0 24px rgba(243,156,18,.6); } 100% { box-shadow: 0 0 0 0 rgba(243,156,18,0); } }
+.haut { text-align: right; font-size: 14px; margin-top: -10px; }
+.haut a { text-decoration: none; }
+footer.pied { text-align: center; color: var(--mid); font-size: 14px; padding: 20px; border-top: 1px solid var(--border); }
+
+/* agrandissement des captures */
+.loupe-fond { position: fixed; inset: 0; background: rgba(28,40,51,.88); z-index: 100; display: none; align-items: center; justify-content: center; padding: 20px; cursor: zoom-out; }
+.loupe-fond.ouvert { display: flex; }
+.loupe-fond img { max-width: 100%; max-height: 100%; border-radius: 8px; background: #fff; box-shadow: 0 10px 40px rgba(0,0,0,.5); }
+.loupe-fond .fermer { position: fixed; top: 14px; right: 20px; color: #fff; font-size: 34px; background: none; border: 0; cursor: pointer; }
+
+/* ---------- Écrans moyens et téléphones ---------- */
+@media (max-width: 1100px) {
+  .fiches-2, .cote, .index-rub, .jeveux { grid-template-columns: 1fr; }
+  .lecture { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .volet { position: fixed; left: 0; top: 0; width: 290px; transform: translateX(-100%); transition: transform .2s; }
+  .volet.ouvert { transform: none; box-shadow: 4px 0 20px rgba(0,0,0,.3); }
+  .bouton-menu { display: inline-block; }
+  .barre { padding: 0 12px; gap: 10px; }
+  .barre-titre { display: none; }
+  main { padding: 18px 16px 50px; }
+  dl.grille { grid-template-columns: 1fr; gap: 2px; }
+  dl.grille dd { margin-bottom: 6px; }
+  h2.titre-rub { font-size: 25px; }
+  .hero { padding: 22px 18px; } .hero h1 { font-size: 26px; }
+  .lecture { grid-template-columns: 1fr; }
+  .zone { padding: 14px 12px 4px; }
+  .fiche, .tuto { padding: 12px 14px 8px; }
+}
+@media (max-width: 900px) { .voile { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 29; display: none; } .voile.ouvert { display: block; } }
+
+/* ---------- Impression ---------- */
+@media print {
+  .volet, .barre, .hero .recherche, .hero .exemples, .haut, .loupe-fond { display: none !important; }
+  .app { display: block; }
+  body { background: #fff; font-size: 12pt; }
+  main { max-width: none; padding: 0; }
+  section.rubrique { page-break-before: always; }
+  section#accueil { page-break-before: auto; }
+  .fiche, .tuto, figure.capture, .encadre { page-break-inside: avoid; }
+  .zone { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- ═════════ VOLET DES RUBRIQUES ═════════ -->
+<aside class="volet" id="volet">
+  <div class="volet-entete">
+    <div class="volet-logo"><img src="LOGO_BRUNANTS" alt="Logo Les Brunants"></div>
+    <div class="volet-titre">Les Brunants</div>
+    <div class="volet-sous">Guide d'utilisation de l'outil</div>
+  </div>
+  <nav id="nav">
+    <div class="groupe">Pour commencer</div>
+    <a class="nav" href="#accueil" data-cible="accueil">🏠 Accueil et index</a>
+    <a class="nav" href="#bases" data-cible="bases">🧭 Les bases</a>
+    <div class="groupe">Les rubriques</div>
+    <a class="nav" href="#tdb" data-cible="tdb">📈 Tableau de bord</a>
+    <a class="nav" href="#adh" data-cible="adh">👤 1. Adhérents</a>
+    <a class="nav" href="#bud" data-cible="bud">💰 2. Budget &amp; Compta</a>
+    <a class="nav" href="#act" data-cible="act">📝 3. Activités</a>
+    <a class="nav" href="#pre" data-cible="pre">🏢 4. Prestataires</a>
+    <a class="nav" href="#cal" data-cible="cal">📅 5. Calendrier</a>
+    <a class="nav" href="#avenir" data-cible="avenir">🔜 6 à 8. À venir</a>
+    <a class="nav" href="#adm" data-cible="adm">⚙️ 9. Administration</a>
+    <div class="groupe">Aide</div>
+    <a class="nav" href="#glossaire" data-cible="glossaire">📖 Glossaire</a>
+  </nav>
+  <div class="volet-pied">Guide correspondant au lot 6c<br>Mis à jour le 22/10/2026</div>
+</aside>
+<div class="voile" id="voile"></div>
+
+<div class="contenu">
+<!-- ═════════ BARRE DU HAUT ═════════ -->
+<header class="barre">
+  <button class="bouton-menu" id="bouton-menu" aria-label="Afficher les rubriques">☰ Rubriques</button>
+  <span class="barre-titre">Guide d'utilisation</span>
+  <div class="recherche" id="recherche-haut">
+    <span class="loupe">🔍</span>
+    <input type="search" id="champ-recherche" placeholder="Rechercher dans le guide…" autocomplete="off" aria-label="Rechercher dans le guide">
+    <button class="effacer" type="button" aria-label="Effacer la recherche">×</button>
+    <div class="resultats" role="listbox"></div>
+  </div>
+</header>
+
+<main>
+<!-- ═════════════════════════════ ACCUEIL ═════════════════════════════ -->
+<section class="rubrique" id="accueil" data-rubrique="Accueil">
+  <div class="hero">
+    <h1>Bienvenue dans le guide de l'outil</h1>
+    <p>Ce guide explique, rubrique par rubrique, ce que montre chaque écran, comment les chiffres sont calculés et comment faire les tâches courantes. Tapez ce que vous cherchez, ou choisissez une tâche ci-dessous.</p>
+    <div class="recherche" id="recherche-accueil">
+      <span class="loupe">🔍</span>
+      <input type="search" id="champ-recherche-accueil" placeholder="Que cherchez-vous ?" autocomplete="off" aria-label="Rechercher dans le guide">
+      <button class="effacer" type="button" aria-label="Effacer la recherche">×</button>
+      <div class="resultats" role="listbox"></div>
+    </div>
+    <div class="exemples">Exemples :
+      <button type="button">rembourser</button><button type="button">décès</button><button type="button">cotisation</button><button type="button">mobil-home</button><button type="button">solde budget</button><button type="button">exporter</button><button type="button">fiche d'inscription</button>
+    </div>
+  </div>
+
+  <h2 class="titre-acc" id="lire">Comment lire ce guide</h2>
+  <div class="lecture">
+    <div style="background:var(--zone-ind)"><strong>🔵 Indicateurs</strong>Chiffres et graphiques : ce qu'ils montrent, comment ils sont calculés.</div>
+    <div style="background:var(--zone-sai)"><strong>🟢 Saisie</strong>Formulaires : ce qu'on peut créer, modifier ou supprimer.</div>
+    <div style="background:var(--zone-lis)"><strong>🟡 Listes</strong>Tableaux : ce qu'ils affichent, leurs filtres et leurs boutons.</div>
+    <div style="background:#FBF3EC"><strong>🟠 Tutos</strong>Pas à pas illustrés. Les numéros orange des images renvoient aux étapes.</div>
+  </div>
+  <div class="encadre info"><strong>Les mêmes couleurs que l'outil</strong>Chaque rubrique de l'outil est découpée en trois zones de couleur : bleu, vert, jaune. Le guide reprend exactement ce découpage. Les encadrés signalent : 💡 une astuce, ⚠️ un point d'attention, 🔁 ce que l'outil fait tout seul.</div>
+  <div class="encadre attention"><strong>Les images de ce guide utilisent des données d'essai</strong>Les noms, montants et activités visibles sur les captures sont fictifs. Ils ne correspondent à aucun adhérent réel.</div>
+
+  <h2 class="titre-acc" id="je-veux">Je veux…</h2>
+  <div class="jeveux">
+    <div class="bloc">
+      <h3>👤 Adhérents</h3>
+      <ul>
+        <li><a href="#tuto-nouvel-adherent">inscrire un nouvel adhérent</a></li>
+        <li><a href="#tuto-completer">compléter une fiche (e-mail, date d'entrée…)</a></li>
+        <li><a href="#tuto-desinscrire">enregistrer le départ d'un adhérent</a></li>
+        <li><a href="#tuto-deces">enregistrer un décès</a></li>
+        <li><a href="#adh-reinscrire">faire revenir un ancien adhérent</a></li>
+        <li><a href="#tuto-maillon">sortir la liste des envois du Maillon papier</a></li>
+        <li><a href="#adh-historique">voir les activités suivies par un adhérent</a></li>
+        <li><a href="#adh-fiche">relier deux conjoints</a></li>
+      </ul>
+    </div>
+    <div class="bloc">
+      <h3>📝 Activités et paiements</h3>
+      <ul>
+        <li><a href="#tuto-activite">créer une sortie ou un séjour</a></li>
+        <li><a href="#tuto-inscrire">inscrire quelqu'un à une activité</a></li>
+        <li><a href="#tuto-payer">enregistrer un paiement reçu</a></li>
+        <li><a href="#tuto-rembourser">rembourser une échéance</a></li>
+        <li><a href="#act-suivi">voir qui n'a pas encore payé</a></li>
+        <li><a href="#tuto-mobilhome">louer un mobil-home à un adhérent</a></li>
+        <li><a href="#tuto-fiche-inscription">imprimer la fiche d'inscription</a></li>
+        <li><a href="#tuto-annuler-activite">annuler une activité</a></li>
+      </ul>
+    </div>
+    <div class="bloc">
+      <h3>💰 Comptabilité</h3>
+      <ul>
+        <li><a href="#tuto-depense">saisir une dépense (facture)</a></li>
+        <li><a href="#bud-recette">saisir une recette (cotisations, don, subvention)</a></li>
+        <li><a href="#tuto-budget">préparer le budget de l'année suivante</a></li>
+        <li><a href="#bud-solde">comprendre le solde budget</a></li>
+        <li><a href="#bud-auto">comprendre les lignes « Automatique »</a></li>
+        <li><a href="#pre-factures">retrouver les factures d'un prestataire</a></li>
+        <li><a href="#tuto-export">exporter une liste dans Excel</a></li>
+      </ul>
+    </div>
+    <div class="bloc">
+      <h3>🧭 Consulter et se repérer</h3>
+      <ul>
+        <li><a href="#bases-annee">afficher une autre année</a></li>
+        <li><a href="#tdb-alertes">comprendre les alertes</a></li>
+        <li><a href="#cal-grille">voir le calendrier du mois</a></li>
+        <li><a href="#tuto-participation">connaître la participation de l'association pour un membre</a></li>
+        <li><a href="#bases-actualiser">voir ce qu'un collègue vient de saisir</a></li>
+        <li><a href="#bases-sauvegarder">faire une sauvegarde</a></li>
+        <li><a href="#bases-entrainement">savoir ce qui est réel et ce qui est fictif</a></li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="titre-acc" id="index">Index par rubrique</h2>
+  <p>Chaque rubrique avec tout ce qu'elle contient. Cliquez sur un élément pour y aller directement.</p>
+  <div class="index-rub" id="index-rubriques"><!-- construit automatiquement --></div>
+</section>
+
+<!-- ═════════════════════════════ LES BASES ═════════════════════════════ -->
+<section class="rubrique" id="bases" data-rubrique="Les bases">
+  <h2 class="titre-rub">🧭 Les bases</h2>
+  <div class="resume">Toutes les rubriques fonctionnent de la même façon. <strong>Lisez cette page une fois</strong> : ensuite, chaque écran se comprend de lui-même.</div>
+
+  <div class="fiche base" id="bases-ecran" data-mots="ecran accueil menu rubriques volet entete barre">
+    <h4>L'écran de l'outil</h4>
+    <figure class="capture"><img src="captures/commun-ecran.webp" alt="Écran général de l'outil avec ses repères numérotés"><figcaption>Le tableau de bord, première page affichée à l'ouverture.</figcaption></figure>
+    <ol class="legende">
+      <li><strong>Le volet des rubriques</strong> : cliquez sur une rubrique pour l'ouvrir.</li>
+      <li><strong>L'année</strong> affichée partout dans l'outil (voir ci-dessous).</li>
+      <li><strong>⟳ Actualiser</strong> : relit les données (voir ci-dessous).</li>
+      <li><strong>💾 Sauvegarder maintenant</strong> : copie de sécurité de toutes les données.</li>
+      <li><strong>Le bandeau orange « MODE ENTRAÎNEMENT »</strong> : aucun e-mail ne part vers les adhérents.</li>
+      <li><strong>La pastille</strong> à côté d'« Adhérents » : nombre de titulaires / sympathisants de l'année.</li>
+      <li><strong>Les zones de couleur</strong> : chaque rubrique commence par les indicateurs.</li>
+    </ol>
+    <p>Votre adresse e-mail apparaît en haut à droite : c'est le compte Google avec lequel vous êtes connecté. Seuls les membres du bureau ont accès à l'outil.</p>
+  </div>
+
+  <div class="fiche base" id="bases-annee" data-mots="annee changer selecteur exercice 2025 2026 rattachement">
+    <h4>Choisir l'année affichée</h4>
+    <p>La liste <span class="bouton">Année</span> en haut de page choisit l'année affichée <strong>dans toutes les rubriques</strong> : indicateurs, graphiques, listes, calendrier. Les titres rappellent l'année (« Effectif total 2026 »). Elle propose les années présentes dans les données, plus l'année en cours.</p>
+    <p>Chaque information est rattachée à une année selon une règle simple :</p>
+    <ul class="serre">
+      <li><strong>Un adhérent</strong> compte dans une année s'il a été adhérent à un moment de cette année : inscrit au plus tard le 31 décembre, et pas parti avant le 1er janvier. Une personne partie en juin 2026 compte donc encore dans 2026.</li>
+      <li><strong>Une recette ou une dépense</strong> : l'année de sa date de paiement.</li>
+      <li><strong>Une activité</strong> : l'année de sa date de début. Ses inscriptions et ses échéances suivent l'activité.</li>
+      <li><strong>Un budget prévisionnel</strong> et <strong>une location de mobil-home</strong> : l'année indiquée (pour le mobil-home, celle de la semaine louée).</li>
+    </ul>
+    <div class="encadre attention"><strong>Une ligne saisie pour une autre année « disparaît » de l'écran</strong>Si vous enregistrez une dépense datée de 2025 alors que 2026 est affichée, l'outil vous prévient : elle n'apparaît que lorsque 2025 est choisie en haut de page.</div>
+    <div class="encadre astuce">Une échéance d'une sortie de décembre payée en janvier compte dans les paiements de l'activité (année de la sortie), mais sa recette est datée de janvier : elle apparaît dans les recettes de l'année suivante.</div>
+  </div>
+
+  <div class="fiche base" id="bases-zones" data-mots="zones couleurs bleu vert jaune indicateurs saisie listes">
+    <h4>Les trois zones de couleur</h4>
+    <ul class="serre">
+      <li><span class="puce p-ind">Bleu</span> <strong>Indicateurs</strong> : chiffres clés, graphiques, tableaux de synthèse. On les lit, on ne les modifie pas.</li>
+      <li><span class="puce p-sai">Vert</span> <strong>Saisie</strong> : formulaires pour créer ou modifier une fiche.</li>
+      <li><span class="puce p-lis">Jaune</span> <strong>Listes</strong> : tableaux des fiches, avec recherche, filtres, tri et boutons.</li>
+    </ul>
+    <p>Tout se recalcule <strong>immédiatement</strong> après chaque enregistrement : il n'y a jamais rien à « mettre à jour » à la main.</p>
+  </div>
+
+  <div class="fiche base" id="bases-listes" data-mots="liste rechercher filtrer trier tri colonne export csv excel page pagination modifier supprimer crayon corbeille">
+    <h4>Se servir d'une liste</h4>
+    <p>Toutes les listes de l'outil ont les mêmes outils.</p>
+    <figure class="capture"><img src="captures/commun-liste.webp" alt="Barre d'outils d'une liste avec repères numérotés"><figcaption>Exemple : la liste des adhérents.</figcaption></figure>
+    <ol class="legende">
+      <li><strong>Rechercher</strong> : tapez un ou plusieurs mots (nom, ville, numéro…). Les accents et majuscules sont ignorés. Une ligne s'affiche si elle contient <em>tous</em> les mots, dans n'importe quelle colonne.</li>
+      <li><strong>Filtres</strong> : choisissez une valeur pour ne garder que les lignes correspondantes. Plusieurs filtres se combinent.</li>
+      <li><strong>✕ Effacer les filtres</strong> : remet la liste complète, recherche et tri d'origine compris.</li>
+      <li><strong>Compteur</strong> : « 52 ligne(s) sur 225 » = lignes affichées / lignes de la liste.</li>
+      <li><strong>📥 Exporter en CSV</strong> : télécharge les lignes affichées (toutes les pages, filtres appliqués) dans un fichier qui s'ouvre dans Excel ou LibreOffice. Nom du fichier : <em>liste_année_date.csv</em>.</li>
+      <li><strong>Trier</strong> : cliquez sur un titre de colonne. Un 2e clic inverse l'ordre (▲ croissant, ▼ décroissant). Les cases vides vont toujours à la fin.</li>
+      <li><strong>Filtre de colonne</strong> : sous chaque titre, une petite case filtre cette seule colonne (« contient » pour du texte, choix exact pour une liste).</li>
+      <li><strong>✎ Modifier / 🗑 Supprimer</strong> : ✎ ouvre la fiche dans le formulaire au-dessus ; 🗑 demande une confirmation.</li>
+    </ol>
+    <p>Au-delà de 25 lignes, le bas de la liste propose <span class="bouton">‹ Précédente</span> <span class="bouton">Suivante ›</span> et le choix <em>Lignes par page</em> (25, 50, 100 ou Toutes). La ligne surlignée en orange clair est celle que vous modifiez ou venez d'enregistrer.</p>
+  </div>
+
+  <div class="fiche base" id="bases-formulaires" data-mots="formulaire champ obligatoire etoile erreur corriger annuler enregistrer controle">
+    <h4>Remplir un formulaire</h4>
+    <ul class="serre">
+      <li>Une <strong style="color:var(--red)">*</strong> rouge signale un champ <strong>obligatoire</strong>.</li>
+      <li>Les champs <strong>grisés</strong> (région, participation de l'association…) sont <strong>calculés</strong> par l'outil : on ne peut pas les modifier.</li>
+      <li>Les champs « <em>Taper un nom…</em> » proposent une liste au fur et à mesure de la frappe : <strong>cliquez sur une proposition</strong> (« NOM Prénom — ADH-0012 »). Un nom tapé sans choisir dans la liste est refusé.</li>
+      <li><span class="bouton plein">Enregistrer</span> contrôle la saisie puis enregistre. <span class="bouton">Annuler</span> vide le formulaire sans rien effacer dans les données.</li>
+      <li>Après ✎ Modifier, le titre du formulaire devient « Modifier ADH-… » et le bouton « Enregistrer les modifications ».</li>
+    </ul>
+    <figure class="capture"><img src="captures/commun-erreurs.webp" alt="Formulaire avec l'encadré Merci de corriger"><figcaption>Si un contrôle échoue, rien n'est enregistré : l'encadré rouge liste les corrections et les champs concernés sont entourés de rouge.</figcaption></figure>
+  </div>
+
+  <div class="fiche base" id="bases-messages" data-mots="message notification confirmation fenetre echap double confirmation">
+    <h4>Messages et confirmations</h4>
+    <div class="cote">
+      <div>
+        <p>Après chaque action, un <strong>message</strong> apparaît en haut à droite pendant quelques secondes : <span style="color:var(--green)">vert</span> quand tout s'est bien passé, <span style="color:var(--secondary)">bleu</span> pour une information, <span style="color:var(--red)">rouge</span> pour une erreur (il reste plus longtemps). La croix × le ferme.</p>
+        <p>Avant une action importante (suppression, remboursement…), une <strong>fenêtre de confirmation</strong> s'ouvre. <span class="bouton">Annuler</span> ou la touche <kbd>Échap</kbd> ne font rien. Les actions les plus lourdes demandent une seconde confirmation.</p>
+      </div>
+      <figure class="capture"><img src="captures/commun-confirmation.webp" alt="Fenêtre de confirmation de suppression"><figcaption>Fenêtre de confirmation.</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="fiche base" id="bases-numeros" data-mots="numero id identifiant adh act rec dep ins ech mh pre code">
+    <h4>Les numéros de fiche</h4>
+    <p>Chaque fiche reçoit un <strong>numéro unique</strong> (appelé « ID ») qui la relie aux autres rubriques. Il ne change jamais.</p>
+    <ul class="serre">
+      <li><strong>ADH-0012</strong> : adhérent · <strong>PRE-005</strong> : prestataire (PRE-000 = « Autre »)</li>
+      <li><strong>ACT-2026-005</strong> : activité · <strong>INS-00644</strong> : inscription · <strong>ECH-…</strong> : échéance de paiement</li>
+      <li><strong>REC-2026-0042</strong> : recette · <strong>DEP-2026-0017</strong> : dépense · <strong>MH-0012</strong> : location de mobil-home</li>
+    </ul>
+    <p class="exemple">L'année dans le numéro est celle de la création : si vous corrigez ensuite la date, le numéro reste le même.</p>
+  </div>
+
+  <div class="fiche base" id="bases-actualiser" data-mots="actualiser rafraichir recharger relire collegue classeur google sheets lignes a corriger">
+    <h4>⟳ Actualiser</h4>
+    <p>L'écran se met à jour tout seul après <em>vos</em> enregistrements. Pour voir ce qu'<strong>un collègue</strong> vient d'enregistrer de son côté, cliquez sur <span class="bouton">⟳ Actualiser</span> : l'outil relit toutes les données.</p>
+    <div class="encadre attention"><strong>Bandeau « Le classeur contient … ligne(s) à corriger »</strong>Il apparaît quand une ligne a été tapée directement dans le classeur Google Sheets et qu'elle est incomplète ou illisible. Cliquez sur <em>Voir le détail</em> et prévenez la personne qui gère l'outil.</div>
+    <div class="encadre info">Si deux personnes enregistrent exactement au même moment, l'une voit le message « Un autre membre du bureau enregistre en ce moment. Réessayez dans quelques secondes. » Il suffit de recliquer.</div>
+  </div>
+
+  <div class="fiche base" id="bases-sauvegarder" data-mots="sauvegarde sauvegarder copie securite excel xlsx drive restaurer">
+    <h4>💾 Sauvegarder maintenant</h4>
+    <p>Fait une <strong>copie complète</strong> de toutes les données, plus un fichier Excel, dans le dossier Drive <em>Outil_Brunants/Sauvegardes</em>.</p>
+    <ul class="serre">
+      <li>Une sauvegarde automatique a lieu <strong>le 1er de chaque mois</strong>, vers 2 h du matin.</li>
+      <li>Les <strong>24 dernières</strong> sauvegardes sont conservées ; les plus anciennes partent à la corbeille.</li>
+      <li>Pensez-y <strong>avant une grosse saisie</strong> (rentrée des cotisations, création de toutes les activités de l'année…).</li>
+    </ul>
+    <p>En cas de problème, la personne qui gère l'outil peut <strong>restaurer</strong> une sauvegarde (rubrique Administration).</p>
+  </div>
+
+  <div class="fiche base" id="bases-entrainement" data-mots="mode entrainement bandeau fictif reel vrai test email essai">
+    <h4>Le mode entraînement : ce qui est réel, ce qui est fictif</h4>
+    <p>Tant que le bandeau orange <strong>MODE ENTRAÎNEMENT</strong> est affiché :</p>
+    <ul class="serre">
+      <li><strong>aucun e-mail ne part vers un adhérent</strong> : tous les messages vont à l'adresse de test indiquée dans le bandeau ;</li>
+      <li>les <strong>activités, recettes, dépenses, budgets et prestataires</strong> sont <strong>fictifs</strong> : vous pouvez tout essayer ;</li>
+      <li>les <strong>fiches adhérents sont les vraies</strong> (importées du fichier de l'association).</li>
+    </ul>
+    <div class="encadre attention"><strong>Une modification de fiche adhérent est réelle</strong>Corriger une adresse ou un e-mail est utile et sera conservé. En revanche, ne supprimez pas une vraie fiche pour vous entraîner : créez une fiche d'essai (par exemple « EXERCICE Paul », comme dans les tutos) et supprimez-la à la fin.</div>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>
+
+<!--SUITE-->
+
+</main>
+<footer class="pied">Guide d'utilisation de l'outil de gestion « Les Brunants » · correspondant au lot 6c · mis à jour le 22/10/2026 · OrdiNovice</footer>
+</div>
+</div>
+
+<div class="loupe-fond" id="loupe"><button class="fermer" aria-label="Fermer">×</button><img alt=""></div>
+
+<script>
+/* SCRIPT */
+</script>
+</body>
+</html>

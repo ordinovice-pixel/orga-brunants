@@ -1,0 +1,326 @@
+<!-- ═════════════════════════════ ACTIVITÉS ═════════════════════════════ -->
+<section class="rubrique" id="act" data-rubrique="3. Activités">
+  <h2 class="titre-rub"><span class="num">3</span> Activités</h2>
+  <div class="resume"><strong>Les activités, les inscriptions, les paiements échelonnés et le mobil-home.</strong> Tout ce qui s'y paie crée la recette ou la dépense correspondante dans Budget &amp; Compta : cocher « Payé » suffit, on ne ressaisit jamais le paiement.</div>
+
+  <!-- ─────────── Indicateurs ─────────── -->
+  <div class="zone ind">
+    <h3 class="zone-titre" id="act-indicateurs">Indicateurs</h3>
+    <figure class="capture"><img src="captures/act-indicateurs.webp" alt="Indicateurs de la rubrique Activités"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="act-nombre" data-mots="nombre activites realisees a venir annulees">
+        <h4>Activités</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le nombre d'activités de l'année, dont réalisées, à venir et annulées.</dd>
+          <dt>Comment c'est calculé</dt><dd>Activités dont la date de début est dans l'année. Réalisée = date de fin (ou de début) passée, statut différent d'« Annulé ».</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="act-participants" data-mots="participants uniques ratio adherents">
+        <h4>Participants uniques</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>« 150 / 224 » : adhérents ayant participé à quelque chose / effectif de l'année, et le ratio en %.</dd>
+          <dt>Comment c'est calculé</dt><dd>Chaque adhérent n'est compté qu'une fois, qu'il ait fait une ou dix activités. Une location de mobil-home compte comme participation.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="act-non" data-mots="non participants reengager">
+        <h4>Non-participants</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Les adhérents de l'année qui n'ont participé à aucune activité ni loué de mobil-home, et leur part (« à réengager »).</dd>
+          <dt>Comment c'est calculé</dt><dd><span class="formule">effectif − participants uniques</span>.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="act-paiements" data-mots="paiements des activites encaisse reste du echeances en attente">
+        <h4>Paiements des activités</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le montant encaissé, le reste dû et le nombre d'échéances en attente, pour toutes les activités de l'année.</dd>
+          <dt>Comment c'est calculé</dt><dd><strong>Encaissé</strong> = échéances payées et non remboursées. <strong>Reste dû</strong> = échéances non payées des personnes encore inscrites.</dd>
+        </dl>
+      </article>
+    </div>
+
+    <figure class="capture"><img src="captures/act-mobilhome-subventions.webp" alt="Suivi mobil-home et part des adhérents subventionnés"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="act-mh-suivi" data-mots="suivi mobil-home mobil home semaines vendues camping aides montant total paye par l asso">
+        <h4>Suivi mobil-home — temps réel</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd><strong>Semaines vendues</strong> (nombre de locations de l'année), <strong>Montant total</strong> (coût de toutes les locations), <strong>Mont. total payé par l'asso</strong> (total des aides, nombre d'aides × 60 €, nombre de titulaires aidés). Dessous, un tableau <strong>par camping</strong> : semaines, montant total, aides versées.</dd>
+          <dt>Comment c'est calculé</dt><dd>À partir des locations de l'année (année de la semaine louée). Voir la <a href="#act-mh">règle des aides</a>.</dd>
+          <dt>À quoi ça sert</dt><dd>Suivre les réservations et le coût pour l'association, camping par camping.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="act-subventionnes" data-mots="part adherents subventionnes subvention montant total subventionne region">
+        <h4>Part des adhérents subventionnés</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd><strong>Global</strong> : adhérents subventionnés / effectif. <strong>Montant total subventionné</strong> : total de la Participation Association de l'année. Tableau par région (Île-de-France, Province).</dd>
+          <dt>Comment c'est calculé</dt><dd>Un adhérent est <strong>subventionné</strong> si au moins une de ses activités ou locations de l'année a une <a href="#glo-participation">Participation Association</a> supérieure à 0 €.</dd>
+          <dt>À quoi ça sert</dt><dd>Mesurer l'effort de l'association et sa répartition (rapport d'activité, AG).</dd>
+        </dl>
+      </article>
+    </div>
+
+    <figure class="capture moyenne"><img src="captures/act-repartition.webp" alt="Camembert Répartition des activités"></figure>
+    <article class="fiche" id="act-repartition" data-mots="repartition des activites camembert inscrits encaisse cout participation mesure">
+      <h4>Répartition des activités <span class="ou">graphique</span></h4>
+      <dl class="grille">
+        <dt>Ce que ça montre</dt><dd>La part de chaque activité de l'année, selon la mesure choisie en haut à droite : <strong>le nombre d'inscrits</strong> (par défaut), <strong>le montant encaissé</strong>, <strong>le coût total</strong> ou <strong>la participation de l'association</strong>. Valeurs et % sont écrits sur le graphique.</dd>
+        <dt>Comment c'est calculé</dt><dd>Activités annulées exclues ; activités à 0 non dessinées (leur nombre est indiqué sous le graphique, avec le total).</dd>
+        <dt>À quoi ça sert</dt><dd>Comparer les activités : lesquelles attirent le plus, coûtent le plus, sont le plus aidées.</dd>
+      </dl>
+    </article>
+
+    <figure class="capture"><img src="captures/act-couts.webp" alt="Tableau Coût par activité"></figure>
+    <article class="fiche" id="act-couts" data-mots="cout par activite cout total prix par personne part asso recouvrement payees">
+      <h4>Coût par activité</h4>
+      <dl class="grille">
+        <dt>Ce que ça montre</dt><dd>Une ligne par activité de l'année : catégorie, inscrits / places, coût total, prix par personne, participation de l'association, recouvrement.</dd>
+        <dt>Comment c'est calculé</dt><dd>
+          <ul class="serre">
+            <li><strong>Coût total</strong> = <span class="formule">coût réel par personne × nombre d'inscrits</span> ;</li>
+            <li><strong>Part. asso</strong> = somme, pour chaque inscrit, de <span class="formule">coût réel − montant dû</span> (et le % du coût total) ;</li>
+            <li><strong>Recouvrement</strong> = échéances payées / échéances prévues des inscrits : <span class="puce p-sai">vert</span> si tout est payé, <span class="puce p-lis">orange</span> sinon, « Gratuit » sans paiement.</li>
+          </ul>
+          <span class="exemple">Ex. : sortie au coût réel de 60 €, prix 45 €, 20 inscrits → coût total 1 200 €, part asso 300 € (25 %).</span></dd>
+        <dt>À quoi ça sert</dt><dd>Préparer le bilan financier de chaque activité.</dd>
+      </dl>
+    </article>
+  </div>
+
+  <!-- ─────────── Saisie ─────────── -->
+  <div class="zone sai">
+    <h3 class="zone-titre" id="act-saisie">Saisie</h3>
+
+    <article class="fiche" id="act-fiche" data-mots="fiche activite creer nouvelle activite sortie sejour statut categorie organisateur places prix cout reel participation echeances notification">
+      <h4>La fiche activité <span class="ou">créer ou modifier</span></h4>
+      <figure class="capture"><img src="captures/act-fiche.webp" alt="Formulaire de la fiche activité"></figure>
+      <dl class="grille">
+        <dt>Obligatoires</dt><dd>Intitulé, Catégorie (1 à 7), Date de début.</dd>
+        <dt>Les autres champs</dt><dd>
+          <ul class="serre">
+            <li><strong>Statut</strong> : En préparation (par défaut), Ouvert aux inscriptions, Complet, Terminé, Annulé ;</li>
+            <li><strong>Sous-catégorie</strong>, avec l'encadré « Ce qu'elle recouvre » ;</li>
+            <li><strong>Organisateur</strong> : un adhérent actif, à choisir dans la liste ;</li>
+            <li><strong>Date de fin</strong> (si plusieurs jours), <strong>Lieu</strong>, <strong>Description</strong> ;</li>
+            <li><strong>Places max</strong> : au-delà, l'inscription est refusée ; <strong>Budget prévu</strong> ;</li>
+            <li><strong>Nombre d'échéances</strong> : paiement en 1 à 12 fois ; <strong>Dates des échéances</strong> (une case par échéance, voir ci-dessous) ;</li>
+            <li><strong>Prix par personne</strong> (ce que paie l'adhérent) et <strong>Coût réel par personne</strong> (ce que coûte réellement l'activité) ;</li>
+            <li><strong>Notification par mail</strong> (cochée par défaut) : annonce envoyée aux adhérents <em>à la création</em> de l'activité.</li>
+          </ul></dd>
+        <dt>Calculé</dt><dd><strong>Participation de l'association / pers.</strong> = <span class="formule">coût réel − prix</span>, en € et en %. <span class="exemple">Ex. : coût 60 €, prix 45 € → 15 € soit 25 %.</span></dd>
+        <dt>Dates des échéances</dt><dd>Facultatives. Une case laissée vide est calculée par l'outil : 1re échéance le jour de l'inscription, dernière la veille de l'activité, les autres réparties régulièrement entre les deux. Une date peut tomber <strong>après</strong> l'activité. Les dates saisies apparaissent dans le <a href="#cal-grille">calendrier</a>.</dd>
+        <dt>Contrôles</dt><dd>Date de fin postérieure au début ; organisateur choisi dans la liste.</dd>
+      </dl>
+      <div class="encadre attention"><strong>Changer le prix ou le nombre d'échéances après des inscriptions</strong>Les échéances déjà créées ne changent pas : le nouveau prix s'applique aux inscriptions suivantes. Pour décaler les <em>dates</em>, cochez « Appliquer aussi ces dates aux échéances non payées des inscrits actuels » (case visible en modification).</div>
+    </article>
+
+    <article class="fiche" id="act-selection" data-mots="activite selectionnee consulter resume inscrits encaisse reste du modifier la fiche boutons">
+      <h4>Sélectionner une activité existante</h4>
+      <figure class="capture"><img src="captures/act-selection.webp" alt="Panneau de l'activité sélectionnée avec inscription et suivi des paiements"></figure>
+      <dl class="grille">
+        <dt>Ce qu'on y trouve</dt><dd>La liste déroulante en haut à droite choisit l'activité (par défaut la dernière enregistrée). Dessous : statut, dates, lieu, catégorie, organisateur, puis quatre chiffres : <strong>Inscrits</strong> (et places restantes), <strong>Encaissé</strong>, <strong>Reste dû</strong>, <strong>Prix · part asso / pers.</strong></dd>
+        <dt>Boutons</dt><dd><span class="bouton">✎ Modifier la fiche</span> · <span class="bouton">🖨 Générer la fiche d'inscription</span> · <span class="bouton">✉️ Envoyer la notification</span>.</dd>
+        <dt>Raccourcis</dt><dd>Un clic sur le nom d'une activité dans la liste, le calendrier ou le tableau de bord ouvre directement ce panneau.</dd>
+      </dl>
+    </article>
+
+    <article class="fiche" id="act-inscrire" data-mots="inscrire membre adherent activite montant du tarif reduit gratuit complet">
+      <h4>Inscrire un membre</h4>
+      <dl class="grille">
+        <dt>Ce qu'on peut faire</dt><dd>Taper le nom d'un adhérent actif, vérifier le <strong>montant dû</strong> (le prix par personne, modifiable : tarif réduit, 0 pour gratuit), puis <span class="bouton plein">Inscrire</span>.</dd>
+        <dt>Refusé si</dt><dd>l'activité est complète ou annulée, la personne est déjà inscrite, ou sa fiche est dans les archives (la réinscrire d'abord).</dd>
+      </dl>
+      <div class="encadre auto"><strong>Ce que l'outil fait tout seul</strong>Il crée une <strong style="display:inline">case de paiement par échéance</strong>. Le montant dû est partagé à parts égales, la dernière échéance absorbe les centimes (100 € en 3 fois = 33,33 + 33,33 + 33,34 €).</div>
+    </article>
+
+    <article class="fiche" id="act-suivi" data-mots="suivi paiement echelonne participant paye cocher rembourser retard reste du a jour desinscrire activite date prevue">
+      <h4>Paiement échelonné — suivi par participant</h4>
+      <dl class="grille">
+        <dt>Ce qu'il affiche</dt><dd>Une ligne par inscrit : participant (et ses numéros), date d'inscription, montant dû, <strong>cases d'échéances</strong>, payé, reste dû, bouton Désinscrire.</dd>
+        <dt>Couleurs des cases</dt><dd><span class="puce p-sai">vert</span> payée · <span class="puce p-lis">orange</span> remboursée · bordure <span style="color:var(--red);font-weight:700">rouge</span> et « en retard » : date prévue dépassée.</dd>
+        <dt>Recherche et filtres</dt><dd>Rechercher un participant · Tous / Avec un reste dû / Avec une échéance en retard / À jour de leurs paiements · case « Afficher aussi les désinscriptions ».</dd>
+        <dt>Actions</dt><dd>
+          <ul class="serre">
+            <li><strong>Cocher « Payé »</strong> → date de paiement (pas dans le futur) et mode (chèque par défaut) → <a href="#tuto-payer">recette créée</a> ;</li>
+            <li><strong>Décocher</strong> → confirmation → la recette est supprimée ;</li>
+            <li><strong>↩</strong> sur une échéance payée → <a href="#tuto-rembourser">remboursement</a> ; <strong>✕</strong> l'annule ;</li>
+            <li><strong>« prévue 15/11 ✎ »</strong> → changer la date prévue d'une échéance non payée ;</li>
+            <li><strong>Désinscrire</strong> → la personne est retirée de l'activité.</li>
+          </ul></dd>
+      </dl>
+      <div class="encadre auto"><strong>Ce que l'outil fait tout seul</strong>
+        <ul class="serre">
+          <li><strong>Payé</strong> : une recette « Paiement échéance 1/3 — activité — NOM Prénom », dans la catégorie et la sous-catégorie de l'activité, liée à l'adhérent, origine Automatique. Jamais deux recettes pour la même échéance.</li>
+          <li><strong>Rembourser</strong> : une recette <strong>négative</strong> du même montant, origine « Remboursement ». La recette du paiement reste : les deux s'annulent. Aucune dépense n'est créée.</li>
+          <li><strong>Désinscrire</strong> : les échéances non payées sont supprimées ; les échéances payées restent visibles, pour un remboursement éventuel.</li>
+        </ul>
+      </div>
+      <div class="encadre attention">Une échéance remboursée ne peut pas être décochée : annulez d'abord le remboursement (✕).</div>
+    </article>
+
+    <article class="fiche" id="act-fiche-inscription" data-mots="fiche d inscription imprimer pdf google doc liste des inscrits feuille emargement">
+      <h4>Générer la fiche d'inscription</h4>
+      <dl class="grille">
+        <dt>Ce que ça produit</dt><dd>Un <strong>Google Doc</strong> et un <strong>PDF</strong> (A4 paysage, logo) rangés dans le dossier Drive <em>Outil_Brunants/Fiches_inscription</em>. Les liens s'affichent sous les boutons.</dd>
+        <dt>Contenu</dt><dd>Descriptif, dates, lieu, organisateur et son téléphone, nombre de places, budget prévu, participation demandée par personne (et en combien de fois), somme subventionnée par personne ; puis un tableau N°, Nom, Prénom, E-mail, Téléphone et, pour chaque échéance, « Payé ☑/☐ » et sa date.</dd>
+        <dt>Bon à savoir</dt><dd>Le tableau est pré-rempli avec les inscrits du moment et compte autant de lignes que de places : les lignes vides servent aux inscriptions sur place. Régénérez-la après de nouvelles inscriptions.</dd>
+      </dl>
+    </article>
+
+    <article class="fiche" id="act-notification" data-mots="notification mail email annonce envoyer adherents liste de diffusion quota">
+      <h4>Envoyer la notification par mail</h4>
+      <dl class="grille">
+        <dt>Ce que ça fait</dt><dd>Envoie l'annonce de l'activité (nom, description, dates, lieu, prix, paiement en N fois, nombre de places) aux adhérents actifs qui ont un e-mail, sauf ceux qui ont coché « Ne plus rien envoyer ». Si une liste de diffusion est paramétrée, un seul message part vers elle.</dd>
+        <dt>Quand</dt><dd>Automatiquement à la création si la case « Notification par mail » est cochée, ou à tout moment avec le bouton <span class="bouton">✉️ Envoyer la notification</span> (après confirmation).</dd>
+      </dl>
+      <div class="encadre info"><strong>En mode entraînement</strong>Un seul message part, vers l'adresse de test ; il indique en tête la liste des destinataires qui l'auraient reçu.</div>
+    </article>
+
+    <article class="fiche" id="act-mh" data-mots="mobil-home mobil home location louer camping semaine aide 60 euros titulaire plafond 2 aides part adherent">
+      <h4>Mobil-home — enregistrer une location</h4>
+      <figure class="capture"><img src="captures/act-mh-formulaire.webp" alt="Formulaire de location de mobil-home"></figure>
+      <dl class="grille">
+        <dt>Obligatoires</dt><dd>Adhérent (adhérent à la date de la semaine), Camping (les prestataires « Hébergement / mobil-home » en premier), Semaine (date de début), Coût de la location.</dd>
+        <dt>Facultatif</dt><dd><strong>Date de paiement</strong> : date des deux lignes comptables, le jour de la saisie par défaut (pas dans le futur).</dd>
+        <dt>La règle des aides</dt><dd>Seuls les <strong>titulaires</strong> ont droit à une aide de <strong>60 € par semaine</strong>, <strong>2 fois au plus par an</strong>, sur les <strong>2 premières semaines du calendrier</strong> de l'année (pas les 2 premières saisies). Les sympathisants paient le coût complet. L'encadré sous le formulaire calcule l'aide en direct.</dd>
+      </dl>
+      <div class="encadre auto"><strong>Ce que l'outil fait tout seul</strong>
+        <ul class="serre">
+          <li>une <strong>dépense</strong> « Location mobil-home semaine du … — camping — adhérent » du coût total, au nom du camping ;</li>
+          <li>une <strong>recette</strong> « … (part adhérent) » = <span class="formule">coût − aide</span> ;</li>
+          <li>toutes deux en <strong>1.2 Villégiature en mobil-home</strong>, origine Automatique ;</li>
+          <li>si vous ajoutez une semaine <em>plus tôt</em> dans l'année, l'aide passe sur elle et la semaine la plus tardive la perd : toutes les lignes sont recalculées. Même chose à la modification ou à la suppression d'une location.</li>
+        </ul></div>
+    </article>
+  </div>
+
+  <!-- ─────────── Listes ─────────── -->
+  <div class="zone lis">
+    <h3 class="zone-titre" id="act-listes">Listes</h3>
+    <article class="fiche" id="act-liste" data-mots="liste des activites statut categorie inscrits prix supprimer annuler">
+      <h4>Liste des activités</h4>
+      <figure class="capture"><img src="captures/act-liste.webp" alt="Liste des activités"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>N°, Activité, Catégorie, Début, Lieu, Inscrits (/ places), Prix / pers., Statut : <span class="puce p-base">En préparation</span> <span class="puce p-sai">Ouvert aux inscriptions</span> <span class="puce p-lis">Complet</span> <span class="puce p-ind">Terminé</span> <span class="puce p-tuto">Annulé</span>.</dd>
+        <dt>Critères</dt><dd>Activités dont la date de début est dans l'année choisie, les plus récentes en premier. Filtres Catégorie et Statut.</dd>
+        <dt>Boutons</dt><dd><span class="bouton plein">+ Nouvelle activité</span> · clic sur le nom → <a href="#act-selection">activité sélectionnée</a> · ✎ · 🗑 · Exporter en CSV.</dd>
+      </dl>
+      <div class="encadre attention">La suppression est refusée s'il existe des inscriptions, recettes ou dépenses liées : passez plutôt l'activité au statut <strong style="display:inline">Annulé</strong> (voir le <a href="#tuto-annuler-activite">tuto</a>).</div>
+    </article>
+    <article class="fiche" id="act-locations" data-mots="liste locations mobil-home camping semaine aide part adherent">
+      <h4>Locations de mobil-home</h4>
+      <figure class="capture"><img src="captures/act-locations.webp" alt="Liste des locations de mobil-home"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>N°, Adhérent, Type, Camping, Semaine du, Coût, Aide asso, Part adhérent.</dd>
+        <dt>Critères</dt><dd>Locations de l'année (année de la semaine), dans l'ordre des semaines. Filtres Camping et Aide (avec / sans).</dd>
+        <dt>Boutons</dt><dd><span class="bouton plein">+ Nouvelle location</span> · ✎ · 🗑 (supprime aussi la dépense et la recette, et recalcule les aides) · Exporter en CSV.</dd>
+      </dl>
+    </article>
+    <article class="fiche" id="act-aides" data-mots="aides mobil-home par titulaire plafond atteint reste semaines louees">
+      <h4>Aides mobil-home par titulaire</h4>
+      <figure class="capture"><img src="captures/act-aides.webp" alt="Liste des aides mobil-home par titulaire"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>Une ligne par titulaire ayant loué dans l'année : semaines louées, aides utilisées / plafond, reste (ou badge « plafond atteint »), montant versé par l'association. Le badge en haut compte les titulaires au plafond.</dd>
+        <dt>À quoi elle sert</dt><dd>Répondre tout de suite à « ai-je encore droit à une aide ? ». Filtre État : Aide encore possible / Plafond atteint.</dd>
+      </dl>
+    </article>
+  </div>
+
+  <!-- ─────────── Tutos ─────────── -->
+  <div class="zone tutos">
+    <h3 class="zone-titre" id="act-tutos">Tutos</h3>
+
+    <div class="tuto" id="tuto-activite" data-mots="creer activite sortie sejour nouvelle activite echeances 3 fois">
+      <h4>Créer une sortie payable en 3 fois <span class="duree">3 min</span></h4>
+      <p class="objectif">Exemple : « Sortie exercice » le 05/12/2026, 20 places, prix 45 €, coût réel 60 €.</p>
+      <ol class="etapes">
+        <li>Cliquez sur <span class="bouton plein">+ Nouvelle activité</span> (au-dessus de la liste des activités). Saisissez l'intitulé et le statut <strong>Ouvert aux inscriptions</strong>.</li>
+        <li>Choisissez la catégorie <strong>2. Sorties et spectacles</strong> puis la sous-catégorie <strong>2.2</strong> ; lisez l'encadré « Ce qu'elle recouvre ».</li>
+        <li>Saisissez la date de début, le lieu et <strong>20</strong> places.</li>
+        <li>Choisissez <strong>3 fois</strong> dans « Nombre d'échéances » : trois cases date apparaissent.</li>
+        <li>Facultatif : saisissez les dates des échéances (sinon l'outil les calcule).</li>
+        <li>Saisissez le prix <strong>45</strong> et le coût réel <strong>60</strong> : la participation de l'association s'affiche (15 € · 25 %).</li>
+        <li>Pour un essai, <strong>décochez</strong> la notification par mail.</li>
+        <li><span class="bouton plein">Enregistrer l'activité</span>.</li>
+      </ol>
+      <figure class="capture"><img src="captures/tuto-activite-fiche.webp" alt="Fiche activité remplie avec les étapes numérotées"></figure>
+      <div class="resultat"><strong>Résultat :</strong> l'activité s'ouvre dans « Sélectionner une activité existante », apparaît dans la liste et au calendrier le 5 décembre, avec ses échéances.</div>
+    </div>
+
+    <div class="tuto" id="tuto-inscrire" data-mots="inscrire quelqu un activite inscription participant cases de paiement">
+      <h4>Inscrire quelqu'un à une activité <span class="duree">1 min</span></h4>
+      <ol class="etapes">
+        <li>Dans <strong>Sélectionner une activité existante</strong>, choisissez l'activité. Sous « Inscrire un membre », tapez le nom et cliquez sur la proposition.</li>
+        <li>Vérifiez le <strong>montant dû</strong> (le prix par personne est proposé).</li>
+        <li>Cliquez sur <span class="bouton plein">Inscrire</span>.</li>
+      </ol>
+      <figure class="capture"><img src="captures/tuto-inscrire.webp" alt="Inscrire un membre"></figure>
+      <div class="resultat"><strong>Résultat :</strong> la personne apparaît dans le suivi avec ses 3 cases de paiement de 15 €, chacune avec sa date prévue.</div>
+      <figure class="capture"><img src="captures/tuto-cases.webp" alt="Cases de paiement créées"><figcaption>1 = case « Payé » · 2 = date prévue, modifiable d'un clic · 3 = désinscrire de l'activité.</figcaption></figure>
+      <div class="cote">
+        <div class="encadre astuce"><strong>Changer la date d'une échéance</strong>Cliquez sur « prévue jj/mm ✎ » : une fenêtre permet de saisir une autre date, même après l'activité. Elle sert au repérage des retards.</div>
+        <figure class="capture"><img src="captures/tuto-date-echeance.webp" alt="Fenêtre de modification de la date prévue"></figure>
+      </div>
+    </div>
+
+    <div class="tuto" id="tuto-payer" data-mots="enregistrer paiement recu payer cheque virement valider echeance cocher paye">
+      <h4>Enregistrer un paiement reçu <span class="duree">30 s</span></h4>
+      <ol class="etapes">
+        <li>Dans le suivi des paiements, <strong>cochez la case</strong> de l'échéance payée.</li>
+        <li>Vérifiez la <strong>date de paiement</strong> et le <strong>mode</strong> (chèque par défaut), puis <span class="bouton plein">Valider le paiement</span>.</li>
+      </ol>
+      <div class="cote">
+        <figure class="capture"><img src="captures/tuto-payer.webp" alt="Fenêtre Échéance payée"></figure>
+        <figure class="capture"><img src="captures/tuto-payees.webp" alt="Deux échéances payées"><figcaption>1 = échéance payée (verte, date du paiement) · 2 = échéance restant à payer.</figcaption></figure>
+      </div>
+      <div class="resultat"><strong>Résultat :</strong> une recette de 15 € est créée dans Budget &amp; Compta (origine Automatique, catégorie de l'activité). Le reste dû diminue d'autant. <strong>Ne ressaisissez pas</strong> cette recette à la main.</div>
+      <div class="encadre astuce">Une erreur ? Décochez la case : après confirmation, la recette est supprimée.</div>
+    </div>
+
+    <div class="tuto" id="tuto-rembourser" data-mots="rembourser remboursement echeance annulation desistement recette negative">
+      <h4>Rembourser une échéance <span class="duree">1 min</span></h4>
+      <ol class="etapes">
+        <li>Sur une échéance <strong>payée</strong>, cliquez sur <strong>↩</strong>.</li>
+        <li>Indiquez la <strong>date du remboursement</strong>, puis <span class="bouton" style="background:var(--red);color:#fff">Rembourser</span>.</li>
+        <li>Vérifiez dans <strong>Budget &amp; Compta → Recettes</strong> (tapez le nom de l'activité dans la recherche).</li>
+      </ol>
+      <div class="cote">
+        <figure class="capture"><img src="captures/tuto-rembourser.webp" alt="Fenêtre de remboursement"></figure>
+        <figure class="capture"><img src="captures/tuto-remboursee.webp" alt="Échéance remboursée"><figcaption>1 = badge « Remboursée » · 2 = ✕ annule le remboursement.</figcaption></figure>
+      </div>
+      <figure class="capture"><img src="captures/tuto-recettes-auto.webp" alt="Recettes automatiques et recette négative de remboursement"><figcaption>1 = libellé automatique · 2 = la recette négative de −15 € · 3 = l'origine.</figcaption></figure>
+      <div class="resultat"><strong>Résultat :</strong> une recette négative de −15 €, origine « Remboursement ». La recette du paiement reste : au total, les recettes de l'année n'ont pas bougé pour cette échéance. Aucune dépense n'est créée.</div>
+      <div class="encadre info">Pour une personne qui se désiste : <strong style="display:inline">Désinscrire</strong> supprime ses échéances non payées ; remboursez ensuite, une par une, celles qu'elle avait déjà payées.</div>
+    </div>
+
+    <div class="tuto" id="tuto-mobilhome" data-mots="louer mobil-home location camping semaine aide titulaire">
+      <h4>Louer un mobil-home à un adhérent <span class="duree">1 min</span></h4>
+      <ol class="etapes">
+        <li><span class="bouton plein">+ Nouvelle location</span> (au-dessus de la liste des locations), puis tapez le nom de l'adhérent et choisissez le camping.</li>
+        <li>Saisissez la <strong>semaine</strong> (date de début) et le <strong>coût</strong> de la location.</li>
+        <li>Laissez la <strong>date de paiement</strong> (aujourd'hui) ou mettez la date réelle.</li>
+        <li>Lisez l'encadré : aide accordée ou non, et part restant à l'adhérent. Puis <span class="bouton plein">Enregistrer la location</span>.</li>
+      </ol>
+      <figure class="capture"><img src="captures/tuto-mobilhome.webp" alt="Location de mobil-home avec calcul de l'aide"></figure>
+      <div class="resultat"><strong>Résultat :</strong> pour un titulaire et une location de 400 € : aide de 60 €, dépense de 400 € au camping et recette de 340 €, en 1.2, origine Automatique (dans l'année de la semaine louée).</div>
+    </div>
+
+    <div class="tuto" id="tuto-fiche-inscription" data-mots="imprimer fiche inscription pdf liste inscrits emargement">
+      <h4>Imprimer la fiche d'inscription <span class="duree">30 s</span></h4>
+      <ol class="etapes">
+        <li>Choisissez l'activité dans « Sélectionner une activité existante » et cliquez sur <span class="bouton">🖨 Générer la fiche d'inscription</span>.</li>
+        <li>Cliquez sur <strong>ouvrir le PDF</strong> (ou le Google Doc, pour le retoucher) et imprimez.</li>
+      </ol>
+      <figure class="capture"><img src="captures/tuto-fiche-inscription.webp" alt="Liens vers la fiche générée"></figure>
+    </div>
+
+    <div class="tuto" id="tuto-annuler-activite" data-mots="annuler activite annulation statut annule rembourser tous">
+      <h4>Annuler une activité <span class="duree">5 min</span></h4>
+      <ol class="etapes">
+        <li>Choisissez l'activité et cliquez sur <span class="bouton">✎ Modifier la fiche</span>.</li>
+        <li>Mettez le statut <strong>Annulé</strong> et enregistrez : l'activité est barrée au calendrier, sortie des graphiques, et plus personne ne peut s'y inscrire.</li>
+        <li>Dans le suivi des paiements, <strong>remboursez</strong> (↩) chaque échéance déjà payée, puis désinscrivez les participants si vous le souhaitez.</li>
+      </ol>
+      <div class="encadre info">Ne supprimez pas l'activité : la suppression est refusée dès qu'il existe des inscriptions ou des paiements, et le statut « Annulé » garde l'historique.</div>
+    </div>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>

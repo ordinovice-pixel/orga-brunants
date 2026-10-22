@@ -1,0 +1,216 @@
+<!-- ═════════════════════════════ BUDGET & COMPTA ═════════════════════════════ -->
+<section class="rubrique" id="bud" data-rubrique="2. Budget & Compta">
+  <h2 class="titre-rub"><span class="num">2</span> Budget &amp; Compta</h2>
+  <div class="resume"><strong>La comptabilité de l'année</strong> (recettes et dépenses) et le suivi du budget prévisionnel par catégorie. Une seule saisie : les paiements des activités, les remboursements et les locations de mobil-home <strong>arrivent ici tout seuls</strong>. On ne les ressaisit jamais.</div>
+
+  <!-- ─────────── Indicateurs ─────────── -->
+  <div class="zone ind">
+    <h3 class="zone-titre" id="bud-indicateurs">Indicateurs</h3>
+    <figure class="capture"><img src="captures/bud-indicateurs.webp" alt="Indicateurs Recettes, Dépenses, Solde budget, Hors budget"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="bud-recettes-kpi" data-mots="recettes total annee evolution encaissements">
+        <h4>Recettes</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le total des recettes de l'année et l'évolution par rapport à l'année précédente (« ↑ +12 % par rapport à 2025 »).</dd>
+          <dt>Comment c'est calculé</dt><dd>Somme de toutes les recettes datées de l'année : saisies à la main et automatiques. Les remboursements (recettes négatives) viennent en déduction.</dd>
+          <dt>À quoi ça sert</dt><dd>Suivre les rentrées d'argent.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="bud-depenses-kpi" data-mots="depenses total annee evolution">
+        <h4>Dépenses</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le total des dépenses de l'année et l'évolution par rapport à l'année précédente.</dd>
+          <dt>Comment c'est calculé</dt><dd>Somme de toutes les dépenses datées de l'année, budgétées <em>et</em> hors budget.</dd>
+          <dt>À quoi ça sert</dt><dd>Suivre les sorties d'argent.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="bud-solde" data-mots="solde budget reste consomme previsionnel depassement rouge">
+        <h4>Solde budget</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Ce qu'il reste à dépenser sur le budget prévisionnel, le % restant et le consommé (« consommé 25 803 € / 32 300 € »).</dd>
+          <dt>Comment c'est calculé</dt><dd><span class="formule">budget prévisionnel total de l'année − dépenses « Budgété » de l'année</span>. Les recettes ne sont <strong>pas</strong> déduites ; les dépenses « Hors budget » ne consomment pas le budget.</dd>
+          <dt>À quoi ça sert</dt><dd>Tenir le budget voté. La carte devient <strong style="color:var(--red)">rouge</strong> avec un « − » en cas de dépassement. Sans budget saisi, elle indique « aucun budget prévisionnel saisi ».</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="bud-hors" data-mots="hors budget depenses exceptionnelles imprevues">
+        <h4>Dépenses hors budget</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le total des dépenses marquées « Hors budget » et leur part dans toutes les dépenses de l'année.</dd>
+          <dt>Comment c'est calculé</dt><dd>Somme des dépenses de l'année dont le choix « Budget » est « Hors budget ».</dd>
+          <dt>À quoi ça sert</dt><dd>Suivre à part les dépenses exceptionnelles, qui ne doivent pas fausser le suivi du budget.</dd>
+        </dl>
+      </article>
+    </div>
+
+    <figure class="capture"><img src="captures/bud-graphiques.webp" alt="Graphiques de Budget et Compta"></figure>
+    <article class="fiche" id="bud-graphiques" data-mots="graphique recettes depenses mensuel repartition categorie">
+      <h4>Les deux graphiques</h4>
+      <p><strong>Recettes vs Dépenses</strong> (mois par mois) et <strong>Répartition des dépenses par catégorie</strong> sont les mêmes que ceux du tableau de bord : voir <a href="#tdb-graph-mensuel">Recettes vs Dépenses</a> et <a href="#tdb-graph-categories">Répartition des dépenses</a>.</p>
+    </article>
+
+    <figure class="capture"><img src="captures/bud-suivi.webp" alt="Tableau de suivi du budget par catégorie"></figure>
+    <article class="fiche" id="bud-suivi" data-mots="suivi budget categorie previsionnel realise reste consomme progression barre">
+      <h4>Budget prévisionnel par catégorie — suivi</h4>
+      <dl class="grille">
+        <dt>Ce que ça montre</dt><dd>Une ligne par catégorie de dépenses (1 à 7) et une ligne Total : budget prévisionnel, dépenses réalisées, reste, % consommé, barre de progression, hors budget.</dd>
+        <dt>Comment c'est calculé</dt><dd>
+          <ul class="serre">
+            <li><strong>Dépenses réalisées</strong> = dépenses « Budgété » de la catégorie dans l'année ;</li>
+            <li><strong>Reste</strong> = budget − dépenses réalisées (en rouge s'il est négatif) ;</li>
+            <li><strong>Consommé</strong> = dépenses réalisées ÷ budget ;</li>
+            <li><strong>Barre</strong> : <span style="color:var(--green)">verte</span> sous 80 %, <span style="color:var(--accent)">orange</span> de 80 à 100 %, <span style="color:var(--red)">rouge</span> au-delà ;</li>
+            <li>« non saisi » quand aucun budget n'a été prévu pour la catégorie.</li>
+          </ul></dd>
+        <dt>À quoi ça sert</dt><dd>Voir quelle catégorie s'approche de son budget avant qu'elle le dépasse. Un dépassement déclenche aussi une <a href="#tdb-alertes">alerte</a> au tableau de bord.</dd>
+      </dl>
+    </article>
+  </div>
+
+  <!-- ─────────── Saisie ─────────── -->
+  <div class="zone sai">
+    <h3 class="zone-titre" id="bud-saisie">Saisie</h3>
+    <figure class="capture"><img src="captures/bud-formulaires.webp" alt="Formulaires de saisie dépense et recette"><figcaption>Les deux formulaires côte à côte : dépense à gauche, recette à droite.</figcaption></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="bud-depense" data-mots="saisir depense facture payer fournisseur prestataire justificatif budgete hors budget">
+        <h4>Saisir une dépense</h4>
+        <dl class="grille">
+          <dt>Obligatoires</dt><dd>Date de paiement, Montant (&gt; 0), Libellé, Catégorie (1 à 7).</dd>
+          <dt>Facultatifs</dt><dd>Sous-catégorie · Prestataire (« Autre » en bas de liste) · Activité liée · Mode de paiement (chèque, virement, carte bancaire, espèces, prélèvement) · Facture / justificatif · Commentaire · Budget : <strong>Budgété</strong> (par défaut) ou <strong>Hors budget</strong>.</dd>
+          <dt>Bon à savoir</dt><dd>La date proposée est aujourd'hui (ou le 31/12 si une année passée est affichée). Lier la dépense à un <strong>prestataire</strong> la fait apparaître dans ses <a href="#pre-factures">factures</a>.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="bud-recette" data-mots="saisir recette encaisser cotisations adhesion don subvention 8.2 8.3 8.1 adherent concerne">
+        <h4>Saisir une recette : cotisation, don, subvention…</h4>
+        <dl class="grille">
+          <dt>Obligatoires</dt><dd>Date d'encaissement, Montant (&gt; 0), Libellé, Catégorie (1 à 8).</dd>
+          <dt>Facultatifs</dt><dd>Sous-catégorie · Activité liée · Adhérent concerné (taper un nom) · Mode d'encaissement · Justificatif · Commentaire · Budgété / Hors budget (pour information : les recettes n'entrent pas dans le solde budget).</dd>
+          <dt>Cotisations, dons, subventions</dt><dd>Catégorie <strong>8. Subvention et Adhésions</strong> : 8.1 Subvention, 8.2 Adhésion, 8.3 Dons.</dd>
+        </dl>
+        <div class="encadre attention"><strong>La cotisation de la fiche adhérent ne crée pas de recette</strong>L'encaissement des cotisations se saisit ici, en 8.2 Adhésion, par exemple une ligne par remise de chèques (« Cotisations octobre, 5 adhérents »).</div>
+      </article>
+    </div>
+
+    <article class="fiche" id="bud-categories" data-mots="categorie sous-categorie ce qu elle recouvre choisir classer numero 1 2 3 4 5 6 7 8">
+      <h4>Bien choisir la catégorie et la sous-catégorie</h4>
+      <ul class="serre">
+        <li>Les <strong>catégories 1 à 7</strong> (Séjours et villégiatures, Sorties et spectacles, Convivialité et fêtes, Loisirs et animations, Culture, créativité et bien-être, Informatique et apprentissages, Fonctionnement association) servent aux dépenses <strong>et</strong> aux recettes qui y sont liées : la participation des adhérents à un séjour va en recette dans la même sous-catégorie que la dépense du séjour.</li>
+        <li>La <strong>catégorie 8</strong> (Subvention et Adhésions) ne sert qu'aux recettes : elle n'apparaît pas dans le formulaire de dépense.</li>
+        <li>Après le choix d'une sous-catégorie, l'encadré bleu <strong>« Ce qu'elle recouvre »</strong> s'affiche dessous : il décrit ce qu'on y range. Passez la souris sur les choix de la liste pour les comparer.</li>
+        <li>Le numéro en tête du nom (« 2.2 … ») fixe l'ordre des listes.</li>
+      </ul>
+    </article>
+
+    <article class="fiche" id="bud-justificatif" data-mots="justificatif facture lien drive ouvrir trombone piece jointe recu">
+      <h4>Joindre un justificatif</h4>
+      <p>Dans « Facture / justificatif », saisissez soit un <strong>numéro</strong> (de facture, de reçu), soit le <strong>lien de partage</strong> du fichier rangé sur le Drive. Avec un lien, un lien « 📎 Ouvrir le document » apparaît sous le champ, et les listes affichent <strong>📎 Ouvrir</strong> : un clic ouvre le fichier dans un nouvel onglet. Un simple numéro reste affiché en texte.</p>
+    </article>
+
+    <article class="fiche" id="bud-auto" data-mots="lignes automatiques origine automatique remboursement modifier supprimer double saisie activites mobil home">
+      <h4>Les lignes automatiques</h4>
+      <dl class="grille">
+        <dt>D'où elles viennent</dt><dd>
+          <ul class="serre">
+            <li>case <strong>Payé</strong> cochée sur une échéance d'activité → une <strong>recette</strong> ;</li>
+            <li><strong>↩ Rembourser</strong> une échéance → une <strong>recette négative</strong> ;</li>
+            <li><strong>location de mobil-home</strong> → une <strong>dépense</strong> (le camping) et une <strong>recette</strong> (la part de l'adhérent).</li>
+          </ul></dd>
+        <dt>Comment les reconnaître</dt><dd>Colonne « Origine » : badge vert <strong>Automatique</strong> ou <strong>Remboursement</strong> (une saisie à la main affiche « Manuelle »).</dd>
+        <dt>Modifier ou supprimer</dt><dd>Impossible ici : ✎ et 🗑 affichent un message qui renvoie vers la rubrique <a href="#act">Activités</a>. On décoche « Payé », on annule le remboursement ou on modifie la location : la ligne suit.</dd>
+      </dl>
+      <div class="encadre auto"><strong>Une seule saisie</strong>C'est ce qui garantit qu'un paiement n'est jamais compté deux fois.</div>
+    </article>
+
+    <article class="fiche" id="bud-modifier" data-mots="modifier supprimer recette depense manuelle corriger erreur">
+      <h4>Modifier ou supprimer une ligne saisie à la main</h4>
+      <p>Dans la liste, ✎ charge la ligne dans le formulaire (titre « Modifier DEP-… ») ; corrigez puis <span class="bouton plein">Enregistrer les modifications</span>. 🗑 supprime la ligne après confirmation.</p>
+    </article>
+
+    <article class="fiche" id="bud-budgets" data-mots="budget previsionnel saisir montant categorie annee reprendre annee precedente voter">
+      <h4>Budgets prévisionnels</h4>
+      <figure class="capture"><img src="captures/bud-budgets.webp" alt="Formulaire des budgets prévisionnels"></figure>
+      <dl class="grille">
+        <dt>Ce qu'on peut faire</dt><dd>Saisir un montant par catégorie (1 à 7) pour l'année affichée en haut de page. Le total se recalcule pendant la frappe. Une case vide vaut 0 €.</dd>
+        <dt>Repères</dt><dd>Les colonnes « Budget » et « Dépenses » de l'année précédente aident à fixer les montants.</dd>
+        <dt>Boutons</dt><dd><span class="bouton">Reprendre les budgets 2025</span> recopie ceux de l'année précédente (à ajuster) · <span class="bouton">Annuler les modifications</span> · <span class="bouton plein">Enregistrer le budget prévisionnel 2026</span>.</dd>
+      </dl>
+      <p>Voir le <a href="#tuto-budget">tuto</a>.</p>
+    </article>
+  </div>
+
+  <!-- ─────────── Listes ─────────── -->
+  <div class="zone lis">
+    <h3 class="zone-titre" id="bud-listes">Listes</h3>
+    <article class="fiche" id="bud-liste-depenses" data-mots="liste depenses filtres categorie activite origine budget mode prestataire">
+      <h4>Dépenses</h4>
+      <figure class="capture"><img src="captures/bud-depenses.webp" alt="Liste des dépenses"><figcaption>En-têtes rouge clair pour les dépenses.</figcaption></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>Date, N°, Libellé (avec 📎 et commentaire), Catégorie, Sous-catégorie, Prestataire, Activité, Montant, Budget (<span class="puce p-ind">Budgété</span> ou <span class="puce p-lis">Hors budget</span>), Origine.</dd>
+        <dt>Critères</dt><dd>Les dépenses dont la date de paiement est dans l'année choisie, les plus récentes en premier.</dd>
+        <dt>Filtres</dt><dd>Catégorie · Activité · Origine (Manuelle / Automatique) · Budget · Mode · Prestataire.</dd>
+        <dt>Boutons</dt><dd><span class="bouton plein">+ Nouvelle dépense</span> · ✎ · 🗑 · Exporter en CSV (mode de paiement, justificatif et commentaire en colonnes séparées).</dd>
+      </dl>
+    </article>
+    <article class="fiche" id="bud-liste-recettes" data-mots="liste recettes filtres adherent remboursement negatif">
+      <h4>Recettes</h4>
+      <figure class="capture"><img src="captures/bud-recettes.webp" alt="Liste des recettes"><figcaption>En-têtes vert clair pour les recettes.</figcaption></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>Mêmes colonnes que les dépenses, avec l'<strong>Adhérent</strong> à la place du prestataire. Les remboursements apparaissent en montant négatif, origine « Remboursement ».</dd>
+        <dt>Critères</dt><dd>Les recettes dont la date d'encaissement est dans l'année choisie, les plus récentes en premier.</dd>
+        <dt>Filtres</dt><dd>Catégorie · Activité · Origine · Budget · Mode.</dd>
+        <dt>Astuce</dt><dd>Tapez le nom d'une activité dans la recherche pour voir tous ses paiements.</dd>
+      </dl>
+    </article>
+    <article class="fiche" id="bud-excedents" data-mots="cotisations superieures attendu excedent soutien don">
+      <h4>Cotisations supérieures à l'attendu</h4>
+      <figure class="capture"><img src="captures/bud-excedents.webp" alt="Liste des cotisations supérieures à l'attendu"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>N°, Adhérent, Type, Attendu, Versé, Excédent. Le badge en haut donne le total des excédents et le nombre d'adhérents.</dd>
+        <dt>Critères</dt><dd>Adhérents de l'année dont la cotisation (champ de la fiche adhérent) dépasse la cotisation par défaut (15 €). Triée par excédent décroissant.</dd>
+        <dt>À quoi elle sert</dt><dd>Tracer, par transparence, le soutien supplémentaire de certains adhérents (remerciements, reçus).</dd>
+      </dl>
+    </article>
+  </div>
+
+  <!-- ─────────── Tutos ─────────── -->
+  <div class="zone tutos">
+    <h3 class="zone-titre" id="bud-tutos">Tutos</h3>
+    <div class="tuto" id="tuto-depense" data-mots="saisir depense facture prestataire justificatif lien drive billetterie">
+      <h4>Saisir une facture (dépense) avec son justificatif <span class="duree">2 min</span></h4>
+      <p class="objectif">Exemple : 900 € de billetterie pour une sortie, payés par virement.</p>
+      <ol class="etapes">
+        <li>Cliquez sur <span class="bouton plein">+ Nouvelle dépense</span> (au-dessus de la liste des dépenses). Vérifiez la <strong>date de paiement</strong>, puis saisissez le montant <strong>900</strong> et le libellé.</li>
+        <li>Choisissez la catégorie <strong>2. Sorties et spectacles</strong>, puis la sous-catégorie <strong>2.2</strong>.</li>
+        <li>Lisez l'encadré « Ce qu'elle recouvre » pour confirmer le choix.</li>
+        <li>Choisissez le <strong>prestataire</strong>, l'<strong>activité liée</strong> et le mode de paiement.</li>
+        <li>Collez le <strong>lien de partage</strong> de la facture rangée sur le Drive.</li>
+        <li>Laissez <strong>Budgété</strong> coché, puis <span class="bouton plein">Enregistrer la dépense</span>.</li>
+      </ol>
+      <figure class="capture moyenne"><img src="captures/tuto-depense.webp" alt="Formulaire de dépense rempli"></figure>
+      <div class="resultat"><strong>Résultat :</strong> les dépenses de l'année augmentent de 900 €, le solde budget baisse de 900 €, la ligne 2 du suivi du budget aussi. Dans la liste, <strong>📎 Ouvrir</strong> ouvre la facture. Dans Prestataires, le cumul de ce prestataire augmente de 900 €.</div>
+      <figure class="capture"><img src="captures/tuto-depense-liste.webp" alt="Dépense dans la liste avec le lien Ouvrir"></figure>
+    </div>
+
+    <div class="tuto" id="tuto-budget" data-mots="preparer budget annee suivante previsionnel reprendre">
+      <h4>Préparer le budget de l'année suivante <span class="duree">5 min</span></h4>
+      <ol class="etapes">
+        <li>En haut de page, choisissez la <strong>nouvelle année</strong>. Si elle n'est pas proposée, saisissez d'abord une ligne datée de cette année (une activité, par exemple), ou attendez le 1er janvier.</li>
+        <li>Dans <strong>Budgets prévisionnels</strong>, cliquez sur <span class="bouton">Reprendre les budgets</span> : les montants de l'année précédente sont recopiés.</li>
+        <li>Ajustez chaque montant en vous aidant des colonnes « Budget » et « Dépenses » de l'année précédente, puis <span class="bouton plein">Enregistrer le budget prévisionnel</span>.</li>
+      </ol>
+      <figure class="capture"><img src="captures/tuto-budgets.webp" alt="Boutons Reprendre et Enregistrer du budget prévisionnel"><figcaption>1 = Reprendre les budgets de l'année précédente · 2 = Enregistrer.</figcaption></figure>
+      <div class="resultat"><strong>Résultat :</strong> le solde budget et le tableau de suivi de la nouvelle année utilisent ces montants.</div>
+    </div>
+
+    <div class="tuto" id="tuto-export" data-mots="exporter csv excel liste fichier telecharger">
+      <h4>Exporter une liste dans Excel <span class="duree">1 min</span></h4>
+      <p class="objectif">Exemple : toutes les dépenses de la catégorie « 3. Convivialité et fêtes ».</p>
+      <ol class="etapes">
+        <li>Choisissez l'année en haut de page.</li>
+        <li>Dans la liste des dépenses, filtre <strong>Catégorie → 3. Convivialité et fêtes</strong>.</li>
+        <li>Cliquez sur <span class="bouton">📥 Exporter en CSV</span>. Le fichier <em>depenses_2026_….csv</em> se télécharge ; ouvrez-le avec Excel.</li>
+      </ol>
+      <div class="encadre info">L'export contient <strong style="display:inline">toutes les lignes filtrées</strong>, même celles des pages suivantes. Le même bouton existe sur toutes les listes de l'outil.</div>
+    </div>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>

@@ -1,0 +1,265 @@
+<!-- ═════════════════════════════ ADHÉRENTS ═════════════════════════════ -->
+<section class="rubrique" id="adh" data-rubrique="1. Adhérents">
+  <h2 class="titre-rub"><span class="num">1</span> Adhérents</h2>
+  <div class="resume"><strong>L'annuaire des adhérents</strong>, titulaires et sympathisants : création des fiches, mises à jour, départs, décès et retours. Chaque fiche a un numéro (ADH-0012) qui la relie aux activités, au mobil-home et à la comptabilité. Ces données sont personnelles (RGPD) : elles restent au sein du bureau.</div>
+
+  <!-- ─────────── Indicateurs ─────────── -->
+  <div class="zone ind">
+    <h3 class="zone-titre" id="adh-indicateurs">Indicateurs</h3>
+    <figure class="capture"><img src="captures/adh-indicateurs.webp" alt="Indicateurs de la rubrique Adhérents"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="adh-effectif" data-mots="effectif total titulaires sympathisants">
+        <h4>Effectif total</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le nombre d'adhérents de l'année, avec le détail titulaires / sympathisants (et leur %).</dd>
+          <dt>Comment c'est calculé</dt><dd>Toute personne adhérente à un moment de l'année, y compris celles parties ou décédées en cours d'année (voir <a href="#bases-annee">règles de l'année</a>).</dd>
+          <dt>À quoi ça sert</dt><dd>Le chiffre de référence pour l'AG et les demandes de subvention.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="adh-nouveaux" data-mots="nouveaux arrivants nouvelles adhesions comparaison annee precedente">
+        <h4>Nouveaux arrivants</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le nombre de personnes inscrites dans l'année, et l'évolution par rapport à l'année précédente (« ↑ +8 % par rapport à 2025 »).</dd>
+          <dt>Comment c'est calculé</dt><dd>Fiches dont la <strong>date d'inscription</strong> tombe dans l'année.</dd>
+          <dt>À quoi ça sert</dt><dd>Mesurer l'attractivité de l'association.</dd>
+        </dl>
+        <div class="encadre info">Une personne <a href="#adh-reinscrire">réinscrite</a> compte comme nouvel arrivant : sa date de réinscription devient sa date d'inscription.</div>
+      </article>
+      <article class="fiche" id="adh-age" data-mots="age moyen moyenne date de naissance">
+        <h4>Âge moyen</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>L'âge moyen des adhérents de l'année, et sur combien de personnes il est calculé.</dd>
+          <dt>Comment c'est calculé</dt><dd>Moyenne des âges des fiches qui ont une date de naissance. Âge atteint aujourd'hui pour l'année en cours, au 31 décembre pour une année passée, ou à la date de départ pour une personne partie avant.</dd>
+          <dt>À quoi ça sert</dt><dd>Adapter les activités (rythme, distances…).</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="adh-deces" data-mots="deces decedes annee nombre">
+        <h4>Décès</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le nombre de décès enregistrés dans l'année, avec les trois premiers noms.</dd>
+          <dt>Comment c'est calculé</dt><dd>Fiches cochées « Décès » dont la date du décès est dans l'année.</dd>
+          <dt>À quoi ça sert</dt><dd>Hommage en AG, faire-part, mise à jour des envois.</dd>
+        </dl>
+      </article>
+    </div>
+
+    <figure class="capture"><img src="captures/adh-repartitions.webp" alt="Répartitions et tranches d'âge"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="adh-hf" data-mots="hommes femmes sexe repartition">
+        <h4>Hommes / Femmes</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd>Selon le champ « Sexe » de la fiche. Les fiches sans sexe sont indiquées à part (« non renseigné »).</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="adh-region" data-mots="ile de france province region code postal departement">
+        <h4>Île-de-France / Province</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd>Région calculée à partir des deux premiers chiffres du code postal : 75, 77, 78, 91, 92, 93, 94, 95 = Île-de-France ; tout autre code = Province. Les fiches sans code postal sont comptées à part.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="adh-anciennete" data-mots="anciennete moyenne duree adhesion">
+        <h4>Ancienneté moyenne</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd>Durée moyenne, en années, entre la date d'inscription et aujourd'hui (ou le 31 décembre d'une année passée, ou la date de départ).</dd>
+        </dl>
+        <div class="encadre attention">Les fiches importées avec une date d'entrée provisoire au 01/01/2000 gonflent ce chiffre. Il deviendra juste à mesure que les vraies dates seront saisies (voir <a href="#tuto-completer">compléter une fiche</a>).</div>
+      </article>
+      <article class="fiche" id="adh-tranches" data-mots="tranche age pyramide 60 70 75 80 85 ans">
+        <h4>Répartition par tranche d'âge</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Six tranches (moins de 60 ans, 60–70, 70–75, 75–80, 80–85, plus de 85 ans) avec l'effectif, la part et une barre. Les deux dernières tranches sont mises en avant en orange.</dd>
+          <dt>Calcul</dt><dd>Part calculée sur les personnes dont l'âge est connu. Une ligne « Âge non renseigné » compte les autres.</dd>
+        </dl>
+      </article>
+    </div>
+
+    <figure class="capture"><img src="captures/adh-participation.webp" alt="Participation aux activités"></figure>
+    <article class="fiche" id="adh-participants" data-mots="participants non participants reengager activite mobil home participation">
+      <h4>Participation aux activités <span class="ou">participants, non-participants, par région</span></h4>
+      <dl class="grille">
+        <dt>Ce que ça montre</dt><dd>Combien d'adhérents ont participé à au moins une activité dans l'année, combien n'ont participé à rien, et où habitent ces non-participants (Île-de-France / Province).</dd>
+        <dt>Comment c'est calculé</dt><dd><strong>Participant</strong> = adhérent de l'année inscrit à au moins une activité de l'année (inscription non annulée) <em>ou</em> ayant loué un mobil-home dans l'année.</dd>
+        <dt>À quoi ça sert</dt><dd>Repérer les adhérents « à réengager ». Astuce : dans la <a href="#adh-liste">liste des adhérents</a>, le filtre <em>Participation → Non-participant</em> donne leurs noms, exportables en CSV.</dd>
+      </dl>
+    </article>
+  </div>
+
+  <!-- ─────────── Saisie ─────────── -->
+  <div class="zone sai">
+    <h3 class="zone-titre" id="adh-saisie">Saisie</h3>
+    <article class="fiche" id="adh-fiche" data-mots="fiche adherent creer modifier nouvel adherent formulaire conjoint rattachement cotisation maillon facebook communications jmb commentaire">
+      <h4>La fiche adhérent <span class="ou">créer ou modifier</span></h4>
+      <figure class="capture"><img src="captures/adh-formulaire.webp" alt="Formulaire de la fiche adhérent"></figure>
+      <dl class="grille">
+        <dt>Ce qu'on peut faire</dt><dd><strong>Créer</strong> une fiche (<span class="bouton plein">+ Nouvel adhérent</span> au-dessus de la liste), la <strong>modifier</strong> (✎ dans la liste), enregistrer un <strong>départ</strong> ou un <strong>décès</strong>.</dd>
+        <dt>Obligatoires</dt><dd>Sexe, Nom, Prénom, Date d'inscription (aujourd'hui par défaut), Type (Titulaire par défaut).</dd>
+        <dt>Les autres champs</dt><dd>
+          <ul class="serre">
+            <li><strong>Civilité</strong> : choisir « Mme » ou « M. » remplit le sexe tout seul.</li>
+            <li><strong>Date de naissance</strong> : donnée sensible, sert à l'âge.</li>
+            <li><strong>Adresse, code postal, ville</strong> : la région se calcule toute seule.</li>
+            <li><strong>Mobile, téléphone fixe, deux e-mails.</strong></li>
+            <li><strong>Cotisation</strong> : 15 € proposés par défaut, modifiable pour un adhérent qui donne davantage (il apparaîtra dans les <a href="#bud-excedents">cotisations supérieures</a>).</li>
+            <li><strong>Rattachement conjoint(e)</strong> : tapez le nom du conjoint et choisissez-le. Le lien « + conjoint : … » s'affiche ensuite sous le nom, dans les deux fiches.</li>
+            <li><strong>Année entrée JMB, date sortie JMB.</strong></li>
+            <li><strong>Communications</strong> : Abonné à Facebook · Recevoir toutes les communications par mail · Souhaite recevoir le Maillon papier (coché par défaut) · Ne plus rien envoyer (la personne ne reçoit plus aucune notification).</li>
+            <li><strong>Fin d'adhésion</strong> : cases Désinscrit / Décès (voir ci-dessous). <strong>Commentaire</strong> libre.</li>
+          </ul></dd>
+        <dt>Contrôles</dt><dd>Code postal à 5 chiffres, e-mails et téléphones valides ; pas de date de naissance ou de décès dans le futur ; date d'inscription après la naissance ; date de fin après l'inscription ; sortie JMB après l'entrée JMB ; pas de <strong>doublon</strong> (même nom, prénom et date de naissance qu'une autre fiche).</dd>
+      </dl>
+      <div class="encadre auto"><strong>Ce que l'outil fait tout seul</strong>Il écrit le nom en MAJUSCULES, calcule la région, attribue le numéro ADH-…, et fait passer la fiche dans les archives si « Désinscrit » ou « Décès » est coché.</div>
+    </article>
+
+    <article class="fiche" id="adh-fin" data-mots="depart desinscription desinscrire quitter fin adhesion motif demenagement non renouvellement sante deces archives">
+      <h4>Enregistrer un départ ou un décès</h4>
+      <dl class="grille">
+        <dt>Deux façons</dt><dd><strong>Départ</strong> : cochez la case de la colonne « Désinscrit » dans la liste, puis choisissez le motif et la date (voir le <a href="#tuto-desinscrire">tuto</a>). <strong>Décès</strong> : ouvrez la fiche (✎), cochez « Décès » et saisissez la date (voir le <a href="#tuto-deces">tuto</a>). On peut aussi choisir le motif « Décès » dans la fenêtre de désinscription.</dd>
+        <dt>Motifs</dt><dd>Déménagement, Non renouvellement, Décès, Santé, Autre.</dd>
+        <dt>Contrôles</dt><dd>Date obligatoire, pas dans le futur, et pas avant la date d'inscription.</dd>
+        <dt>Effet</dt><dd>La fiche passe dans les <a href="#adh-archives">archives</a>. Elle reste comptée dans l'effectif de l'année de son départ, grisée dans la liste avec la mention « Désinscrit » ou « Décédé ».</dd>
+      </dl>
+    </article>
+
+    <article class="fiche" id="adh-supprimer" data-mots="supprimer fiche adherent effacer corbeille">
+      <h4>Supprimer une fiche</h4>
+      <p>🗑 dans la liste, après confirmation. La suppression est <strong>refusée</strong> si la personne apparaît ailleurs : inscriptions, mobil-home, recettes, conjoint d'une autre fiche, organisateur d'une activité…</p>
+      <div class="encadre astuce">Pour quelqu'un qui quitte l'association, utilisez plutôt <strong style="display:inline">la désinscription</strong> : la fiche et son historique sont conservés, et elle pourra être réinscrite. Ne supprimez que les fiches créées par erreur.</div>
+    </article>
+  </div>
+
+  <!-- ─────────── Listes ─────────── -->
+  <div class="zone lis">
+    <h3 class="zone-titre" id="adh-listes">Listes</h3>
+    <article class="fiche" id="adh-liste" data-mots="liste des adherents annuaire filtres type region sexe maillon mail participation exporter">
+      <h4>Liste des adhérents</h4>
+      <figure class="capture"><img src="captures/adh-liste.webp" alt="Liste des adhérents"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>Une ligne par adhérent : N°, Nom (et conjoint), Prénom, Type, Adresse postale, Âge, Téléphone · E-mail, Cotisation, Participation Association (€), Désinscrit.</dd>
+        <dt>Critères</dt><dd>Les adhérents de l'année choisie, <strong>y compris ceux partis en cours d'année</strong> (lignes grisées, avec la date de départ). Triée par nom.</dd>
+        <dt>Filtres</dt><dd>Type · Région · Sexe · Maillon (papier ou non) · Communications par mail · Participation (participant ou non) · <a href="#adh-acompleter">À compléter</a>.</dd>
+        <dt>Boutons</dt><dd><span class="bouton plein">+ Nouvel adhérent</span> · case <strong>Désinscrit</strong> · clic sur le <strong>montant de Participation</strong> → <a href="#adh-historique">historique</a> · ✎ · 🗑 · Exporter en CSV (téléphone, fixe et e-mail en colonnes séparées).</dd>
+        <dt>À quoi elle sert</dt><dd>Retrouver un adhérent, préparer un envoi, sortir une liste pour un organisateur.</dd>
+      </dl>
+    </article>
+
+    <article class="fiche" id="adh-acompleter" data-mots="a completer filtre fiche incomplete sans email sans telephone sans date de naissance adresse incomplete provisoire 01/01/2000 date entree">
+      <h4>Le filtre « À compléter »</h4>
+      <p>Il repère les fiches où il manque une information, en particulier après l'import du fichier de l'association. Six choix :</p>
+      <ul class="serre">
+        <li><strong>Date d'entrée provisoire (01/01/2000)</strong> : date d'inscription inconnue lors de l'import ;</li>
+        <li><strong>Sans date de naissance</strong> ;</li>
+        <li><strong>Sans e-mail</strong> (ni principal, ni secondaire) ;</li>
+        <li><strong>Sans téléphone</strong> (ni mobile, ni fixe) ;</li>
+        <li><strong>Adresse incomplète</strong> (adresse, code postal ou ville manquant) ;</li>
+        <li><strong>Fiche complète</strong> : rien ne manque.</li>
+      </ul>
+      <p>Une fiche à laquelle il manque plusieurs choses apparaît sous chacun des choix concernés. Dès qu'elle est complétée et enregistrée, elle sort du filtre. Voir le <a href="#tuto-completer">tuto</a>.</p>
+    </article>
+
+    <article class="fiche" id="adh-archives" data-mots="anciens adherents archives decedes desinscrits faire-part invitations reinscrire">
+      <h4>Anciens adhérents (archives)</h4>
+      <figure class="capture"><img src="captures/adh-archives.webp" alt="Liste des anciens adhérents"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>Toutes les fiches désinscrites ou décédées, quelle que soit l'année : N°, Nom, Prénom, Type, Date de sortie, Motif, Contact conservé (e-mail, sinon « Courrier postal », sinon téléphone), Info diffusée (« Non » si la case « Ne plus rien envoyer » est cochée).</dd>
+        <dt>Critères</dt><dd>Les sorties les plus récentes en premier. Filtres : Type de fin (Décès / Autre fin d'adhésion) et Année de sortie.</dd>
+        <dt>Boutons</dt><dd><span class="bouton">⚱ Décès de 2026</span> et <span class="bouton">📂 Autres fins d'adhésion de 2026</span> appliquent les filtres d'un clic ; <span class="bouton">Toutes les archives</span> les retire. Sur chaque ligne : <span class="bouton" style="background:#FEF5E7">↩ Réinscrire</span>, 📜 historique, ✎, 🗑.</dd>
+        <dt>À quoi elle sert</dt><dd>Garder le contact (invitations, faire-part), et pouvoir faire revenir une personne avec toutes ses coordonnées.</dd>
+      </dl>
+      <div class="encadre info">Les anciens adhérents peuvent demander à tout moment le retrait de leurs données (RGPD) : cochez alors « Ne plus rien envoyer », ou supprimez la fiche si elle n'est liée à rien.</div>
+    </article>
+
+    <article class="fiche" id="adh-reinscrire" data-mots="reinscrire reinscription revenir retour ancien adherent">
+      <h4>Réinscrire un ancien adhérent</h4>
+      <p><span class="bouton" style="background:#FEF5E7">↩ Réinscrire</span> dans les archives ouvre une petite fenêtre : date de réinscription (pas dans le futur) et type (titulaire ou sympathisant).</p>
+      <div class="encadre auto"><strong>Ce que l'outil fait tout seul</strong>La fiche revient dans la liste des adhérents avec toutes ses coordonnées. La date de réinscription devient la date d'inscription, et l'ancienne période est notée dans le commentaire : « Adhésion précédente du … au … (motif) ».</div>
+      <div class="encadre attention">Pour une fiche marquée « décédé », la réinscription n'est à utiliser que pour corriger une erreur de saisie.</div>
+    </article>
+
+    <article class="fiche" id="adh-historique" data-mots="historique adherent activites suivies participation association cumul toutes les annees">
+      <h4>Historique d'un adhérent</h4>
+      <figure class="capture"><img src="captures/adh-historique.webp" alt="Historique des activités d'un adhérent"></figure>
+      <dl class="grille">
+        <dt>Ce qu'il affiche</dt><dd>Les activités et locations de mobil-home d'un adhérent : code, activité, date, catégorie, payé par l'adhérent, coût par personne, Participation Association et %. Une ligne « Cumul » fait le total.</dd>
+        <dt>Critères</dt><dd>Période : <em>Année sélectionnée</em> ou <em>Toutes les années</em>. Les inscriptions annulées n'y figurent pas.</dd>
+        <dt>Comment l'ouvrir</dt><dd>Tapez un nom dans « Sélectionner un adhérent », ou cliquez sur le montant de la colonne Participation dans la liste, ou sur 📜 dans les archives.</dd>
+        <dt>À quoi il sert</dt><dd>Répondre à « à quoi a participé cette personne ? » et mesurer l'aide reçue (voir <a href="#glo-participation">Participation Association</a>).</dd>
+      </dl>
+    </article>
+  </div>
+
+  <!-- ─────────── Tutos ─────────── -->
+  <div class="zone tutos">
+    <h3 class="zone-titre" id="adh-tutos">Tutos</h3>
+
+    <div class="tuto" id="tuto-nouvel-adherent" data-mots="inscrire nouvel adherent creer fiche ajouter adhesion">
+      <h4>Inscrire un nouvel adhérent <span class="duree">2 min</span></h4>
+      <p class="objectif">Exemple : créer la fiche de « EXERCICE Paul » (fiche d'essai à supprimer ensuite).</p>
+      <ol class="etapes">
+        <li>Rubrique <strong>Adhérents</strong>, liste des adhérents : cliquez sur <span class="bouton plein">+ Nouvel adhérent</span>. Le formulaire vide s'affiche.</li>
+        <li>Choisissez la civilité <strong>M.</strong> : le sexe <strong>H</strong> se remplit tout seul.</li>
+        <li>Tapez le nom <strong>EXERCICE</strong> et le prénom <strong>Paul</strong>.</li>
+        <li>Laissez la date d'inscription (aujourd'hui) et le type <strong>Titulaire</strong>.</li>
+        <li>Saisissez l'adresse « 1 rue du Test », le code postal <strong>91160</strong> et la ville : la région « Île-de-France » s'affiche.</li>
+        <li>La cotisation de 15 € est proposée. Cliquez sur <span class="bouton plein">Enregistrer l'adhérent</span>.</li>
+      </ol>
+      <figure class="capture"><img src="captures/tuto-adherent-fiche.webp" alt="Fiche adhérent remplie avec les étapes numérotées"><figcaption>Les numéros correspondent aux étapes 2 à 6 (1 = sexe, 2 = nom, 3 = date d'inscription, 4 = région calculée, 5 = cotisation, 6 = enregistrer).</figcaption></figure>
+      <div class="resultat"><strong>Résultat :</strong> le message « Adhérent ADH-… créé » s'affiche, la ligne apparaît surlignée dans la liste. Au tableau de bord, l'effectif et les nouveaux arrivants augmentent de 1.</div>
+      <figure class="capture etroite"><img src="captures/tuto-adherent-message.webp" alt="Message de confirmation de création"></figure>
+    </div>
+
+    <div class="tuto" id="tuto-completer" data-mots="completer fiche ajouter email date entree provisoire a completer corriger">
+      <h4>Compléter une fiche incomplète <span class="duree">1 min</span></h4>
+      <p class="objectif">Exemple : ajouter l'e-mail d'une fiche qui n'en a pas.</p>
+      <ol class="etapes">
+        <li>Dans la liste des adhérents, filtre <strong>À compléter → Sans e-mail</strong>.</li>
+        <li>Si besoin, tapez le nom dans la recherche pour retrouver la personne.</li>
+        <li>Cliquez sur ✎ : la fiche s'ouvre dans le formulaire au-dessus. Ajoutez l'e-mail, puis <span class="bouton plein">Enregistrer les modifications</span>.</li>
+      </ol>
+      <figure class="capture"><img src="captures/tuto-acompleter.webp" alt="Filtre À compléter sur Sans e-mail"></figure>
+      <div class="resultat"><strong>Résultat :</strong> la fiche sort du filtre « Sans e-mail ».</div>
+      <div class="encadre astuce">Pour une <strong style="display:inline">date d'entrée provisoire</strong> : saisissez la vraie date d'inscription et retirez la mention « 01/01/2000 provisoire » du commentaire, sinon la fiche reste dans le filtre.</div>
+    </div>
+
+    <div class="tuto" id="tuto-desinscrire" data-mots="desinscrire depart quitter archives reinscrire retour">
+      <h4>Enregistrer un départ, puis réinscrire <span class="duree">2 min</span></h4>
+      <ol class="etapes">
+        <li>Dans la liste des adhérents, retrouvez la personne et <strong>cochez sa case</strong> dans la colonne « Désinscrit ».</li>
+        <li>Dans la fenêtre, choisissez le <strong>motif</strong> et vérifiez la <strong>date de fin</strong> (aujourd'hui par défaut), puis <span class="bouton" style="background:var(--red);color:#fff">Désinscrire</span>.</li>
+        <li>La fiche est maintenant dans <strong>Anciens adhérents (archives)</strong>, sous la liste.</li>
+        <li>Pour la faire revenir : <span class="bouton" style="background:#FEF5E7">↩ Réinscrire</span> sur sa ligne, vérifiez la date et le type, puis <span class="bouton plein">Réinscrire</span>.</li>
+      </ol>
+      <div class="cote">
+        <figure class="capture"><img src="captures/tuto-desinscrire-case.webp" alt="Case Désinscrit dans la liste"><figcaption>Étape 1 : la case de la colonne « Désinscrit ».</figcaption></figure>
+        <figure class="capture"><img src="captures/tuto-desinscrire.webp" alt="Fenêtre de désinscription"><figcaption>Étape 2 : motif et date.</figcaption></figure>
+      </div>
+      <div class="cote">
+        <figure class="capture"><img src="captures/tuto-archives.webp" alt="Archives avec le bouton Réinscrire"><figcaption>Étapes 3 et 4 : les archives (1 = filtre rapide « Décès de l'année », 2 = Réinscrire).</figcaption></figure>
+        <figure class="capture"><img src="captures/tuto-reinscrire.webp" alt="Fenêtre de réinscription"><figcaption>Étape 4 : la fenêtre de réinscription.</figcaption></figure>
+      </div>
+      <div class="resultat"><strong>Résultat :</strong> la personne revient dans la liste avec toutes ses coordonnées ; l'ancienne période est notée dans son commentaire.</div>
+    </div>
+
+    <div class="tuto" id="tuto-deces" data-mots="deces decede enregistrer mort faire-part">
+      <h4>Enregistrer un décès <span class="duree">1 min</span></h4>
+      <ol class="etapes">
+        <li>Dans la liste, cliquez sur ✎ sur la ligne de la personne : sa fiche s'ouvre.</li>
+        <li>Dans « Fin d'adhésion », cochez <strong>Décès</strong> et saisissez la <strong>date du décès</strong>. La date de fin se remplit avec la même date.</li>
+        <li>Le motif « Décès » est choisi automatiquement. Cliquez sur <span class="bouton plein">Enregistrer les modifications</span>.</li>
+      </ol>
+      <figure class="capture moyenne"><img src="captures/tuto-deces.webp" alt="Case Décès cochée dans la fiche"></figure>
+      <div class="resultat"><strong>Résultat :</strong> la fiche passe dans les archives, et le décès est compté dans l'indicateur « Décès » de l'année.</div>
+    </div>
+
+    <div class="tuto" id="tuto-maillon" data-mots="maillon papier envoi etiquettes courrier liste export excel publipostage">
+      <h4>Sortir la liste des envois du Maillon papier <span class="duree">1 min</span></h4>
+      <ol class="etapes">
+        <li>Choisissez l'année en cours en haut de page.</li>
+        <li>Dans la liste des adhérents, filtre <strong>Maillon → Maillon papier</strong>.</li>
+        <li>Pour exclure les personnes parties, filtre de colonne « Désinscrit » → <strong>Non</strong>.</li>
+        <li>Cliquez sur <span class="bouton">📥 Exporter en CSV</span> et ouvrez le fichier dans Excel (étiquettes, publipostage…).</li>
+      </ol>
+      <div class="encadre astuce">Même principe pour une liste d'e-mails : filtre <em>Communications par mail → Tout par mail</em>, puis export.</div>
+    </div>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>

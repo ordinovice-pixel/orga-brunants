@@ -1,0 +1,136 @@
+<!-- ═════════════════════════════ TABLEAU DE BORD ═════════════════════════════ -->
+<section class="rubrique" id="tdb" data-rubrique="Tableau de bord">
+  <h2 class="titre-rub">📈 Tableau de bord</h2>
+  <div class="resume"><strong>Le résumé de l'année choisie</strong>, calculé à partir de toutes les autres rubriques. Il ne sert qu'à lire : rien ne s'y saisit. C'est la page à ouvrir en réunion de bureau.</div>
+
+  <div class="zone ind">
+    <h3 class="zone-titre" id="tdb-indicateurs">Indicateurs</h3>
+    <figure class="capture"><img src="captures/tdb-indicateurs.webp" alt="Les cinq indicateurs du tableau de bord"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="tdb-effectif" data-mots="effectif total nombre adherents nouveaux arrivants">
+        <h4>Effectif total</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le nombre d'adhérents (titulaires + sympathisants) de l'année, et dessous combien sont <strong>nouveaux arrivants</strong>.</dd>
+          <dt>Comment c'est calculé</dt><dd>Toute personne adhérente à un moment de l'année, y compris celles parties ou décédées en cours d'année. Nouvel arrivant = date d'inscription dans l'année.</dd>
+          <dt>À quoi ça sert</dt><dd>Suivre l'évolution des adhésions d'une année sur l'autre.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="tdb-types" data-mots="titulaires sympathisants repartition pourcentage">
+        <h4>Titulaires / Sympathisants</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le nombre de titulaires et de sympathisants de l'année, et leur part en %.</dd>
+          <dt>Comment c'est calculé</dt><dd>Selon le champ « Type » de chaque fiche adhérent.</dd>
+          <dt>À quoi ça sert</dt><dd>Voir l'équilibre entre les deux catégories (seuls les titulaires ont droit à l'aide mobil-home).</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="tdb-solde" data-mots="solde budget reste consomme previsionnel">
+        <h4>Solde budget</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Ce qu'il reste à dépenser sur le budget prévisionnel de l'année, et le % restant.</dd>
+          <dt>Comment c'est calculé</dt><dd><span class="formule">budget prévisionnel total − dépenses « Budgété »</span>. Les recettes et les dépenses « Hors budget » ne comptent pas. <span class="exemple">Ex. : budget 32 300 €, dépenses budgétées 25 803 € → solde 6 497 €, soit 20 % restant.</span></dd>
+          <dt>À quoi ça sert</dt><dd>Savoir d'un coup d'œil si l'on tient le budget. La carte passe au <strong style="color:var(--red)">rouge</strong>, avec un signe « − », en cas de dépassement.</dd>
+        </dl>
+        <p>C'est le même chiffre que dans <a href="#bud-solde">Budget &amp; Compta</a>.</p>
+      </article>
+      <article class="fiche" id="tdb-activites" data-mots="activites realisees prevues restantes annulees">
+        <h4>Activités réalisées / prévues</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>« 6 / 8 » : 6 activités déjà réalisées sur 8 prévues dans l'année. Dessous : le nombre restant et, s'il y en a, le nombre d'annulées.</dd>
+          <dt>Comment c'est calculé</dt><dd>Réalisée = date de fin (ou de début) passée et statut différent d'« Annulé ». Prévues = toutes les activités de l'année sauf les annulées.</dd>
+          <dt>À quoi ça sert</dt><dd>Suivre l'avancement du programme de l'année.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="tdb-alertes-kpi" data-mots="alertes actives urgentes nombre">
+        <h4>Alertes actives</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Le nombre d'alertes en cours, dont combien sont urgentes.</dd>
+          <dt>Comment c'est calculé</dt><dd>Le total des alertes du panneau <a href="#tdb-alertes">Alertes en cours</a>. Carte rouge s'il y a une alerte urgente, orange s'il n'y a que des alertes simples, verte s'il n'y a rien.</dd>
+          <dt>À quoi ça sert</dt><dd>Repérer tout de suite qu'il y a quelque chose à traiter.</dd>
+        </dl>
+      </article>
+    </div>
+
+    <figure class="capture"><img src="captures/tdb-graphiques.webp" alt="Graphiques Recettes vs Dépenses et répartition des dépenses"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="tdb-graph-mensuel" data-mots="graphique recettes depenses mois mensuel barres evolution">
+        <h4>Recettes vs Dépenses <span class="ou">graphique</span></h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Pour chaque mois, une barre <strong style="color:var(--green)">verte</strong> (recettes) et une barre <strong style="color:var(--red)">rouge</strong> (dépenses), avec le montant écrit au-dessus.</dd>
+          <dt>Comment c'est calculé</dt><dd>Somme des recettes et des dépenses selon le mois de leur date de paiement. Un remboursement (recette négative) diminue la barre verte de son mois.</dd>
+          <dt>À quoi ça sert</dt><dd>Voir les mois chargés (acomptes de séjours, fêtes…) et anticiper la trésorerie.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="tdb-graph-categories" data-mots="graphique repartition depenses categorie anneau camembert pourcentage">
+        <h4>Répartition des dépenses par catégorie <span class="ou">graphique</span></h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Un anneau : la part de chaque catégorie dans les dépenses de l'année. Montant et % sont écrits sur le graphique et dans la légende.</dd>
+          <dt>Comment c'est calculé</dt><dd>Toutes les dépenses de l'année (budgétées et hors budget), regroupées par catégorie. Les parts de moins de 4 % ne sont chiffrées que dans la légende.</dd>
+          <dt>À quoi ça sert</dt><dd>Voir où va l'argent de l'association.</dd>
+        </dl>
+      </article>
+    </div>
+
+    <figure class="capture"><img src="captures/tdb-activites-alertes.webp" alt="Répartition des activités et alertes en cours"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="tdb-graph-activites" data-mots="graphique repartition activites categorie camembert">
+        <h4>Répartition des activités par catégorie <span class="ou">graphique</span></h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Un camembert : le nombre d'activités de l'année dans chaque catégorie (sorties, séjours, fêtes…).</dd>
+          <dt>Comment c'est calculé</dt><dd>On compte les activités dont la date de début est dans l'année, sauf les annulées.</dd>
+          <dt>À quoi ça sert</dt><dd>Vérifier que le programme est varié. Pour mesurer en inscrits ou en euros, voir le graphique de la <a href="#act-repartition">rubrique Activités</a>.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="tdb-alertes" data-mots="alertes en cours retard paiement echeance places complet depassement budget cotisation superieure sauvegarde ancienne lignes corriger">
+        <h4>Alertes en cours</h4>
+        <p>Calculées <strong>au jour d'aujourd'hui</strong>. Chaque alerte a un bouton qui mène au bon endroit.</p>
+        <ul class="serre">
+          <li><strong>Échéances de paiement en retard</strong> : échéances non payées d'inscrits dont la date prévue est passée, avec le total et les activités les plus concernées. <em>Urgente</em> si l'une a plus de 30 jours. <span class="bouton">Voir</span> ouvre l'activité, filtrée sur les retards.</li>
+          <li><strong>Activité presque complète</strong> : activité à venir avec 3 places ou moins (ou complète).</li>
+          <li><strong>Dépassement budgétaire</strong> (<em>urgente</em>) : catégorie dont les dépenses budgétées dépassent le budget de l'année.</li>
+          <li><strong>Cotisations supérieures à l'attendu</strong> : adhérents ayant versé plus que la cotisation habituelle. <span class="bouton">Afficher la liste</span> déplie le détail.</li>
+          <li><strong>Lignes du classeur à corriger</strong> : à signaler à la personne qui gère l'outil.</li>
+          <li><strong>Sauvegarde ancienne</strong> : aucune sauvegarde, ou la dernière date de plus de 40 jours. <span class="bouton">Sauvegarder</span> en fait une tout de suite.</li>
+        </ul>
+        <p>Couleurs : <strong style="color:var(--red)">rouge</strong> = urgente, <strong style="color:var(--accent)">orange</strong> = à surveiller, <strong style="color:var(--secondary)">bleu</strong> = pour information.</p>
+      </article>
+    </div>
+  </div>
+
+  <div class="zone lis">
+    <h3 class="zone-titre" id="tdb-listes">Listes</h3>
+    <figure class="capture"><img src="captures/tdb-listes.webp" alt="Prochaines activités et participation par membre"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="tdb-prochaines" data-mots="prochaines activites a venir programme organisateur">
+        <h4>Prochaines activités</h4>
+        <dl class="grille">
+          <dt>Ce qu'elle affiche</dt><dd>Les 8 prochaines activités de l'année, dans l'ordre des dates : dates, nom, statut, inscrits / places, organisateur, prix par personne (ou « gratuit »), lieu.</dd>
+          <dt>Critères</dt><dd>Activités de l'année choisie qui ne sont pas encore terminées. Pour une année passée, la liste s'intitule « Activités de 2025 » et montre les dernières activités de cette année.</dd>
+          <dt>Possibilités</dt><dd>Un clic sur le nom ouvre l'activité dans la rubrique Activités. <span class="bouton">Voir le calendrier</span> ouvre le calendrier. Pastille verte = activité passée, orange = activité complète.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="tdb-participation" data-mots="participation association cumulee membre adherent subvention combien aide">
+        <h4>Participation Association cumulée par membre</h4>
+        <dl class="grille">
+          <dt>Ce qu'elle affiche</dt><dd>Pour l'adhérent choisi : le total de ce que l'association a pris en charge pour lui dans l'année, puis le détail par activité ou location (coût, payé, part de l'association et %).</dd>
+          <dt>Comment c'est calculé</dt><dd>Voir <a href="#glo-participation">Participation Association</a> : <span class="formule">coût par personne − montant payé</span> pour chaque activité, plus l'aide reçue pour chaque location de mobil-home.</dd>
+          <dt>Possibilités</dt><dd>Tapez un nom puis choisissez-le dans la liste proposée.</dd>
+        </dl>
+        <div class="encadre attention">Information <strong style="display:inline">réservée au bureau</strong> : ne la diffusez pas aux adhérents.</div>
+      </article>
+    </div>
+  </div>
+  <div class="zone tutos">
+    <h3 class="zone-titre" id="tdb-tutos">Tutos</h3>
+    <div class="tuto" id="tuto-participation" data-mots="participation association membre combien aide recue adherent">
+      <h4>Connaître ce que l'association a pris en charge pour un membre <span class="duree">30 s</span></h4>
+      <ol class="etapes">
+        <li>Au tableau de bord, dans « Participation Association cumulée par membre », tapez le début du nom et cliquez sur la proposition.</li>
+        <li>Le total de l'année s'affiche, avec le détail par activité ou location dessous.</li>
+      </ol>
+      <figure class="capture moyenne"><img src="captures/tuto-participation.webp" alt="Participation Association d'un membre"></figure>
+      <div class="resultat"><strong>Résultat :</strong> pour une sortie au coût réel de 60 € payée 45 € par l'adhérent, l'association a pris en charge 15 €, soit 25 %. Un remboursement ne change pas ce chiffre : il est calculé sur le montant dû.</div>
+      <div class="encadre astuce">Pour toutes les années, utilisez l'<a href="#adh-historique">historique d'un adhérent</a> (rubrique Adhérents, période « Toutes les années »).</div>
+    </div>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>

@@ -1,0 +1,238 @@
+<!-- ═════════════════════════════ PRESTATAIRES ═════════════════════════════ -->
+<section class="rubrique" id="pre" data-rubrique="4. Prestataires">
+  <h2 class="titre-rub"><span class="num">4</span> Prestataires</h2>
+  <div class="resume"><strong>Les entreprises avec lesquelles l'association travaille</strong> (transporteurs, campings, traiteurs…) et le total de leurs factures. Une « facture » n'est rien d'autre qu'une dépense de Budget &amp; Compta qui nomme ce prestataire.</div>
+
+  <div class="zone ind">
+    <h3 class="zone-titre" id="pre-indicateurs">Indicateurs</h3>
+    <figure class="capture"><img src="captures/pre-indicateurs.webp" alt="Indicateurs des prestataires"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="pre-nombre" data-mots="nombre de prestataires nouveaux">
+        <h4>Nombre de prestataires</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd>Toutes les fiches, sans compter l'entrée « Autre ». Dessous : les nouveaux de l'année (date de début de la relation dans l'année).</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="pre-factures-kpi" data-mots="factures total depenses sans prestataire">
+        <h4>Factures</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd>Total des dépenses de l'année liées à un prestataire (« Autre » compris), et leur nombre. Dessous : le montant des dépenses saisies <em>sans</em> prestataire.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="pre-sollicites" data-mots="prestataires sollicites actifs au moins une facture">
+        <h4>Prestataires sollicités</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd>Prestataires ayant au moins une facture dans l'année / nombre total de prestataires.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="pre-anciennete" data-mots="anciennete moyenne relation prestataire">
+        <h4>Ancienneté moyenne de la relation</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd>Moyenne, en années, du temps écoulé depuis la « date de début de la relation » des fiches qui en ont une.</dd>
+        </dl>
+      </article>
+    </div>
+    <figure class="capture"><img src="captures/pre-suivi.webp" alt="Suivi des factures et 10 principaux prestataires"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="pre-suivi" data-mots="suivi des factures par prestataire cumul pourcentage">
+        <h4>Suivi des factures par prestataire</h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Pour chaque prestataire facturé dans l'année : nombre de factures, cumul en €, part du total (%), et une barre comparée au premier. Ligne Total.</dd>
+          <dt>Possibilités</dt><dd>Un clic sur le nom affiche ses <a href="#pre-factures">factures</a>.</dd>
+        </dl>
+      </article>
+      <article class="fiche" id="pre-top10" data-mots="10 principaux prestataires graphique barres classement">
+        <h4>10 principaux prestataires <span class="ou">graphique</span></h4>
+        <dl class="grille">
+          <dt>Ce que ça montre</dt><dd>Les dix prestataires au plus gros cumul de factures de l'année, en barres horizontales. L'entrée « Autre » n'y figure pas.</dd>
+          <dt>À quoi ça sert</dt><dd>Repérer les principaux fournisseurs (renégociation, mise en concurrence).</dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+
+  <div class="zone sai">
+    <h3 class="zone-titre" id="pre-saisie">Saisie</h3>
+    <article class="fiche" id="pre-fiche" data-mots="fiche prestataire creer modifier nouveau prestataire raison sociale siret contact">
+      <h4>La fiche prestataire <span class="ou">créer ou modifier</span></h4>
+      <figure class="capture"><img src="captures/pre-formulaire.webp" alt="Formulaire de la fiche prestataire"></figure>
+      <dl class="grille">
+        <dt>Obligatoire</dt><dd>Raison sociale (deux prestataires ne peuvent pas avoir le même nom).</dd>
+        <dt>Les autres champs</dt><dd>Activité (Transport, Restauration / traiteur, Hébergement / mobil-home, Animation / intervenant, Fournitures / matériel, Assurance, Impression / communication, Autre) · adresse · code postal · ville · contact · téléphone · e-mail · site web · SIRET (14 chiffres) · début de la relation (l'ancienneté s'affiche dessous) · commentaire.</dd>
+        <dt>Bon à savoir</dt><dd>Les prestataires d'activité <strong>Hébergement / mobil-home</strong> sont proposés en premier comme campings dans le formulaire de location.</dd>
+      </dl>
+    </article>
+    <article class="fiche" id="pre-autre" data-mots="autre prestataire non liste pre-000 permanent">
+      <h4>L'entrée « Autre »</h4>
+      <p>Une entrée permanente (PRE-000), en bas de la liste des prestataires du formulaire de dépense, pour un fournisseur ponctuel. Elle ne peut être ni modifiée ni supprimée.</p>
+      <div class="encadre astuce">Si un fournisseur revient souvent, créez-lui une fiche : ses factures seront regroupées et suivies.</div>
+    </article>
+    <article class="fiche" id="pre-supprimer" data-mots="supprimer prestataire">
+      <h4>Supprimer un prestataire</h4>
+      <p>🗑 dans la liste, après confirmation. Refusé si le prestataire a des factures (dépenses liées) ou des locations de mobil-home.</p>
+    </article>
+  </div>
+
+  <div class="zone lis">
+    <h3 class="zone-titre" id="pre-listes">Listes</h3>
+    <article class="fiche" id="pre-liste" data-mots="liste des prestataires contact telephone email anciennete">
+      <h4>Liste des prestataires</h4>
+      <figure class="capture"><img src="captures/pre-liste.webp" alt="Liste des prestataires"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>N°, Raison sociale, Activité, Ville, Contact, Téléphone, E-mail, Ancienneté, Factures (€) de l'année.</dd>
+        <dt>Critères</dt><dd>Tous les prestataires, par ordre alphabétique. Filtres Activité et Factures (avec / sans facture dans l'année).</dd>
+        <dt>Boutons</dt><dd><span class="bouton plein">+ Nouveau prestataire</span> · clic sur le nom → factures · ✎ · 🗑 · Exporter en CSV.</dd>
+      </dl>
+    </article>
+    <article class="fiche" id="pre-factures" data-mots="factures d un prestataire retrouver depenses liees toutes les annees">
+      <h4>Factures d'un prestataire</h4>
+      <figure class="capture"><img src="captures/pre-factures.webp" alt="Factures d'un prestataire"></figure>
+      <dl class="grille">
+        <dt>Ce qu'elle affiche</dt><dd>Les dépenses liées au prestataire choisi : Date, N°, Libellé (avec 📎 Ouvrir), Catégorie, Activité, Montant, Budget. Le titre récapitule le nombre de factures et le total.</dd>
+        <dt>Comment l'ouvrir</dt><dd>Cliquez sur le nom du prestataire dans la liste ou dans le tableau de suivi.</dd>
+        <dt>Période</dt><dd>Liste déroulante en haut à droite : <em>Année sélectionnée</em> ou <em>Toutes les années</em>.</dd>
+      </dl>
+    </article>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>
+
+<!-- ═════════════════════════════ CALENDRIER ═════════════════════════════ -->
+<section class="rubrique" id="cal" data-rubrique="5. Calendrier">
+  <h2 class="titre-rub"><span class="num">5</span> Calendrier</h2>
+  <div class="resume"><strong>L'agenda des activités</strong>, rempli automatiquement à partir de la rubrique Activités. Il n'a pas de saisie propre : un événement du calendrier est toujours une activité.</div>
+
+  <div class="zone ind">
+    <h3 class="zone-titre" id="cal-indicateurs">Indicateurs</h3>
+    <figure class="capture"><img src="captures/cal-indicateurs.webp" alt="Indicateurs du calendrier"></figure>
+    <div class="fiches-2">
+      <article class="fiche" id="cal-kpi" data-mots="activites de l annee du mois prochaine activite">
+        <h4>Activités de l'année · du mois · prochaine activité</h4>
+        <dl class="grille">
+          <dt>Calcul</dt><dd><strong>Activités de l'année</strong> : toutes celles de l'année choisie, avec le nombre à venir et de catégories. <strong>Activités du mois affiché</strong> : celles qui ont lieu au moins un jour dans le mois. <strong>Prochaine activité</strong> : la première à venir, non annulée (nom, date, lieu).</dd>
+        </dl>
+      </article>
+    </div>
+  </div>
+
+  <div class="zone sai">
+    <h3 class="zone-titre" id="cal-saisie">Saisie</h3>
+    <article class="fiche" id="cal-ajouter" data-mots="ajouter evenement calendrier nouvelle activite a cette date">
+      <h4>Ajouter un événement</h4>
+      <figure class="capture"><img src="captures/cal-saisie.webp" alt="Ajouter un événement"></figure>
+      <p>Choisissez la date puis <span class="bouton plein">+ Nouvelle activité à cette date</span> : la <a href="#act-fiche">fiche activité</a> s'ouvre avec la date déjà remplie. Une fois enregistrée, l'activité apparaît dans le calendrier.</p>
+      <div class="encadre info">Les panneaux « Système de notifications automatiques » et « Droits sur le calendrier » sont des aperçus du prototype : ils ne sont pas encore actifs. Aujourd'hui, la notification part depuis la fiche activité.</div>
+    </article>
+  </div>
+
+  <div class="zone lis">
+    <h3 class="zone-titre" id="cal-listes">Listes</h3>
+    <article class="fiche" id="cal-grille" data-mots="calendrier mois grille agenda echeances couleur categorie aujourd hui">
+      <h4>Le calendrier du mois</h4>
+      <figure class="capture"><img src="captures/cal-grille.webp" alt="Calendrier mensuel annoté"></figure>
+      <ol class="legende">
+        <li><strong>◀ ▶</strong> : mois précédent / suivant, de janvier à décembre de l'année choisie.</li>
+        <li><strong>Aujourd'hui</strong> : revient au mois en cours (si l'année affichée est l'année en cours).</li>
+        <li><strong>Une activité</strong>, de la couleur de sa catégorie, sur chacun de ses jours (« (suite) » les jours suivants). Une activité annulée est barrée.</li>
+        <li><strong>Une échéance de paiement</strong> (« € Échéance 2 — … »), en gris ardoise : seulement les dates saisies dans la fiche activité.</li>
+        <li><strong>La légende</strong> des couleurs de catégories.</li>
+      </ol>
+      <p>Un clic sur un événement ouvre l'activité dans la rubrique Activités. À chaque changement d'année, le calendrier s'ouvre sur le mois en cours, ou sinon sur le premier mois qui a une activité.</p>
+    </article>
+    <article class="fiche" id="cal-liste" data-mots="activites du mois liste">
+      <h4>Activités du mois</h4>
+      <figure class="capture"><img src="captures/cal-liste.webp" alt="Liste des activités du mois"></figure>
+      <p>Sous le calendrier, la liste des activités du mois affiché : dates, activité (clic → ouvre l'activité), catégorie, lieu, inscrits / places, statut.</p>
+    </article>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>
+
+<!-- ═════════════════════════════ À VENIR ═════════════════════════════ -->
+<section class="rubrique" id="avenir" data-rubrique="6 à 8. À venir">
+  <h2 class="titre-rub">🔜 Procédures, Assemblée Générale, Classement NAS</h2>
+  <div class="resume">Ces trois rubriques reprennent le contenu du prototype, <strong>à titre d'aperçu</strong>. Les chiffres sont des exemples et les boutons sont grisés : ces fonctions viendront dans une version ultérieure, quand le bureau les aura définies.</div>
+  <div class="fiches-2">
+    <article class="fiche" id="avenir-procedures" data-mots="procedures registre revision securite">
+      <h4>6. Procédures</h4>
+      <p>Registre des procédures de l'association (sécurité, activités en extérieur, activités au club, matériel), avec leur version, leur référent et leur date de révision annuelle avant l'AG. <strong>Ce guide sera accessible depuis cette rubrique.</strong></p>
+      <figure class="capture"><img src="captures/poc-procedures.webp" alt="Registre des procédures (aperçu)"></figure>
+    </article>
+    <article class="fiche" id="avenir-ag" data-mots="assemblee generale ag convocations reponses repas pointage">
+      <h4>7. Assemblée Générale</h4>
+      <p>Cycle de l'AG : convocations, formulaire de réponse (présence, repas, cotisation), listes de non-retours et de pointage.</p>
+      <figure class="capture"><img src="captures/poc-ag.webp" alt="Assemblée Générale (aperçu)"></figure>
+    </article>
+    <article class="fiche" id="avenir-nas" data-mots="classement nas archives photos arborescence">
+      <h4>8. Classement NAS</h4>
+      <p>Réorganisation des archives du NAS (photos, vidéos, Maillons, comptes rendus) : arborescence proposée, actions à mener, mode d'emploi d'accès.</p>
+      <figure class="capture"><img src="captures/poc-nas.webp" alt="Classement NAS (aperçu)"></figure>
+    </article>
+  </div>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>
+
+<!-- ═════════════════════════════ ADMINISTRATION ═════════════════════════════ -->
+<section class="rubrique" id="adm" data-rubrique="9. Administration">
+  <h2 class="titre-rub"><span class="num">9</span> Administration</h2>
+  <div class="resume">Cette rubrique sert à <strong>régler l'outil et protéger les données</strong> : paramètres, catégories, import de fichiers, restauration de sauvegardes. Elle est réservée à la personne qui gère l'outil, et décrite dans la documentation technique.</div>
+  <article class="fiche" id="adm-bureau" data-mots="administration parametres reserve gestionnaire sauvegarder actualiser">
+    <h4>Ce qui concerne le bureau</h4>
+    <ul class="serre">
+      <li><a href="#bases-sauvegarder">💾 Sauvegarder maintenant</a> : le même bouton existe en haut de chaque page.</li>
+      <li><a href="#bases-actualiser">⟳ Actualiser</a> : en haut de chaque page.</li>
+      <li>Si une alerte « lignes du classeur à corriger » ou un bandeau d'avertissement apparaît : prévenez la personne qui gère l'outil.</li>
+    </ul>
+    <div class="encadre attention"><strong>Ne modifiez pas les réglages sans elle</strong>Le bouton « Réinitialiser les données d'entraînement », l'assistant d'import (mode « Remplacer ») et la restauration d'une sauvegarde remplacent des données en masse.</div>
+  </article>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>
+
+<!-- ═════════════════════════════ GLOSSAIRE ═════════════════════════════ -->
+<section class="rubrique" id="glossaire" data-rubrique="Glossaire">
+  <h2 class="titre-rub">📖 Glossaire</h2>
+  <div class="resume">Les mots de l'outil, expliqués simplement, par ordre alphabétique.</div>
+  <div class="lettres" id="lettres"></div>
+  <dl class="glossaire">
+    <div class="terme" id="glo-actualiser" data-mots="actualiser"><dt>Actualiser</dt><dd>Relire toutes les données, pour voir ce qu'un collègue vient d'enregistrer. Voir <a href="#bases-actualiser">⟳ Actualiser</a>.</dd></div>
+    <div class="terme" id="glo-adherent" data-mots="adherent"><dt>Adhérent</dt><dd>Toute personne inscrite à l'association : titulaire ou sympathisant.</dd></div>
+    <div class="terme" id="glo-aide-mh" data-mots="aide mobil-home 60"><dt>Aide mobil-home</dt><dd>60 € par semaine de location, 2 fois au plus par an, réservée aux titulaires, sur leurs 2 premières semaines de l'année. Voir <a href="#act-mh">Mobil-home</a>.</dd></div>
+    <div class="terme" id="glo-alerte" data-mots="alerte"><dt>Alerte</dt><dd>Point à traiter repéré par l'outil (retard de paiement, dépassement de budget…), affiché au <a href="#tdb-alertes">tableau de bord</a>.</dd></div>
+    <div class="terme" id="glo-annee" data-mots="annee affichee rattachement"><dt>Année affichée</dt><dd>L'année choisie en haut de page : toutes les rubriques n'affichent qu'elle. Voir les <a href="#bases-annee">règles de rattachement</a>.</dd></div>
+    <div class="terme" id="glo-anciennete" data-mots="anciennete"><dt>Ancienneté</dt><dd>Temps écoulé depuis la date d'inscription (adhérent) ou le début de la relation (prestataire).</dd></div>
+    <div class="terme" id="glo-archives" data-mots="archives anciens adherents"><dt>Archives</dt><dd>Les fiches des anciens adhérents (partis ou décédés), conservées avec leurs coordonnées. Voir <a href="#adh-archives">Anciens adhérents</a>.</dd></div>
+    <div class="terme" id="glo-budget-conso" data-mots="budget consomme depenses realisees"><dt>Budget consommé (dépenses réalisées)</dt><dd>Total des dépenses « Budgété » d'une catégorie ou de l'année.</dd></div>
+    <div class="terme" id="glo-budget-prev" data-mots="budget previsionnel"><dt>Budget prévisionnel</dt><dd>Montant prévu pour chaque catégorie de dépenses en début d'année. Voir <a href="#bud-budgets">Budgets prévisionnels</a>.</dd></div>
+    <div class="terme" id="glo-budgete" data-mots="budgete hors budget"><dt>Budgété / Hors budget</dt><dd>Choix fait à la saisie d'une dépense. Une dépense « Budgété » consomme le budget de sa catégorie ; une dépense « Hors budget » est suivie à part et ne le consomme pas.</dd></div>
+    <div class="terme" id="glo-categorie" data-mots="categorie sous-categorie"><dt>Catégorie / sous-catégorie</dt><dd>Classement des recettes, dépenses et activités selon le dossier budgétaire du bureau (1 à 8). Voir <a href="#bud-categories">Bien choisir la catégorie</a>.</dd></div>
+    <div class="terme" id="glo-classeur" data-mots="classeur google sheets donnees"><dt>Classeur</dt><dd>Le fichier Google Sheets où l'outil range toutes ses données. On ne le modifie pas à la main.</dd></div>
+    <div class="terme" id="glo-recouvre" data-mots="ce qu elle recouvre descriptif"><dt>Ce qu'elle recouvre</dt><dd>Description d'une sous-catégorie, affichée sous la liste des sous-catégories dans les formulaires.</dd></div>
+    <div class="terme" id="glo-cout-reel" data-mots="cout reel par personne"><dt>Coût réel par personne</dt><dd>Ce que coûte réellement une activité pour une personne (transport, entrée, repas…), avant la participation de l'association.</dd></div>
+    <div class="terme" id="glo-csv" data-mots="csv export excel"><dt>CSV (export)</dt><dd>Fichier tableau qui s'ouvre dans Excel ou LibreOffice. Voir <a href="#tuto-export">Exporter une liste</a>.</dd></div>
+    <div class="terme" id="glo-depense" data-mots="depense facture"><dt>Dépense</dt><dd>Argent payé par l'association, rattaché à l'année de sa date de paiement.</dd></div>
+    <div class="terme" id="glo-echeance" data-mots="echeance paiement en plusieurs fois case"><dt>Échéance</dt><dd>Une part d'un paiement en plusieurs fois. Chaque inscription à une activité payante a une case de paiement par échéance. Voir le <a href="#act-suivi">suivi des paiements</a>.</dd></div>
+    <div class="terme" id="glo-encaisse" data-mots="encaisse reste du"><dt>Encaissé / Reste dû</dt><dd>Encaissé : échéances payées (et non remboursées). Reste dû : échéances non encore payées par les inscrits.</dd></div>
+    <div class="terme" id="glo-facture" data-mots="facture prestataire"><dt>Facture</dt><dd>Dans l'outil : une dépense liée à un prestataire.</dd></div>
+    <div class="terme" id="glo-fiche-insc" data-mots="fiche d inscription"><dt>Fiche d'inscription</dt><dd>Document Google Doc + PDF d'une activité, avec la liste des inscrits et leurs paiements. Voir <a href="#act-fiche-inscription">Générer la fiche</a>.</dd></div>
+    <div class="terme" id="glo-id" data-mots="id identifiant numero"><dt>ID (numéro de fiche)</dt><dd>Numéro unique d'une fiche : ADH-0012, ACT-2026-005, REC-2026-0042… Voir <a href="#bases-numeros">Les numéros</a>.</dd></div>
+    <div class="terme" id="glo-justificatif" data-mots="justificatif lien"><dt>Justificatif</dt><dd>Numéro de facture ou lien vers le fichier sur le Drive ; avec un lien, les listes affichent 📎 Ouvrir.</dd></div>
+    <div class="terme" id="glo-diffusion" data-mots="liste de diffusion groupe google"><dt>Liste de diffusion</dt><dd>Adresse e-mail d'un groupe réunissant les adhérents : les notifications partent alors en un seul message (utile avec la limite d'environ 100 e-mails par jour).</dd></div>
+    <div class="terme" id="glo-mode" data-mots="mode entrainement"><dt>Mode entraînement</dt><dd>Réglage actuel de l'outil : bandeau orange, e-mails redirigés vers une adresse de test, activités et comptes fictifs. Voir <a href="#bases-entrainement">ce qui est réel</a>.</dd></div>
+    <div class="terme" id="glo-montant-du" data-mots="montant du"><dt>Montant dû</dt><dd>Ce qu'un inscrit doit payer pour une activité : le prix par personne, sauf tarif particulier saisi à l'inscription.</dd></div>
+    <div class="terme" id="glo-notification" data-mots="notification mail annonce"><dt>Notification</dt><dd>E-mail d'annonce d'une activité aux adhérents. Voir <a href="#act-notification">Envoyer la notification</a>.</dd></div>
+    <div class="terme" id="glo-origine" data-mots="origine manuelle automatique remboursement"><dt>Origine</dt><dd>D'où vient une recette ou une dépense : <strong>Manuelle</strong> (saisie dans Budget &amp; Compta), <strong>Automatique</strong> (paiement d'échéance, mobil-home) ou <strong>Remboursement</strong>. Voir <a href="#bud-auto">Lignes automatiques</a>.</dd></div>
+    <div class="terme" id="glo-participant" data-mots="participant non participant"><dt>Participant</dt><dd>Adhérent inscrit à au moins une activité de l'année (inscription non annulée) ou ayant loué un mobil-home dans l'année.</dd></div>
+    <div class="terme" id="glo-participation" data-mots="participation association part asso subvention"><dt>Participation Association</dt><dd>Ce que l'association prend en charge pour un adhérent. Pour une activité : <span class="formule">coût réel par personne − montant dû</span> (jamais négatif) ; pour une location de mobil-home : l'aide versée. Le % = participation ÷ coût. <span class="exemple">Ex. : activité à 100 €, l'adhérent paie 30 € → 70 €, soit 70 %.</span> Les inscriptions annulées ne comptent pas.</dd></div>
+    <div class="terme" id="glo-prestataire" data-mots="prestataire fournisseur"><dt>Prestataire</dt><dd>Entreprise ou organisme qui facture l'association (car, camping, traiteur…). Voir <a href="#pre">Prestataires</a>.</dd></div>
+    <div class="terme" id="glo-prix" data-mots="prix par personne"><dt>Prix par personne</dt><dd>Ce que paie un adhérent pour une activité (ancien nom : « prix demandé par adhérent »).</dd></div>
+    <div class="terme" id="glo-recette" data-mots="recette encaissement"><dt>Recette</dt><dd>Argent reçu par l'association, rattaché à l'année de sa date d'encaissement.</dd></div>
+    <div class="terme" id="glo-recette-neg" data-mots="recette negative remboursement"><dt>Recette négative</dt><dd>Recette d'un montant négatif, créée par un remboursement : elle se déduit des recettes. Voir <a href="#tuto-rembourser">Rembourser</a>.</dd></div>
+    <div class="terme" id="glo-region" data-mots="region ile de france province"><dt>Région</dt><dd>Île-de-France (codes postaux 75, 77, 78, 91, 92, 93, 94, 95) ou Province, calculée à partir du code postal.</dd></div>
+    <div class="terme" id="glo-sauvegarde" data-mots="sauvegarde"><dt>Sauvegarde</dt><dd>Copie complète des données + fichier Excel, automatique chaque mois ou à la demande. Voir <a href="#bases-sauvegarder">💾 Sauvegarder</a>.</dd></div>
+    <div class="terme" id="glo-solde" data-mots="solde budget"><dt>Solde budget</dt><dd>Budget prévisionnel total − dépenses « Budgété ». Voir <a href="#bud-solde">Solde budget</a>.</dd></div>
+    <div class="terme" id="glo-subventionne" data-mots="subventionne subvention"><dt>Subventionné</dt><dd>Adhérent dont au moins une activité ou location de l'année a une Participation Association supérieure à 0 €.</dd></div>
+    <div class="terme" id="glo-sympathisant" data-mots="sympathisant"><dt>Sympathisant</dt><dd>Adhérent dont la fiche porte le type « Sympathisant ». Il peut participer aux activités mais n'a pas droit à l'aide mobil-home.</dd></div>
+    <div class="terme" id="glo-titulaire" data-mots="titulaire"><dt>Titulaire</dt><dd>Adhérent dont la fiche porte le type « Titulaire » (type proposé par défaut). Seuls les titulaires peuvent bénéficier de l'aide mobil-home.</dd></div>
+  </dl>
+  <p class="haut"><a href="#accueil">↑ Retour à l'accueil</a></p>
+</section>

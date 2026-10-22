@@ -1,11 +1,12 @@
 # 06 — Journal des évolutions
 
-Mise à jour : 16/10/2026
+Mise à jour : 22/10/2026
 
 Une ligne par étape, la plus récente en haut. Le détail des décisions est dans `03-decisions.md`.
 
 | Date | Version / étape | Ce qui a changé | Décisions |
 |---|---|---|---|
+| 22/10/2026 | **Guide d'utilisation (bureau)** | `livrables/guide/Guide_utilisation_Brunants.html` : fichier HTML autonome (~3 Mo), volet vert foncé, zones bleu / vert / jaune de l'outil, une partie par rubrique (Indicateurs, Saisie, Listes, Tutos), 16 tutos dont les 10 exercices de la Prise en main, glossaire, index et « Je veux… », recherche libre. 68 captures prises dans l'aperçu local avec les données fictives. Sources et scripts de régénération dans `guide/` | DEC-062 |
 | 16/10/2026 | Dépôt GitHub | Premier commit envoyé sur `ordinovice-pixel/orga-brunants` (README, `.gitignore`, memory bank, docs) | DEC-033 |
 | 16/10/2026 | Memory bank | Création de la memory bank (9 fichiers) | — |
 | 12/10/2026 | **Lot 4 — Activités** | Inscriptions et échéances, recettes / dépenses automatiques, remboursement, mobil-home avec campings et plafond 2 × 60 €, mode de paiement / justificatif / commentaire, fiche d'inscription Doc + PDF, notification mail, coût par activité, réinitialisation. 11 fichiers modifiés ; nouvelle autorisation Google (Docs) | DEC-051, 052, 054, 055 |

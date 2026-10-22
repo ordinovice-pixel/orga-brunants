@@ -1,6 +1,6 @@
 # 05 — Carte des fichiers
 
-Mise à jour : 16/10/2026
+Mise à jour : 22/10/2026
 
 But : savoir **quel fichier fait quoi** sans parcourir les dossiers. À compléter à chaque création de fichier.
 
@@ -96,3 +96,16 @@ Historique des ZIP : `Outil_Brunants_Lot1.zip` → `…Lot2.zip` (6 fichiers mod
 | 12 modèles de mails YAMM | Adhésion / activités / vie associative |
 | Présentations PowerPoint (CDC 17 diapos, synthèse 11 diapos, prototype 7 diapos du 07/10) | Supports de présentation |
 | Mode d'emploi du POC (Word, 12 pages) | Guide rubrique par rubrique du prototype |
+
+## 7. Guide d'utilisation pour le bureau (22/10/2026)
+
+| Fichier | Rôle |
+|---|---|
+| `livrables/guide/Guide_utilisation_Brunants.html` | **Le guide** : fichier autonome (~3 Mo, images intégrées), hors ligne, téléphone, impression. Ancres stables (`#adh-liste`, `#act-suivi`, `#tuto-rembourser`…) et `window.GuideBrunants.aller(id)` pour un futur bouton « ? » ; à ouvrir à terme depuis la rubrique 6. Procédures |
+| `guide/source/guide_source.html` | Squelette : styles, volet vert, accueil (« Je veux… », index), Les bases |
+| `guide/source/rub_1_tdb.html` … `rub_5_fin.html` | Une rubrique par fichier (Prestataires, Calendrier, À venir, Administration et Glossaire dans `rub_5_fin`) |
+| `guide/source/guide.js` | Navigation, index automatique, recherche libre (accents ignorés, synonymes dans `SYN`) |
+| `guide/outils/captures_guide.py` | Les 68 captures, prises dans `Apercu_local_Brunants.html` (données fictives) en rejouant les 10 exercices |
+| `guide/outils/construire_guide.py` | Assemble le fichier unique, contrôle ancres et liens |
+| `guide/outils/verifier_guide.py` | Erreurs JS, 18 recherches types, ancres, affichage téléphone |
+| `guide/LISEZMOI_Guide.md` | Contenu et commandes de régénération après un nouveau lot |
