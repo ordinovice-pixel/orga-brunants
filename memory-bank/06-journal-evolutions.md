@@ -6,6 +6,7 @@ Une ligne par étape, la plus récente en haut. Le détail des décisions est da
 
 | Date | Version / étape | Ce qui a changé | Décisions |
 |---|---|---|---|
+| 02/11/2026 | Captures pour GitHub | 24 captures de l'outil et 6 du guide dans `docs/captures/`, prises dans l'aperçu local avec un jeu d'essai aux noms de famille inventés (plantes, oiseaux) ; galerie et sélection dans le README | DEC-062 |
 | 02/11/2026 | **Transcription sur GitHub** | Le dépôt reçoit tout l'outil : code lot 6c (21 fichiers), simulateur, tests et versions de référence, livrables, guide ; README complet (raison du projet, fonctionnalités, avantages, stack, guide HTML, méthode IA) ; `docs/Presentation_vitrine.md` anonymisée ; `docs/Description_des_tables.md`. Données de test rendues fictives avant le dépôt | DEC-090 |
 | 22/10/2026 | **Lot 7 — Documentation** | Doc claude.ai « Documentation de l'outil Les Brunants » (installation et maintenance, prise en main avec 10 exercices, description des tables) ; dépannage multi-comptes Google ajouté | — |
 | 22/10/2026 | **Guide d'utilisation (bureau)** | `livrables/guide/Guide_utilisation_Brunants.html` : fichier HTML autonome (~3 Mo), volet vert foncé, zones bleu / vert / jaune de l'outil, une partie par rubrique (Indicateurs, Saisie, Listes, Tutos), 16 tutos dont les 10 exercices de la Prise en main, glossaire, index et « Je veux… », recherche libre. 68 captures prises dans l'aperçu local avec les données fictives. Sources et scripts de régénération dans `guide/` | DEC-062 |

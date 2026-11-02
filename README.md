@@ -12,6 +12,10 @@ Application web de gestion pour l'association **Les Brunants** (environ 230 adh�
 
 Dépôt **privé**. Une présentation anonymisée, réutilisable comme cas client, est dans [`docs/Presentation_vitrine.md`](docs/Presentation_vitrine.md).
 
+![Tableau de bord de l'outil : indicateurs, graphiques, mode entraînement](docs/captures/outil/01_tableau_de_bord.png)
+
+*Toutes les captures de ce dépôt montrent des données d'essai : les adhérents sont fictifs et portent des noms inventés. [Voir toutes les captures](docs/captures/LISEZMOI.md).*
+
 ---
 
 ## Sommaire
@@ -64,6 +68,23 @@ Une page unique, 10 rubriques, et partout la même organisation en 3 zones : **I
 
 Dans toutes les listes : recherche sans accents, filtres en tête de colonne, tri, Modifier / Supprimer avec confirmation, **export CSV**.
 
+### L'outil en images
+
+| | |
+|---|---|
+| ![Alertes calculées](docs/captures/outil/02_tableau_de_bord_activites_alertes.png) | ![Démographie des adhérents](docs/captures/outil/04_adherents_indicateurs.png) |
+| **Tableau de bord** : répartition des activités et alertes calculées | **Adhérents** : effectif, âges, régions, ancienneté |
+| ![Liste des adhérents](docs/captures/outil/05_adherents_liste.png) | ![Recettes et dépenses](docs/captures/outil/09_budget_indicateurs_graphiques.png) |
+| **Liste des adhérents** : recherche, filtres, « À compléter », export CSV | **Budget & Compta** : recettes, dépenses, graphiques chiffrés |
+| ![Saisie d'une dépense](docs/captures/outil/11_budget_saisie_depense.png) | ![Suivi des échéances](docs/captures/outil/16_activites_suivi_echeances.png) |
+| **Saisie** : la sous-catégorie affiche « Ce qu'elle recouvre » | **Activités** : paiements échelonnés, retards, remboursements |
+| ![Mobil-home et subventions](docs/captures/outil/13_activites_mobilhome_subventions.png) | ![Calendrier](docs/captures/outil/18_calendrier.png) |
+| **Mobil-home** : aide plafonnée appliquée automatiquement | **Calendrier** alimenté par les activités et les échéances |
+| ![Assistant d'import](docs/captures/outil/23_import_verification.png) | ![Sur téléphone](docs/captures/outil/24_mobile.png) |
+| **Assistant d'import** : contrôle ligne par ligne avant d'écrire | **Sur téléphone** : même outil, mise en page adaptée |
+
+→ [Les 24 captures de l'outil et les 6 du guide](docs/captures/LISEZMOI.md)
+
 ## 3. Les avantages pour l'association
 
 - **Une seule saisie.** Un paiement coché dans une activité crée la recette en comptabilité ; une location de mobil-home crée la dépense et la recette. Les chiffres sont toujours à jour.
@@ -110,6 +131,13 @@ flowchart TB
 - **16 tutos illustrés**, dont les 10 exercices d'entraînement, un **glossaire de 39 termes** et **68 captures d'écran**, toutes prises avec les données fictives.
 - **Ancres stables** (`#adh-liste`, `#act-suivi`, `#tuto-rembourser`…) et une petite interface JavaScript (`window.GuideBrunants.aller(id)`) : un futur bouton « ? » dans l'outil pourra ouvrir le guide au bon endroit.
 
+| | |
+|---|---|
+| ![Accueil du guide](docs/captures/guide/g1_accueil.png) | ![Un tuto illustré](docs/captures/guide/g3_tuto_rembourser.png) |
+| **Accueil** : recherche, exemples, « Je veux… » | **Tuto** : étapes numérotées, captures annotées |
+| ![Recherche dans le guide](docs/captures/guide/g5_recherche.png) | ![Le guide sur téléphone](docs/captures/guide/g6_mobile.png) |
+| **Recherche libre** : résultats classés par type | **Sur téléphone** : menu « Rubriques » et tutos lisibles |
+
 **Pour l'ouvrir** : GitHub n'affiche pas une page HTML ; téléchargez le fichier (bouton « Download raw file ») puis double-cliquez dessus. Les sources et les scripts qui régénèrent le guide après chaque version (captures automatiques, assemblage, vérifications) sont dans [`guide/`](guide/LISEZMOI_Guide.md).
 
 Une documentation complémentaire (installation et maintenance, prise en main avec 10 exercices, description des tables) a aussi été rédigée pour le bureau dans un document partagé claude.ai.
@@ -117,6 +145,7 @@ Une documentation complémentaire (installation et maintenance, prise en main av
 ## 6. Données personnelles et sécurité
 
 - **Aucune donnée personnelle réelle dans ce dépôt.** Les tests, l'aperçu local, le modèle d'import et les captures du guide n'utilisent que des données fictives (adresses e-mail en `example.com`). Le `.gitignore` bloque les fichiers d'adhérents, les sauvegardes et les fiches d'inscription.
+- **Les captures d'écran** ([`docs/captures/`](docs/captures/LISEZMOI.md)) sont prises dans l'aperçu local, avec le jeu d'essai dont les noms de famille ont été remplacés par des noms inventés (plantes, oiseaux…) : aucune personne réelle n'y apparaît.
 - Les vraies données vivent uniquement dans le classeur et les sauvegardes, sur le Drive de l'association, **partagés avec le seul bureau**.
 - **Mode entraînement** : aucun e-mail ne part vers un adhérent tant qu'il est actif.
 - **Garde-fous** : sauvegarde automatique avant chaque import, réinitialisation ou restauration ; double confirmation des opérations destructrices ; les vrais adhérents ne peuvent pas être effacés par la réinitialisation des données d'entraînement ; chaque opération est inscrite au journal.
@@ -167,7 +196,7 @@ Le détail de chaque lot est dans [`livrables/LISEZMOI_LotN.md`](livrables/) et 
 | [`outils/`](outils/LISEZMOI.md) | Simulateur Google, tests serveur et navigateur, générateurs des livrables, versions de référence |
 | [`livrables/`](livrables/LISEZMOI.md) | Assistants d'installation et de mise à jour, LISEZMOI de chaque lot, aperçu local, modèle d'import, guide d'utilisation |
 | [`guide/`](guide/LISEZMOI_Guide.md) | Sources et scripts de régénération du guide d'utilisation |
-| [`docs/`](docs/) | Cahier des charges, compte rendu du prototype, description des tables, présentation vitrine |
+| [`docs/`](docs/) | Cahier des charges, compte rendu du prototype, description des tables, présentation vitrine, [captures d'écran](docs/captures/LISEZMOI.md) |
 | [`memory-bank/`](memory-bank/00-LISEZ-MOI.md) | Mémoire du projet : état, décisions, architecture, journal, questions ouvertes |
 
 **Ce qui n'est jamais dans ce dépôt** (voir `.gitignore`) : mots de passe et clés, **données personnelles réelles**, sauvegardes du classeur, fiches d'inscription remplies, fichiers lourds et temporaires.

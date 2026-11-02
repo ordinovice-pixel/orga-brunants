@@ -13,7 +13,7 @@ Dépôt privé **https://github.com/ordinovice-pixel/orga-brunants** (compte per
 | `README.md` | Présentation complète : raison du projet, fonctionnalités, avantages, stack, guide HTML, données personnelles, méthode IA, historique, installation, organisation du dépôt |
 | `.gitignore` | Exclusions : confidentiel, données personnelles réelles, fichiers lourds, journaux et temporaires |
 | `memory-bank/` | Cette memory bank (copie identique aux documents du projet claude.ai) |
-| `docs/` | Cahier des charges opérationnel, compte rendu du 11/08, `Description_des_tables.md` (générée depuis le schéma), `Presentation_vitrine.md` (cas client **anonymisé**, DEC-090) |
+| `docs/` | Cahier des charges opérationnel, compte rendu du 11/08, `Description_des_tables.md` (générée depuis le schéma), `Presentation_vitrine.md` (cas client **anonymisé**, DEC-090), `captures/` (24 captures de l'outil + 6 du guide, adhérents aux noms inventés, galerie `captures/LISEZMOI.md`) |
 | `apps_script/` | **Code de l'outil, version lot 6c** (21 fichiers) + `LISEZMOI.md` (rôle de chaque fichier) |
 | `outils/` | Simulateur, tests serveur et interface, générateurs, versions de référence `reference_lot3` … `reference_lot6b` + `LISEZMOI.md` |
 | `livrables/` | LISEZMOI des lots 1 à 6c, assistant d'installation, assistant de mise à jour du lot 6c, aperçu local, modèle d'import, `guide/` (guide illustré) |
