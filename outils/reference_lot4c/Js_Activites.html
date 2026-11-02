@@ -1,0 +1,675 @@
+<script>
+/* =====================================================================
+   Js_Activites.html — Rubrique « Activités » (lot 4)
+   ---------------------------------------------------------------------
+   Indicateurs : activités de l'année, participants, paiements,
+                 mobil-home (semaines par camping, montant total, aides),
+                 part des adhérents subventionnés, coût par activité.
+   Saisie      : fiche activité ; activité sélectionnée : inscriptions,
+                 cases de paiement (Payé → recette, Rembourser → dépense),
+                 fiche d'inscription, notification ; location de mobil-home.
+   Listes      : activités, locations, aides par titulaire.
+   ===================================================================== */
+
+var ACT = { selection: '', recherches: {} };
+
+enregistrerRubrique('chantier-3', {
+  titre: 'Activités',
+  sousTitre: 'Chantier 3 · Priorité haute',
+
+  init: function () {
+    var f = document.getElementById('form-activite');
+    remplirSelect(f.querySelector('[data-champ="statut"]'), ['En préparation', 'Ouvert aux inscriptions', 'Complet', 'Terminé', 'Annulé']);
+    remplirSelect(f.querySelector('[data-champ="nbEcheances"]'), [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (n) {
+      return { valeur: String(n), texte: n === 1 ? '1 (paiement unique)' : n + ' fois' };
+    }));
+    f.querySelector('[data-champ="categorie"]').addEventListener('change', function () {
+      remplirSousCategories(f.querySelector('[data-champ="sousCategorie"]'), this.value, 'Les deux');
+    });
+    ['prixParPersonne', 'coutReelParPersonne'].forEach(function (c) { f.querySelector('[data-champ="' + c + '"]').addEventListener('input', actMajParticipation); });
+    ACT.recherches.organisateur = brancherRechercheAdherent(document.getElementById('act-organisateur-saisie'),
+      f.querySelector('[data-champ="organisateur"]'), function (a) { return !CALC.estArchive(a); });
+    document.getElementById('act-enregistrer').onclick = actEnregistrer;
+    document.getElementById('act-annuler').onclick = actNouvelle;
+    document.getElementById('act-nouvelle').onclick = function () { actNouvelle(); actAller('panneau-fiche-activite'); f.querySelector('[data-champ="nom"]').focus(); };
+
+    // ---- Activité sélectionnée
+    document.getElementById('act-selection').addEventListener('change', function () { ACT.selection = this.value; actRendreSelection(); });
+    document.getElementById('act-modifier-selection').onclick = function () { var a = parId('Activites', ACT.selection); if (a) actModifier(a); };
+    document.getElementById('act-fiche-inscription').onclick = actGenererFiche;
+    document.getElementById('act-notifier').onclick = actNotifier;
+    document.getElementById('act-voir-desinscrits').addEventListener('change', actRendreSuivi);
+    document.getElementById('act-graph-mesure').addEventListener('change', actDessinerParts);
+    document.getElementById('act-suivi-recherche').addEventListener('input', actRendreSuivi);
+    document.getElementById('act-suivi-filtre').addEventListener('change', actRendreSuivi);
+    ACT.recherches.inscription = brancherRechercheAdherent(document.getElementById('ins-adherent-saisie'), document.getElementById('ins-adherent'),
+      function (a) {
+        if (CALC.estArchive(a)) return false;
+        return !T('Inscriptions').some(function (i) { return i.activiteId === ACT.selection && i.adherentId === a.id && i.statut === 'Inscrit'; });
+      });
+    document.getElementById('ins-inscrire').onclick = actInscrire;
+    document.getElementById('act-suivi').addEventListener('click', actClicSuivi);
+
+    // ---- Mobil-home
+    var fm = document.getElementById('form-mobilhome');
+    ACT.recherches.mobilhome = brancherRechercheAdherent(document.getElementById('mh-adherent-saisie'), fm.querySelector('[data-champ="adherentId"]'),
+      function (a) { return !CALC.estArchive(a); });
+    fm.addEventListener('change', mhInfoAide);
+    fm.querySelector('[data-champ="adherentId"]').addEventListener('change', mhInfoAide);
+    document.getElementById('mh-enregistrer').onclick = mhEnregistrer;
+    document.getElementById('mh-annuler').onclick = mhNouvelle;
+    document.getElementById('mh-nouvelle').onclick = function () { mhNouvelle(); actAller('panneau-mobilhome'); };
+
+    // ---- Listes
+    APP.listes.activites = new Liste({
+      conteneur: 'liste-activites',
+      colonnes: [
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'nom', titre: 'Activité', rendu: function (a) {
+            return '<button type="button" class="lien-bouton" data-action="ouvrir" data-id="' + echapper(a.id) + '" title="Inscriptions et paiements">' + echapper(a.nom) + '</button>'; } },
+        { cle: 'categorie', titre: 'Catégorie', type: 'liste' },
+        { cle: 'dateDebut', titre: 'Début', type: 'date', classe: 'nowrap' },
+        { cle: 'lieu', titre: 'Lieu', classe: 'coupe' },
+        { cle: 'inscrits', titre: 'Inscrits', type: 'nombre', classe: 'center', filtre: false, valeur: function (a) { return actInscrits(a.id).length; },
+          rendu: function (a) { return actInscrits(a.id).length + (a.maxParticipants ? ' / ' + a.maxParticipants : ''); } },
+        { cle: 'prixParPersonne', titre: 'Prix / pers.', type: 'montant', classe: 'number nowrap' },
+        { cle: 'statut', titre: 'Statut', type: 'liste', rendu: function (a) { return '<span class="badge ' + actBadgeStatut(a.statut) + '">' + echapper(a.statut) + '</span>'; } }
+      ],
+      lignes: function () { return actActivitesAnnee(APP.annee); },
+      filtres: [{ cle: 'categorie', titre: 'Catégorie' }, { cle: 'statut', titre: 'Statut' }],
+      triDefaut: { cle: 'dateDebut', sens: -1 },
+      actions: [{ cle: 'ouvrir', libelle: '', visible: function () { return false; }, fn: function (a) { actSelectionner(a.id); } }],
+      modifier: actModifier,
+      supprimer: actSupprimer,
+      compact: true, dense: true,
+      exportNom: 'activites',
+      vide: 'Aucune activité pour cette année.'
+    });
+    APP.listes.mobilhome = new Liste({
+      conteneur: 'liste-mobilhome',
+      colonnes: [
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'adherent', titre: 'Adhérent', valeur: function (m) { return nomAdherent(m.adherentId); } },
+        { cle: 'typeAdh', titre: 'Type', type: 'liste', valeur: function (m) { var a = parId('Adherents', m.adherentId); return a ? a.type : ''; } },
+        { cle: 'camping', titre: 'Camping', type: 'liste', valeur: function (m) { return libellePrestataire(m.campingId) || '(non renseigné)'; } },
+        { cle: 'semaine', titre: 'Semaine du', type: 'date', classe: 'nowrap' },
+        { cle: 'coutLocation', titre: 'Coût', type: 'montant', classe: 'number nowrap' },
+        { cle: 'aideAsso', titre: 'Aide asso', type: 'montant', classe: 'number nowrap', rendu: function (m) {
+            return Number(m.aideAsso) > 0 ? '<span class="montant-positif">' + fmtEuro(m.aideAsso) + '</span>' : '<span class="texte-discret">0 €</span>'; } },
+        { cle: 'montantPayeAdherent', titre: 'Part adhérent', type: 'montant', classe: 'number nowrap' }
+      ],
+      lignes: function () { return T('MobilHome').filter(function (m) { return Number(m.annee) === APP.annee; }); },
+      filtres: [
+        { cle: 'camping', titre: 'Camping', valeur: function (m) { return libellePrestataire(m.campingId) || '(non renseigné)'; } },
+        { cle: 'aide', titre: 'Aide', valeur: function (m) { return Number(m.aideAsso) > 0 ? 'Avec aide' : 'Sans aide'; } }
+      ],
+      triDefaut: { cle: 'semaine', sens: 1 },
+      modifier: mhModifier,
+      supprimer: mhSupprimer,
+      compact: true, dense: true,
+      exportNom: 'mobil_home',
+      vide: 'Aucune location de mobil-home pour cette année.'
+    });
+    APP.listes.aidesMh = new Liste({
+      conteneur: 'liste-aides-mh',
+      colonnes: [
+        { cle: 'adherentId', titre: 'N°', classe: 'nowrap' },
+        { cle: 'nom', titre: 'Titulaire' },
+        { cle: 'semaines', titre: 'Semaines louées', type: 'nombre', classe: 'center' },
+        { cle: 'aides', titre: 'Aides utilisées', type: 'nombre', classe: 'center', filtre: false,
+          rendu: function (x) { return x.aides + ' / ' + x.plafond; } },
+        { cle: 'reste', titre: 'Reste', type: 'nombre', classe: 'center', filtre: false,
+          rendu: function (x) { return x.reste ? String(x.reste) : '<span class="badge badge-amber">plafond atteint</span>'; } },
+        { cle: 'montant', titre: 'Montant asso', type: 'montant', classe: 'number' }
+      ],
+      lignes: mhAidesParTitulaire,
+      filtres: [{ cle: 'etat', titre: 'État', valeur: function (x) { return x.reste ? 'Aide encore possible' : 'Plafond atteint'; } }],
+      triDefaut: { cle: 'nom', sens: 1 },
+      exportNom: 'aides_mobil_home',
+      vide: 'Aucun titulaire n\'a loué de mobil-home cette année.'
+    });
+
+    actNouvelle();
+    mhNouvelle();
+  },
+
+  rendre: function () {
+    var p = APP.d.parametres;
+    document.querySelectorAll('.mh-nb-aides').forEach(function (e) { e.textContent = p.NB_AIDES_MOBILHOME; });
+    document.querySelectorAll('.mh-aide').forEach(function (e) { e.textContent = p.AIDE_MOBILHOME; });
+    actRendreIndicateurs();
+    // fiche activité : listes de choix
+    var f = document.getElementById('form-activite');
+    var cat = f.querySelector('[data-champ="categorie"]');
+    var v = cat.value;
+    remplirSelect(cat, categoriesConnues(), { vide: '— Choisir une catégorie —' });
+    cat.value = v;
+    remplirSousCategories(f.querySelector('[data-champ="sousCategorie"]'), cat.value, 'Les deux');
+    var id = f.querySelector('[data-champ="id"]').value;
+    if (id && !parId('Activites', id)) actNouvelle();
+    ACT.recherches.organisateur.majListe();
+    ACT.recherches.organisateur.afficher();
+    // activité sélectionnée
+    var acts = actActivitesAnnee(APP.annee).slice().sort(function (a, b) { return String(b.dateDebut).localeCompare(String(a.dateDebut)); });
+    var sel = document.getElementById('act-selection');
+    remplirSelect(sel, acts.map(function (a) { return { valeur: a.id, texte: a.id + ' · ' + a.nom }; }), acts.length ? {} : { vide: 'Aucune activité cette année' });
+    if (!ACT.selection || !acts.some(function (a) { return a.id === ACT.selection; })) {
+      // par défaut : la dernière activité enregistrée (identifiant le plus élevé)
+      var derniere = acts.slice().sort(function (a, b) { return b.id.localeCompare(a.id); })[0];
+      ACT.selection = derniere ? derniere.id : '';
+    }
+    sel.value = ACT.selection;
+    actRendreSelection();
+    // mobil-home
+    var fm = document.getElementById('form-mobilhome');
+    var campings = T('Prestataires').filter(function (x) { return x.activite === 'Hébergement / mobil-home'; });
+    var autres = T('Prestataires').filter(function (x) { return x.activite !== 'Hébergement / mobil-home' && x.id !== 'PRE-000'; });
+    var c = fm.querySelector('[data-champ="campingId"]');
+    var cv = c.value;
+    remplirSelect(c, campings.map(function (x) { return { valeur: x.id, texte: x.raisonSociale }; })
+      .concat(autres.map(function (x) { return { valeur: x.id, texte: x.raisonSociale + ' (autre activité)' }; })), { vide: '— Choisir le camping —' });
+    c.value = cv;
+    var mid = fm.querySelector('[data-champ="id"]').value;
+    if (mid && !parId('MobilHome', mid)) mhNouvelle();
+    ACT.recherches.mobilhome.majListe();
+    ACT.recherches.mobilhome.afficher();
+    mhInfoAide();
+    APP.listes.activites.rafraichir();
+    APP.listes.mobilhome.rafraichir();
+    APP.listes.aidesMh.rafraichir();
+    var auPlafond = mhAidesParTitulaire().filter(function (x) { return !x.reste; }).length;
+    document.getElementById('mh-badge-aides').textContent = auPlafond + ' titulaire(s) au plafond · personne au-delà';
+  }
+});
+
+/* ---------------------------------------------------------------------
+   Données utiles
+   ------------------------------------------------------------------- */
+function actActivitesAnnee(N) { return T('Activites').filter(function (a) { return ANNEE.activite(a, N); }); }
+function actInscrits(actId) { return T('Inscriptions').filter(function (i) { return i.activiteId === actId && i.statut === 'Inscrit'; }); }
+function actEcheancesInscription(insId) {
+  return memo('echParIns', function () {
+    var m = {};
+    T('Echeances').forEach(function (e) { (m[e.inscriptionId] = m[e.inscriptionId] || []).push(e); });
+    Object.keys(m).forEach(function (k) { m[k].sort(function (a, b) { return a.numero - b.numero; }); });
+    return m;
+  })[insId] || [];
+}
+function actBadgeStatut(s) {
+  return { 'En préparation': 'badge-gray', 'Ouvert aux inscriptions': 'badge-green', 'Complet': 'badge-amber', 'Terminé': 'badge-blue', 'Annulé': 'badge-red' }[s] || 'badge-gray';
+}
+/** Paiements d'une activité : encaissé (échéances payées), reste dû (échéances non payées des inscrits). */
+function actPaiements(actId) {
+  var encaisse = 0, reste = 0, nbPayees = 0, nbTotal = 0;
+  T('Inscriptions').filter(function (i) { return i.activiteId === actId; }).forEach(function (i) {
+    actEcheancesInscription(i.id).forEach(function (e) {
+      if (e.paye) { encaisse += Number(e.montant || 0); }
+      if (i.statut === 'Inscrit') { nbTotal++; if (e.paye) nbPayees++; else reste += Number(e.montant || 0); }
+    });
+  });
+  return { encaisse: encaisse, reste: reste, nbPayees: nbPayees, nbTotal: nbTotal };
+}
+function actAller(id) { document.getElementById(id).scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+
+/* ---------------------------------------------------------------------
+   Indicateurs
+   ------------------------------------------------------------------- */
+function actRendreIndicateurs() {
+  var N = APP.annee, auj = APP.d.aujourdhui;
+  var acts = actActivitesAnnee(N);
+  var realisees = acts.filter(function (a) { return (a.dateFin || a.dateDebut) < auj && a.statut !== 'Annulé'; }).length;
+  var annulees = acts.filter(function (a) { return a.statut === 'Annulé'; }).length;
+  texteEl('act-kpi-nombre', acts.length);
+  texteEl('act-kpi-nombre-detail', realisees + ' réalisée(s) · ' + (acts.length - realisees - annulees) + ' à venir' + (annulees ? ' · ' + annulees + ' annulée(s)' : ''));
+
+  var actifs = T('Adherents').filter(function (a) { return ANNEE.adherent(a, N); });
+  var part = actifs.filter(function (a) { return CALC.aParticipe(a.id, N); }).length;
+  texteEl('act-kpi-participants', part + ' / ' + actifs.length);
+  texteEl('act-kpi-participants-detail', 'ratio : ' + pct(part, actifs.length) + ' % des adhérents / sympathisants');
+  texteEl('act-kpi-non', actifs.length - part);
+  texteEl('act-kpi-non-detail', pct(actifs.length - part, actifs.length) + ' % à réengager');
+
+  var enc = 0, reste = 0, attente = 0;
+  acts.forEach(function (a) { var p = actPaiements(a.id); enc += p.encaisse; reste += p.reste; attente += p.nbTotal - p.nbPayees; });
+  texteEl('act-kpi-encaisse', fmtEuro(enc, 0));
+  texteEl('act-kpi-encaisse-detail', 'encaissés · reste dû ' + fmtEuro(reste, 0) + ' (' + attente + ' échéance(s) en attente)');
+
+  // Mobil-home
+  var mh = T('MobilHome').filter(function (m) { return Number(m.annee) === N; });
+  var total = CALC.somme(mh.map(function (m) { return { montant: m.coutLocation }; }));
+  var aides = CALC.somme(mh.map(function (m) { return { montant: m.aideAsso }; }));
+  var nbAides = mh.filter(function (m) { return Number(m.aideAsso) > 0; }).length;
+  var beneficiaires = {};
+  mh.forEach(function (m) { if (Number(m.aideAsso) > 0) beneficiaires[m.adherentId] = true; });
+  texteEl('mh-kpi-semaines', mh.length);
+  texteEl('mh-kpi-semaines-detail', 'total mobil-home · cumul ' + N);
+  texteEl('mh-kpi-total', fmtEuro(total, 0));
+  texteEl('mh-kpi-asso', fmtEuro(aides, 0));
+  texteEl('mh-kpi-asso-detail', nbAides + ' aide(s) × ' + APP.d.parametres.AIDE_MOBILHOME + ' € · ' + Object.keys(beneficiaires).length + ' titulaire(s)');
+  var parCamping = {};
+  mh.forEach(function (m) {
+    var k = m.campingId || '';
+    parCamping[k] = parCamping[k] || { n: 0, total: 0, aides: 0 };
+    parCamping[k].n++; parCamping[k].total += Number(m.coutLocation || 0); parCamping[k].aides += Number(m.aideAsso || 0);
+  });
+  var lignes = Object.keys(parCamping).sort(function (a, b) { return parCamping[b].n - parCamping[a].n; });
+  var html = lignes.map(function (k) {
+    var x = parCamping[k];
+    return '<tr><td>' + echapper(libellePrestataire(k) || '(camping non renseigné)') + '</td><td class="center"><strong>' + x.n + '</strong></td><td class="number">' +
+      fmtEuro(x.total) + '</td><td class="number">' + fmtEuro(x.aides) + '</td></tr>';
+  }).join('');
+  html += lignes.length ? '<tr class="ligne-total"><td>Total</td><td class="center">' + mh.length + '</td><td class="number">' + fmtEuro(total) + '</td><td class="number">' + fmtEuro(aides) + '</td></tr>'
+    : '<tr><td colspan="4" class="liste-vide">Aucune location en ' + N + '.</td></tr>';
+  document.getElementById('mh-campings').innerHTML = html;
+
+  // Subventions : Participation Association > 0
+  var subv = actifs.filter(function (a) { return CALC.totalParticipation(a.id, N) > 0; });
+  var montant = actifs.reduce(function (s, a) { return s + CALC.totalParticipation(a.id, N); }, 0);
+  texteEl('sub-kpi-global', subv.length + ' / ' + actifs.length);
+  texteEl('sub-kpi-global-detail', pct(subv.length, actifs.length) + ' % des adhérents subventionnés');
+  texteEl('sub-kpi-montant', fmtEuro(montant, 0));
+  texteEl('sub-kpi-montant-detail', 'cumul ' + N + ' · Participation Asso (activités et mobil-home)');
+  var regions = ['Île-de-France', 'Province'];
+  if (actifs.some(function (a) { return !a.region; })) regions.push('');
+  document.getElementById('sub-regions').innerHTML = regions.map(function (r) {
+    var base = actifs.filter(function (a) { return (a.region || '') === r; });
+    var n = subv.filter(function (a) { return (a.region || '') === r; }).length;
+    var p = pct(n, base.length);
+    return '<tr><td>' + (r || 'Non renseignée') + '</td><td class="center">' + n + ' / ' + base.length + '</td><td class="center">' + p +
+      ' %</td><td><div class="progress-bar"><div class="progress-fill" style="width:' + p + '%"></div></div></td></tr>';
+  }).join('');
+
+  // Coût par activité
+  var couts = acts.slice().sort(function (a, b) { return String(a.dateDebut).localeCompare(String(b.dateDebut)); }).map(function (a) {
+    var ins = actInscrits(a.id);
+    var cout = CALC.coutParPersonne(a);
+    var coutTotal = cout === '' ? 0 : cout * ins.length;
+    var pa = ins.reduce(function (s, i) {
+      var paye = i.montantDu !== '' ? Number(i.montantDu) : Number(a.prixParPersonne || 0);
+      return s + (cout === '' ? 0 : Math.max(0, cout - paye));
+    }, 0);
+    var p = actPaiements(a.id);
+    return '<tr><td><strong>' + echapper(a.nom) + '</strong><small>' + fmtDate(a.dateDebut) + (a.dateFin ? ' → ' + fmtDate(a.dateFin) : '') + '</small></td>' +
+      '<td>' + echapper(a.categorie) + '</td><td class="center">' + ins.length + (a.maxParticipants ? ' / ' + a.maxParticipants : '') + '</td>' +
+      '<td class="number nowrap">' + fmtEuro(coutTotal) + '</td><td class="number nowrap">' + (Number(a.prixParPersonne) ? fmtEuro(a.prixParPersonne) : 'Gratuit') + '</td>' +
+      '<td class="number nowrap">' + fmtEuro(pa) + ' <small>(' + (coutTotal ? Math.round(100 * pa / coutTotal) : 0) + ' %)</small></td>' +
+      '<td class="center">' + (p.nbTotal ? '<span class="badge ' + (p.nbPayees === p.nbTotal ? 'badge-green' : 'badge-amber') + '">' + p.nbPayees + ' / ' + p.nbTotal + ' payées</span>' : '<span class="badge badge-gray">Gratuit</span>') + '</td></tr>';
+  });
+  document.getElementById('act-couts').innerHTML = couts.join('') || '<tr><td colspan="7" class="liste-vide">Aucune activité en ' + N + '.</td></tr>';
+  actDessinerParts();
+}
+
+/* ---------------------------------------------------------------------
+   Camembert : part de chaque activité de l'année (valeurs et % écrits dessus)
+   ------------------------------------------------------------------- */
+var COULEURS_ACTIVITES = ['#1A5276', '#F39C12', '#27AE60', '#8E44AD', '#C0392B', '#2E86C1', '#16A085', '#D35400',
+                          '#7F8C8D', '#B7950B', '#6C3483', '#1E8449', '#922B21', '#5DADE2', '#AF601A', '#34495E'];
+
+/** Valeur d'une activité pour la mesure choisie. */
+function actValeurMesure(a, mesure) {
+  var ins = actInscrits(a.id);
+  if (mesure === 'inscrits') return ins.length;
+  if (mesure === 'encaisse') return actPaiements(a.id).encaisse;
+  var cout = CALC.coutParPersonne(a);
+  if (cout === '') return 0;
+  if (mesure === 'cout') return cout * ins.length;
+  return ins.reduce(function (s, i) {   // participation de l'association
+    var paye = i.montantDu !== '' ? Number(i.montantDu) : Number(a.prixParPersonne || 0);
+    return s + Math.max(0, cout - paye);
+  }, 0);
+}
+
+function actDessinerParts() {
+  var N = APP.annee, mesure = document.getElementById('act-graph-mesure').value;
+  var acts = actActivitesAnnee(N).filter(function (a) { return a.statut !== 'Annulé'; })
+    .sort(function (a, b) { return String(a.dateDebut).localeCompare(String(b.dateDebut)); });
+  var couleurs = {};
+  acts.forEach(function (a, i) { couleurs[a.id] = COULEURS_ACTIVITES[i % COULEURS_ACTIVITES.length]; });
+  var lignes = acts.map(function (a) { return { a: a, v: Math.round(actValeurMesure(a, mesure) * 100) / 100 }; })
+    .filter(function (l) { return l.v > 0; })
+    .sort(function (x, y) { return y.v - x.v; });
+  var sansValeur = acts.length - lignes.length;
+  var enEuros = mesure !== 'inscrits';
+  var aide = document.getElementById('act-graph-aide');
+  if (!lignes.length) {
+    if (GRAPHIQUES['act-graph-parts']) { GRAPHIQUES['act-graph-parts'].destroy(); delete GRAPHIQUES['act-graph-parts']; }
+    var c = document.getElementById('act-graph-parts');
+    if (c) c.getContext('2d').clearRect(0, 0, c.width, c.height);
+    aide.textContent = 'Aucune donnée à représenter pour ' + N + '.';
+    return;
+  }
+  dessinerGraphique('act-graph-parts', configSecteurs({
+    type: 'pie',
+    idCanvas: 'act-graph-parts',
+    libelles: lignes.map(function (l) { return l.a.nom; }),
+    valeurs: lignes.map(function (l) { return l.v; }),
+    couleurs: lignes.map(function (l) { return couleurs[l.a.id]; }),
+    format: enEuros ? function (v) { return fmtEuro(v, 0); } : function (v) { return v + ' inscrit' + (v > 1 ? 's' : ''); },
+    formatCourt: enEuros ? function (v) { return fmtEuro(v, 0); } : function (v) { return String(v); }
+  }));
+  var total = lignes.reduce(function (s, l) { return s + l.v; }, 0);
+  aide.textContent = 'Total ' + N + ' : ' + (enEuros ? fmtEuro(total, 0) : total + ' inscription(s)') + ' sur ' + lignes.length + ' activité(s)' +
+    (sansValeur ? ' · ' + sansValeur + ' activité(s) à 0 non représentée(s)' : '') + ' · activités annulées exclues.';
+}
+
+/* ---------------------------------------------------------------------
+   Fiche activité
+   ------------------------------------------------------------------- */
+function actForm() { return document.getElementById('form-activite'); }
+
+function actMajParticipation() {
+  var f = actForm();
+  var prix = f.querySelector('[data-champ="prixParPersonne"]').value, cout = f.querySelector('[data-champ="coutReelParPersonne"]').value;
+  var champ = document.getElementById('act-participation');
+  if (prix === '' || cout === '') { champ.value = ''; return; }
+  var pa = Math.max(0, Number(cout) - Number(prix));
+  champ.value = fmtEuro(pa) + ' · ' + (Number(cout) ? Math.round(100 * pa / Number(cout)) : 0) + ' %';
+}
+
+function actNouvelle() {
+  remplirFormulaire(actForm(), { id: '', statut: 'En préparation', nbEcheances: '1', notification: true });
+  if (APP.d) remplirSousCategories(actForm().querySelector('[data-champ="sousCategorie"]'), '', 'Les deux');
+  if (ACT.recherches.organisateur) ACT.recherches.organisateur.afficher();
+  actMajParticipation();
+  texteEl('act-form-titre', 'Enregistrer une nouvelle activité');
+  texteEl('act-form-badge', 'Nouvelle activité');
+  texteEl('act-enregistrer', 'Enregistrer l\'activité');
+  if (APP.listes.activites) APP.listes.activites.surligner(null);
+}
+
+function actModifier(a) {
+  var f = actForm();
+  var o = Object.assign({}, a, { nbEcheances: String(a.nbEcheances || 1) });
+  remplirFormulaire(f, o);
+  remplirSousCategories(f.querySelector('[data-champ="sousCategorie"]'), a.categorie, 'Les deux');
+  f.querySelector('[data-champ="sousCategorie"]').value = a.sousCategorie || '';
+  ACT.recherches.organisateur.afficher();
+  actMajParticipation();
+  texteEl('act-form-titre', 'Fiche activité — ' + a.id + ' · ' + a.nom);
+  texteEl('act-form-badge', 'Modification');
+  texteEl('act-enregistrer', 'Enregistrer les modifications');
+  APP.listes.activites.surligner(a.id);
+  actAller('panneau-fiche-activite');
+}
+
+function actEnregistrer() {
+  var f = actForm();
+  var o = lireFormulaire(f);
+  var e = validerObjet('Activites', o);
+  if (o.dateFin && o.dateDebut && o.dateFin < o.dateDebut) e.push({ cle: 'dateFin', message: 'La date de fin est antérieure à la date de début.' });
+  if (document.getElementById('act-organisateur-saisie').value.trim() && !o.organisateur) e.push({ cle: 'organisateur', message: 'Organisateur : choisissez une personne dans la liste proposée.' });
+  var existante = o.id ? parId('Activites', o.id) : null;
+  if (existante && actInscrits(o.id).length && (Number(o.nbEcheances) !== Number(existante.nbEcheances) || Number(o.prixParPersonne) !== Number(existante.prixParPersonne))) {
+    notifier('Les échéances déjà créées pour les inscrits ne changent pas : le nouveau prix et le nouveau nombre d\'échéances s\'appliquent aux prochaines inscriptions.', 'info');
+  }
+  afficherErreurs(f, e);
+  if (e.length) return;
+  appelServeur('enregistrerActivite', [o], { attente: o.id ? 'Enregistrement…' : 'Création de l\'activité' + (o.notification ? ' et envoi de la notification…' : '…') })
+    .then(function (rep) { actNouvelle(); ACT.selection = rep.id; actRendreSelectionApresChargement(rep.id); })
+    .catch(function (err) { afficherErreurs(f, err.message.split('\n').map(function (m) { return { message: m }; })); });
+}
+
+function actRendreSelectionApresChargement(id) {
+  var a = parId('Activites', id);
+  if (a && anneeDe(a.dateDebut) !== APP.annee) {
+    notifier('Cette activité est en ' + anneeDe(a.dateDebut) + ' : choisissez cette année en haut de page pour la voir dans les listes.', 'info');
+    return;
+  }
+  document.getElementById('act-selection').value = id;
+  actRendreSelection();
+  APP.listes.activites.surligner(id);
+}
+
+function actSupprimer(a) {
+  confirmer('Supprimer l\'activité ' + a.id + ' — « ' + a.nom + ' » ?\nLa suppression est refusée s\'il existe des inscriptions, recettes ou dépenses liées (passez-la plutôt au statut « Annulé »).',
+    { titre: 'Supprimer une activité', bouton: 'Supprimer', danger: true })
+    .then(function (ok) { if (ok) appelServeur('supprimer', ['Activites', a.id], { attente: 'Suppression…' }).catch(function () {}); });
+}
+
+/* ---------------------------------------------------------------------
+   Activité sélectionnée : résumé, inscriptions, suivi des paiements
+   ------------------------------------------------------------------- */
+function actSelectionner(id) {
+  ACT.selection = id;
+  document.getElementById('act-selection').value = id;
+  actRendreSelection();
+  actAller('panneau-activite-selectionnee');
+}
+
+function actRendreSelection() {
+  var a = ACT.selection ? parId('Activites', ACT.selection) : null;
+  var zone = document.getElementById('act-fiche-resume');
+  ['act-modifier-selection', 'act-fiche-inscription', 'act-notifier', 'ins-inscrire'].forEach(function (b) { document.getElementById(b).disabled = !a; });
+  document.getElementById('act-fiche-liens').classList.add('hidden');
+  if (!a) { zone.innerHTML = '<p class="texte-discret">Aucune activité pour cette année : enregistrez-en une ci-dessus.</p>'; document.getElementById('act-suivi').innerHTML = ''; return; }
+  var ins = actInscrits(a.id), p = actPaiements(a.id);
+  var org = a.organisateur ? nomAdherent(a.organisateur) : '—';
+  zone.innerHTML = '<div class="fiche-entete"><div><div class="fiche-titre">' + echapper(a.id + ' · ' + a.nom) + ' <span class="badge ' + actBadgeStatut(a.statut) + '">' + echapper(a.statut) + '</span></div>' +
+    '<div class="texte-discret" style="font-style:normal">' + fmtDate(a.dateDebut) + (a.dateFin ? ' → ' + fmtDate(a.dateFin) : '') + ' · ' + echapper(a.lieu || 'lieu à préciser') +
+    ' · ' + echapper(a.categorie) + ' · organisateur : ' + echapper(org) + '</div></div></div>' +
+    '<div class="kpi-grid" style="margin:12px 0 0">' +
+    '<div class="kpi-card"><div class="kpi-label">Inscrits</div><div class="kpi-value">' + ins.length + (a.maxParticipants ? ' / ' + a.maxParticipants : '') + '</div><div class="kpi-trend neutre">' +
+      (a.maxParticipants ? Math.max(0, a.maxParticipants - ins.length) + ' place(s) restante(s)' : 'sans limite') + '</div></div>' +
+    '<div class="kpi-card green"><div class="kpi-label">Encaissé</div><div class="kpi-value">' + fmtEuro(p.encaisse, 0) + '</div><div class="kpi-trend neutre">' + p.nbPayees + ' / ' + p.nbTotal + ' échéance(s) payée(s)</div></div>' +
+    '<div class="kpi-card red"><div class="kpi-label">Reste dû</div><div class="kpi-value">' + fmtEuro(p.reste, 0) + '</div><div class="kpi-trend neutre">' + (p.nbTotal - p.nbPayees) + ' échéance(s) en attente</div></div>' +
+    '<div class="kpi-card accent"><div class="kpi-label">Prix · part asso / pers.</div><div class="kpi-value petit">' + (Number(a.prixParPersonne) ? fmtEuro(a.prixParPersonne) : 'Gratuit') +
+      ' · ' + fmtEuro(a.participationEuro || 0) + '</div><div class="kpi-trend neutre">en ' + (a.nbEcheances || 1) + ' fois · coût réel ' + (a.coutReelParPersonne === '' ? '—' : fmtEuro(a.coutReelParPersonne)) + '</div></div></div>';
+  document.getElementById('ins-montant').value = a.prixParPersonne === '' ? '' : a.prixParPersonne;
+  document.getElementById('ins-adherent').value = '';
+  ACT.recherches.inscription.majListe();
+  ACT.recherches.inscription.afficher();
+  actRendreSuivi();
+}
+
+function actRendreSuivi() {
+  var a = ACT.selection ? parId('Activites', ACT.selection) : null;
+  var cible = document.getElementById('act-suivi');
+  if (!a) { cible.innerHTML = ''; return; }
+  var voirDes = document.getElementById('act-voir-desinscrits').checked;
+  var auj = APP.d.aujourdhui;
+  var toutes = T('Inscriptions').filter(function (i) { return i.activiteId === a.id && (i.statut === 'Inscrit' || voirDes); });
+  var rech = sansAccents(document.getElementById('act-suivi-recherche').value).trim();
+  var filtre = document.getElementById('act-suivi-filtre').value;
+  var ins = toutes.filter(function (i) {
+    if (rech && sansAccents(nomAdherent(i.adherentId) + ' ' + i.adherentId + ' ' + i.id).indexOf(rech) < 0) return false;
+    if (!filtre) return true;
+    var cs = actEcheancesInscription(i.id);
+    var reste = i.statut === 'Inscrit' && cs.some(function (e) { return !e.paye; });
+    if (filtre === 'reste') return reste;
+    if (filtre === 'ajour') return !reste;
+    return i.statut === 'Inscrit' && cs.some(function (e) { return !e.paye && e.datePrevue && e.datePrevue < auj; });
+  }).sort(function (x, y) { return nomAdherent(x.adherentId).localeCompare(nomAdherent(y.adherentId), 'fr'); });
+  document.getElementById('act-suivi-compteur').innerHTML = '<strong>' + ins.length + '</strong> participant(s) sur ' + toutes.length;
+  if (!ins.length) { cible.innerHTML = '<p class="texte-discret" style="padding:10px;background:var(--white);border-radius:4px">' + (toutes.length ? 'Aucun participant ne correspond à la recherche.' : 'Aucun inscrit pour le moment.') + '</p>'; return; }
+  var html = '<div class="table-scroll"><table class="data-table table-encadree dense suivi-paiements"><thead><tr><th>Participant</th><th class="nowrap">Inscrit le</th><th class="number">Montant dû</th>' +
+    '<th class="col-echeances">Échéances (cocher « Payé » · &#8617; = rembourser)</th><th class="number">Payé</th><th class="number">Reste dû</th><th class="center">Actions</th></tr></thead><tbody>';
+  ins.forEach(function (i) {
+    var cases = actEcheancesInscription(i.id), n = Math.max(cases.length, Number(a.nbEcheances) || 1);
+    var paye = 0, reste = 0;
+    var cellules = cases.map(function (e) {
+      if (e.paye) paye += Number(e.montant); else if (i.statut === 'Inscrit') reste += Number(e.montant);
+      var retard = !e.paye && e.datePrevue && e.datePrevue < auj && i.statut === 'Inscrit';
+      var ligne = '<div class="ech' + (e.paye ? ' ech-payee' : '') + (e.rembourse ? ' ech-remboursee' : '') + (retard ? ' ech-retard' : '') + '">' +
+        '<label class="case"><input type="checkbox" ' + (e.paye ? 'checked ' : '') + (e.rembourse ? 'disabled ' : '') + 'data-ech="' + (e.paye ? 'annuler' : 'payer') + '" data-id="' + e.id + '" ' +
+        'aria-label="Échéance ' + e.numero + ' payée"> <strong>' + e.numero + '/' + n + '</strong> · ' + fmtEuro(e.montant) + '</label>' +
+        '<small title="' + (e.recetteId ? 'Recette ' + echapper(e.recetteId) : '') + '">' + (e.paye ? 'payée ' + fmtDate(e.datePaiement).slice(0, 5) : (retard ? 'en retard · ' : 'prévue ') + fmtDate(e.datePrevue).slice(0, 5)) + '</small>';
+      if (e.rembourse) ligne += '<span class="badge badge-amber" title="Dépense ' + echapper(e.depenseId || '') + '">Remboursée</span><button type="button" class="btn btn-secondary btn-sm" data-ech="annuler-remb" data-id="' + e.id + '" title="Annuler le remboursement">&#10005;</button>';
+      else if (e.paye) ligne += '<button type="button" class="btn btn-secondary btn-sm btn-icone" data-ech="rembourser" data-id="' + e.id + '" title="Rembourser cette échéance" aria-label="Rembourser l\'échéance ' + e.numero + '">&#8617;</button>';
+      return ligne + '</div>';
+    }).join('');
+    if (!cases.length) cellules = '<span class="texte-discret">' + (Number(i.montantDu) ? 'aucune échéance' : 'gratuit') + '</span>';
+    html += '<tr' + (i.statut === 'Désinscrit' ? ' class="ligne-archivee"' : '') + '><td><strong>' + echapper(nomAdherent(i.adherentId)) + '</strong><small>' + echapper(i.adherentId) + ' · ' + echapper(i.id) +
+      (i.statut === 'Désinscrit' ? ' · désinscrit' : '') + '</small></td><td class="nowrap">' + fmtDate(i.dateInscription) + '</td><td class="number nowrap">' + fmtEuro(i.montantDu || 0) + '</td>' +
+      '<td><div class="ech-groupe">' + cellules + '</div></td><td class="number nowrap montant-positif">' + fmtEuro(paye) + '</td><td class="number nowrap' + (reste ? ' montant-negatif' : '') + '">' + fmtEuro(reste) + '</td>' +
+      '<td class="center">' + (i.statut === 'Inscrit' ? '<button type="button" class="btn btn-secondary btn-sm" data-ech="desinscrire" data-id="' + i.id + '">Désinscrire</button>' : '') + '</td></tr>';
+  });
+  html += '</tbody></table></div>';
+  cible.innerHTML = html;
+}
+
+function actClicSuivi(ev) {
+  var b = ev.target.closest('[data-ech]');
+  if (!b) return;
+  var action = b.getAttribute('data-ech'), id = b.getAttribute('data-id');
+  if (b.type === 'checkbox') ev.preventDefault();
+  var e = parId('Echeances', id);
+  if (action === 'payer') {
+    fenetreFormulaire({
+      titre: 'Échéance payée',
+      intro: 'Une recette de ' + fmtEuro(e.montant) + ' sera créée automatiquement dans Budget & Compta.',
+      champsHtml: '<div class="form-row"><div class="form-group"><label class="form-label">Date de paiement <span class="required">*</span></label><input class="form-input" type="date" data-champ="date"></div>' +
+        '<div class="form-group"><label class="form-label">Mode d\'encaissement</label><select class="form-select" data-champ="mode"><option value="">—</option>' +
+        optionsHtml(APP.d.schema.listes.MODE_PAIEMENT || []) + '</select></div></div>',
+      valeurs: { date: APP.d.aujourdhui, mode: 'Chèque' },
+      bouton: 'Valider le paiement',
+      valider: function (o) { return !o.date ? [{ cle: 'date', message: 'Saisissez la date de paiement.' }] : (o.date > APP.d.aujourdhui ? [{ cle: 'date', message: 'La date ne peut pas être dans le futur.' }] : []); }
+    }).then(function (o) { if (o) appelServeur('payerEcheance', [id, o.date, o.mode], { attente: 'Création de la recette…' }).catch(function () {}); });
+  } else if (action === 'annuler') {
+    confirmer('Décocher « Payé » supprimera la recette ' + (e.recetteId || '') + ' (' + fmtEuro(e.montant) + ').', { titre: 'Annuler le paiement', bouton: 'Supprimer la recette', danger: true })
+      .then(function (ok) { if (ok) appelServeur('annulerPaiement', [id], { attente: 'Suppression de la recette…' }).catch(function () {}); });
+  } else if (action === 'rembourser') {
+    fenetreFormulaire({
+      titre: 'Rembourser l\'échéance',
+      intro: 'Une dépense de ' + fmtEuro(e.montant) + ' (origine « Remboursement ») sera créée automatiquement dans Budget & Compta.',
+      champsHtml: '<div class="form-group"><label class="form-label">Date du remboursement <span class="required">*</span></label><input class="form-input" type="date" data-champ="date"></div>',
+      valeurs: { date: APP.d.aujourdhui },
+      bouton: 'Rembourser',
+      danger: true,
+      valider: function (o) { return !o.date ? [{ cle: 'date', message: 'Saisissez la date.' }] : (o.date > APP.d.aujourdhui ? [{ cle: 'date', message: 'La date ne peut pas être dans le futur.' }] : []); }
+    }).then(function (o) { if (o) appelServeur('rembourserEcheance', [id, o.date], { attente: 'Création de la dépense…' }).catch(function () {}); });
+  } else if (action === 'annuler-remb') {
+    confirmer('Annuler le remboursement supprimera la dépense ' + (e.depenseId || '') + '.', { titre: 'Annuler le remboursement', bouton: 'Supprimer la dépense', danger: true })
+      .then(function (ok) { if (ok) appelServeur('annulerRemboursement', [id]).catch(function () {}); });
+  } else if (action === 'desinscrire') {
+    var i = parId('Inscriptions', id);
+    confirmer('Désinscrire ' + nomAdherent(i.adherentId) + ' de cette activité ?\nLes échéances non payées seront supprimées ; les échéances payées restent visibles pour un éventuel remboursement.',
+      { titre: 'Désinscrire de l\'activité', bouton: 'Désinscrire', danger: true })
+      .then(function (ok) { if (ok) appelServeur('desinscrireActivite', [id], { attente: 'Désinscription…' }).catch(function () {}); });
+  }
+}
+
+function actInscrire() {
+  var adh = document.getElementById('ins-adherent').value;
+  var saisie = document.getElementById('ins-adherent-saisie');
+  if (!adh) { notifier('Choisissez un adhérent actif dans la liste proposée.', 'erreur'); saisie.classList.add('champ-erreur'); saisie.focus(); return; }
+  var a = parId('Activites', ACT.selection);
+  if (a.maxParticipants && actInscrits(a.id).length >= Number(a.maxParticipants)) {
+    notifier('Activité complète : ' + a.maxParticipants + ' place(s) au maximum.', 'erreur');
+    return;
+  }
+  appelServeur('inscrireActivite', [ACT.selection, adh, document.getElementById('ins-montant').value], { attente: 'Inscription et création des cases de paiement…' }).catch(function () {});
+}
+
+function actGenererFiche() {
+  appelServeur('genererFicheInscription', [ACT.selection], { attente: 'Génération de la fiche d\'inscription (Google Doc + PDF)…' })
+    .then(function (rep) {
+      var z = document.getElementById('act-fiche-liens');
+      z.innerHTML = '&#128196; Fiche générée : <a class="lien" href="' + echapper(rep.urlDoc) + '" target="_blank" rel="noopener">ouvrir le Google Doc</a> · ' +
+        '<a class="lien" href="' + echapper(rep.urlPdf) + '" target="_blank" rel="noopener">ouvrir le PDF</a> (dossier Outil_Brunants/Fiches_inscription).';
+      z.classList.remove('hidden');
+    }).catch(function () {});
+}
+
+function actNotifier() {
+  var a = parId('Activites', ACT.selection);
+  confirmer('Envoyer l\'annonce de « ' + a.nom + ' » aux adhérents actifs ayant un e-mail ?' + (APP.d.parametres.MODE_ENTRAINEMENT ? '\n(Mode entraînement : seule l\'adresse de test la recevra.)' : ''),
+    { titre: 'Notification par mail', bouton: 'Envoyer' })
+    .then(function (ok) { if (ok) appelServeur('notifierActivite', [a.id], { attente: 'Envoi de la notification…' }).catch(function () {}); });
+}
+
+/* ---------------------------------------------------------------------
+   Mobil-home
+   ------------------------------------------------------------------- */
+function mhForm() { return document.getElementById('form-mobilhome'); }
+
+/** Aide prévue pour la location en cours de saisie (même règle que le serveur). */
+function mhInfoAide() {
+  var f = mhForm(), info = document.getElementById('mh-info-aide');
+  if (!APP.d) return;
+  var o = lireFormulaire(f);
+  var adh = o.adherentId ? parId('Adherents', o.adherentId) : null;
+  var p = APP.d.parametres, plafond = Number(p.NB_AIDES_MOBILHOME), aide = Number(p.AIDE_MOBILHOME);
+  if (!adh || !o.semaine) { info.textContent = 'Choisissez un adhérent et une semaine : l\'aide est calculée automatiquement.'; info.className = 'help-text'; return; }
+  var annee = anneeDe(o.semaine);
+  if (adh.type !== 'Titulaire') {
+    info.innerHTML = '<strong>Sympathisant :</strong> pas d\'aide (réservée aux titulaires). L\'adhérent paiera le coût complet.';
+    info.className = 'help-text'; return;
+  }
+  var autres = T('MobilHome').filter(function (m) { return m.adherentId === adh.id && Number(m.annee) === annee && m.id !== o.id; });
+  var avant = autres.filter(function (m) { return m.semaine < o.semaine; }).length;
+  var cout = Number(o.coutLocation || 0);
+  if (avant < plafond) {
+    var deplacee = autres.length >= plafond;
+    info.innerHTML = '<strong>Titulaire :</strong> aide de ' + aide + ' € (aide n° ' + (avant + 1) + ' sur ' + plafond + ' en ' + annee + ')' +
+      (cout ? ' → part de l\'adhérent : ' + fmtEuro(Math.max(0, cout - aide)) : '') +
+      (deplacee ? '.<br>Cette semaine est plus tôt dans l\'année : l\'aide d\'une semaine plus tardive sera retirée pour respecter le plafond.' : '.');
+    info.className = 'help-text';
+  } else {
+    info.innerHTML = '<strong>Plafond atteint :</strong> ' + adh.prenom + ' ' + adh.nom + ' a déjà ' + plafond + ' aide(s) en ' + annee + ' (semaines du ' +
+      autres.filter(function (m) { return Number(m.aideAsso) > 0; }).map(function (m) { return fmtDate(m.semaine); }).join(', ') + '). Pas d\'aide pour cette semaine.';
+    info.className = 'help-text alerte';
+  }
+}
+
+function mhNouvelle() {
+  remplirFormulaire(mhForm(), { id: '' });
+  if (ACT.recherches.mobilhome) ACT.recherches.mobilhome.afficher();
+  texteEl('mh-form-titre', 'Mobil-home — enregistrer une location');
+  texteEl('mh-form-badge', 'Nouvelle location');
+  texteEl('mh-enregistrer', 'Enregistrer la location');
+  mhInfoAide();
+  if (APP.listes.mobilhome) APP.listes.mobilhome.surligner(null);
+}
+
+function mhModifier(m) {
+  remplirFormulaire(mhForm(), m);
+  ACT.recherches.mobilhome.afficher();
+  texteEl('mh-form-titre', 'Modifier la location ' + m.id);
+  texteEl('mh-form-badge', 'Modification');
+  texteEl('mh-enregistrer', 'Enregistrer les modifications');
+  mhInfoAide();
+  APP.listes.mobilhome.surligner(m.id);
+  actAller('panneau-mobilhome');
+}
+
+function mhEnregistrer() {
+  var f = mhForm();
+  var o = lireFormulaire(f);
+  var e = [];
+  if (!o.adherentId) e.push({ cle: 'adherentId', message: 'Choisissez l\'adhérent dans la liste proposée.' });
+  if (!o.campingId) e.push({ cle: 'campingId', message: 'Choisissez le camping.' });
+  if (!o.semaine) e.push({ cle: 'semaine', message: '« Semaine (date de début) » est obligatoire.' });
+  if (!(Number(o.coutLocation) > 0)) e.push({ cle: 'coutLocation', message: '« Coût de la location » doit être supérieur à 0.' });
+  afficherErreurs(f, e);
+  if (e.length) return;
+  appelServeur('enregistrerLocation', [o], { attente: 'Enregistrement de la location et des lignes comptables…' })
+    .then(function (rep) {
+      mhNouvelle();
+      var m = parId('MobilHome', rep.id);
+      if (m && Number(m.annee) !== APP.annee) notifier('Cette location est en ' + m.annee + ' : choisissez cette année en haut de page pour la voir.', 'info');
+      else APP.listes.mobilhome.surligner(rep.id);
+    })
+    .catch(function (err) { afficherErreurs(f, err.message.split('\n').map(function (x) { return { message: x }; })); });
+}
+
+function mhSupprimer(m) {
+  confirmer('Supprimer la location ' + m.id + ' (' + nomAdherent(m.adherentId) + ', semaine du ' + fmtDate(m.semaine) + ') ?\nLa dépense et la recette créées automatiquement seront supprimées et les aides de l\'adhérent recalculées.',
+    { titre: 'Supprimer une location', bouton: 'Supprimer', danger: true })
+    .then(function (ok) { if (ok) appelServeur('supprimerLocation', [m.id], { attente: 'Suppression…' }).catch(function () {}); });
+}
+
+/** Une ligne par titulaire ayant loué dans l'année : semaines, aides utilisées / plafond, reste, montant. */
+function mhAidesParTitulaire() {
+  var N = APP.annee, plafond = Number(APP.d.parametres.NB_AIDES_MOBILHOME);
+  var par = {};
+  T('MobilHome').filter(function (m) { return Number(m.annee) === N; }).forEach(function (m) {
+    var a = parId('Adherents', m.adherentId);
+    if (!a || a.type !== 'Titulaire') return;
+    par[m.adherentId] = par[m.adherentId] || { id: m.adherentId, adherentId: m.adherentId, nom: a.nom + ' ' + a.prenom, semaines: 0, aides: 0, montant: 0, plafond: plafond };
+    var x = par[m.adherentId];
+    x.semaines++;
+    if (Number(m.aideAsso) > 0) { x.aides++; x.montant += Number(m.aideAsso); }
+  });
+  return Object.keys(par).map(function (k) { par[k].reste = Math.max(0, plafond - par[k].aides); return par[k]; });
+}
+</script>

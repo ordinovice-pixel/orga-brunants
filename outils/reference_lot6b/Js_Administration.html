@@ -1,0 +1,278 @@
+<script>
+/* =====================================================================
+   Js_Administration.html — Rubrique « Administration »
+   ---------------------------------------------------------------------
+   Indicateurs : état du classeur (lignes par onglet pour l'année choisie),
+                 lignes à corriger, dernière sauvegarde, mode.
+   Saisie      : paramètres, catégories / sous-catégories, outils
+                 (sauvegarde, e-mail de test, lien vers le classeur).
+   Listes      : lignes à corriger, catégories, journal des opérations.
+   ===================================================================== */
+
+/** Onglets et règle de rattachement à l'année (affichées dans « Contenu du classeur »). */
+var ADM_TABLES = [
+  { t: 'Adherents', regle: 'Actif à un moment de l\'année', f: ANNEE.adherent },
+  { t: 'Activites', regle: 'Date de début', f: ANNEE.activite },
+  { t: 'Inscriptions', regle: 'Année de l\'activité', f: ANNEE.inscription },
+  { t: 'Echeances', regle: 'Année de l\'activité', f: ANNEE.echeance },
+  { t: 'Recettes', regle: 'Date d\'encaissement', f: ANNEE.mouvement },
+  { t: 'Depenses', regle: 'Date de paiement', f: ANNEE.mouvement },
+  { t: 'Categories', regle: 'Non annuel', f: null },
+  { t: 'Budgets', regle: 'Colonne Année', f: ANNEE.champAnnee },
+  { t: 'Prestataires', regle: 'Non annuel', f: null },
+  { t: 'MobilHome', regle: 'Colonne Année', f: ANNEE.champAnnee }
+];
+
+var admParamModifie = false;   // ne pas écraser une saisie en cours
+
+enregistrerRubrique('administration', {
+  titre: 'Administration',
+  sousTitre: 'Paramètres, sauvegardes, catégories et journal',
+
+  init: function () {
+    // --- Paramètres
+    var fp = document.getElementById('form-parametres');
+    fp.addEventListener('input', function () { admParamModifie = true; });
+    fp.addEventListener('change', function () { admParamModifie = true; });
+    document.getElementById('param-annuler').onclick = function () { admParamModifie = false; admRemplirParametres(); };
+    document.getElementById('param-enregistrer').onclick = admEnregistrerParametres;
+
+    // --- Catégories
+    var fc = document.getElementById('form-categorie');
+    remplirSelect(fc.querySelector('[data-champ="type"]'), ['Recette', 'Dépense', 'Les deux']);
+    document.getElementById('cat-annuler').onclick = admNouvelleCategorie;
+    document.getElementById('cat-enregistrer').onclick = admEnregistrerCategorie;
+    admNouvelleCategorie();
+
+    // --- Outils
+    document.getElementById('adm-sauvegarder').onclick = sauvegarderMaintenant;
+    document.getElementById('adm-reinitialiser').onclick = function () {
+      confirmer('Toutes les tables (adhérents, activités, inscriptions, échéances, recettes, dépenses, budgets, prestataires, mobil-home, catégories) vont être vidées puis rechargées avec le jeu d\'entraînement.\nUne sauvegarde complète est faite juste avant. Les paramètres et le journal sont conservés.',
+        { titre: 'Réinitialiser les données d\'entraînement', bouton: 'Réinitialiser', danger: true, double: true })
+        .then(function (ok) {
+          if (ok) appelServeur('reinitialiserDonnees', [], { attente: 'Sauvegarde puis réinitialisation (environ une minute)…' }).catch(function () {});
+        });
+    };
+    document.getElementById('adm-mail-test').onclick = function () {
+      appelServeur('envoyerMailTest', [], { attente: 'Envoi de l\'e-mail de test…' }).catch(function () {});
+    };
+
+    // --- Listes
+    APP.listes.avertissements = new Liste({
+      conteneur: 'liste-avertissements',
+      colonnes: [
+        { cle: 'niveau', titre: 'Niveau', type: 'liste', rendu: function (l) {
+            return '<span class="badge ' + (l.niveau === 'Ignorée' ? 'badge-red' : 'badge-amber') + '">' + echapper(l.niveau) + '</span>'; } },
+        { cle: 'table', titre: 'Onglet', type: 'liste' },
+        { cle: 'ligne', titre: 'Ligne', type: 'nombre', classe: 'center' },
+        { cle: 'refId', titre: 'ID' },
+        { cle: 'motif', titre: 'Problème constaté' }
+      ],
+      lignes: function () {
+        return (APP.d ? APP.d.avertissements : []).map(function (a, i) {
+          return { id: 'AV' + i, refId: a.id, niveau: a.niveau, table: a.table, ligne: a.ligne === '' ? '' : Number(a.ligne), motif: a.motif };
+        });
+      },
+      triDefaut: { cle: 'table', sens: 1 },
+      exportNom: 'lignes_a_corriger',
+      vide: 'Aucune ligne à corriger : toutes les lignes du classeur sont lisibles. 👍'
+    });
+
+    APP.listes.categories = new Liste({
+      conteneur: 'liste-categories-table',
+      colonnes: [
+        { cle: 'id', titre: 'ID' },
+        { cle: 'categorie', titre: 'Catégorie', type: 'liste' },
+        { cle: 'sousCategorie', titre: 'Sous-catégorie' },
+        { cle: 'type', titre: 'Type', type: 'liste' },
+        { cle: 'descriptif', titre: 'Ce qu\'elle recouvre', filtre: false, rendu: function (l) { return '<span class="texte-discret" style="font-style:normal">' + echapper(l.descriptif || '') + '</span>'; } },
+        { cle: 'usage', titre: 'Utilisée par', type: 'nombre', classe: 'number', filtre: false,
+          valeur: function (l) { return admUsageCategorie(l); },
+          rendu: function (l) { var n = admUsageCategorie(l); return n ? n + ' ligne(s)' : '<span style="color:var(--mid)">—</span>'; } }
+      ],
+      lignes: function () { return T('Categories'); },
+      filtres: [{ cle: 'type', titre: 'Type' }],
+      triDefaut: { cle: 'sousCategorie', sens: 1 },   // les numéros (1.1, 1.2… 8.2) donnent l'ordre du dossier budgétaire
+      modifier: admModifierCategorie,
+      supprimer: admSupprimerCategorie,
+      exportNom: 'categories',
+      vide: 'Aucune catégorie.'
+    });
+
+    APP.listes.journal = new Liste({
+      conteneur: 'liste-journal',
+      colonnes: [
+        { cle: 'date', titre: 'Date et heure', type: 'datetime' },
+        { cle: 'utilisateur', titre: 'Utilisateur', type: 'liste' },
+        { cle: 'action', titre: 'Action', type: 'liste', rendu: function (l) { return '<span class="badge ' + admBadgeAction(l.action) + '">' + echapper(l.action) + '</span>'; } },
+        { cle: 'table', titre: 'Table', type: 'liste' },
+        { cle: 'refId', titre: 'ID' },
+        { cle: 'resume', titre: 'Résumé' }
+      ],
+      lignes: function () { return (APP.d ? APP.d.journal : []).filter(function (j) { return anneeDe(j.date) === APP.annee; }); },
+      filtres: [{ cle: 'action', titre: 'Action' }],
+      triDefaut: { cle: 'date', sens: -1 },
+      exportNom: 'journal',
+      vide: 'Aucune opération enregistrée pour cette année.'
+    });
+  },
+
+  rendre: function () {
+    admRendreIndicateurs();
+    if (!admParamModifie) admRemplirParametres();
+    document.getElementById('liste-categories').innerHTML = valeursDistinctes(
+      T('Categories').map(function (c) { return c.categorie; }).concat(APP.d.schema.categoriesBudget)
+    ).map(function (c) { return '<option value="' + echapper(c) + '">'; }).join('');
+    document.getElementById('adm-lien-classeur').href = APP.d.urlClasseur || '#';
+    var entrainement = !!APP.d.parametres.MODE_ENTRAINEMENT;
+    document.getElementById('adm-reinitialiser').disabled = !entrainement;
+    texteEl('adm-reinit-aide', entrainement ? '' : 'Désactivé : le mode entraînement est désactivé (données réelles).');
+    APP.listes.avertissements.rafraichir();
+    APP.listes.categories.rafraichir();
+    APP.listes.journal.rafraichir();
+  }
+});
+
+/* ---------------------------------------------------------------------
+   Indicateurs
+   ------------------------------------------------------------------- */
+function admRendreIndicateurs() {
+  var N = APP.annee;
+  var av = APP.d.avertissements;
+  var total = 0;
+  var html = '';
+  ADM_TABLES.forEach(function (x) {
+    var lignes = T(x.t);
+    total += lignes.length;
+    var dansAnnee = x.f ? lignes.filter(function (l) { return x.f(l, N); }).length : null;
+    var ign = av.filter(function (a) { return a.table === x.t && a.niveau === 'Ignorée'; }).length;
+    var verif = av.filter(function (a) { return a.table === x.t && a.niveau !== 'Ignorée'; }).length;
+    html += '<tr><td><strong>' + echapper(x.t) + '</strong></td><td>' + echapper(x.regle) + '</td>' +
+      '<td class="number">' + lignes.length + '</td>' +
+      '<td class="number">' + (dansAnnee === null ? '<span style="color:var(--mid)">—</span>' : '<strong>' + dansAnnee + '</strong>') + '</td>' +
+      '<td class="number">' + (ign ? '<span class="badge badge-red">' + ign + '</span>' : '0') + '</td>' +
+      '<td class="number">' + (verif ? '<span class="badge badge-amber">' + verif + '</span>' : '0') + '</td></tr>';
+  });
+  document.getElementById('adm-etat-tables').innerHTML = html;
+  document.getElementById('adm-th-annee').textContent = 'Dans ' + N;
+
+  document.getElementById('adm-kpi-lignes').textContent = fmtNombre(total);
+  document.getElementById('adm-kpi-lignes-detail').textContent = 'dans ' + ADM_TABLES.length + ' onglets de données';
+
+  var ign = av.filter(function (a) { return a.niveau === 'Ignorée'; }).length;
+  document.getElementById('adm-kpi-av').textContent = av.length;
+  var detail = document.getElementById('adm-kpi-av-detail');
+  detail.textContent = av.length ? ign + ' ignorée(s) · ' + (av.length - ign) + ' à vérifier' : 'Classeur entièrement lisible';
+  detail.className = 'kpi-trend ' + (av.length ? 'negative' : '');
+  document.getElementById('adm-kpi-av-carte').className = 'kpi-card ' + (ign ? 'red' : (av.length ? 'accent' : 'green'));
+
+  var s = (APP.d.derniereSauvegarde || '').split('|');
+  document.getElementById('adm-kpi-sauv').textContent = s[0] ? fmtDateHeure(s[0]) : 'Aucune';
+  document.getElementById('adm-kpi-sauv-detail').textContent = s[1]
+    ? s[1] + (s[2] === 'xlsx' ? ' (+ .xlsx)' : ' (sans .xlsx)') : 'Automatique le 1er de chaque mois, vers 2 h';
+
+  var p = APP.d.parametres;
+  document.getElementById('adm-kpi-mode').textContent = p.MODE_ENTRAINEMENT ? 'Entraînement' : 'Réel';
+  document.getElementById('adm-kpi-mode-detail').textContent = p.MODE_ENTRAINEMENT
+    ? 'E-mails → ' + (p.EMAIL_TEST || 'adresse de test à renseigner') : 'Les e-mails partent vers les adhérents';
+}
+
+function admBadgeAction(a) {
+  return { 'Création': 'badge-green', 'Modification': 'badge-blue', 'Suppression': 'badge-red',
+           'Automatisation': 'badge-amber', 'Sauvegarde': 'badge-gray', 'Paramètres': 'badge-amber' }[a] || 'badge-gray';
+}
+
+/** Nombre de lignes (activités, recettes, dépenses, budgets) qui utilisent la catégorie. */
+function admUsageCategorie(c) {
+  var n = 0;
+  ['Activites', 'Recettes', 'Depenses'].forEach(function (t) {
+    T(t).forEach(function (l) {
+      if (l.categorie === c.categorie && (!c.sousCategorie || l.sousCategorie === c.sousCategorie)) n++;
+    });
+  });
+  if (!c.sousCategorie || T('Categories').filter(function (x) { return x.categorie === c.categorie; }).length === 1) {
+    n += T('Budgets').filter(function (b) { return b.categorie === c.categorie; }).length;
+  }
+  return n;
+}
+
+/* ---------------------------------------------------------------------
+   Paramètres
+   ------------------------------------------------------------------- */
+function admRemplirParametres() {
+  var p = APP.d.parametres;
+  var f = document.getElementById('form-parametres');
+  remplirFormulaire(f, p);
+}
+
+function admEnregistrerParametres() {
+  var f = document.getElementById('form-parametres');
+  var v = lireFormulaire(f);
+  var erreurs = [];
+  if (v.EMAIL_TEST && !RE_EMAIL.test(v.EMAIL_TEST)) erreurs.push({ cle: 'EMAIL_TEST', message: '« E-mail de test » : adresse e-mail invalide.' });
+  if (v.MODE_ENTRAINEMENT && !v.EMAIL_TEST) erreurs.push({ cle: 'EMAIL_TEST', message: 'En mode entraînement, l\'e-mail de test est obligatoire.' });
+  if (v.EMAIL_LISTE && !RE_EMAIL.test(v.EMAIL_LISTE)) erreurs.push({ cle: 'EMAIL_LISTE', message: '« Liste de diffusion » : adresse e-mail invalide.' });
+  ['AIDE_MOBILHOME', 'NB_AIDES_MOBILHOME', 'COTISATION_DEFAUT', 'NB_SAUVEGARDES'].forEach(function (k) {
+    if (v[k] === '' || isNaN(Number(v[k])) || Number(v[k]) < 0) erreurs.push({ cle: k, message: 'Valeur numérique positive attendue.' });
+  });
+  if (!/^\s*\d{2}(\s*[,;]\s*\d{2})*\s*$/.test(v.DEPARTEMENTS_IDF)) erreurs.push({ cle: 'DEPARTEMENTS_IDF', message: 'Départements : numéros à 2 chiffres séparés par des virgules.' });
+  afficherErreurs(f, erreurs);
+  if (erreurs.length) return;
+
+  var passageReel = APP.d.parametres.MODE_ENTRAINEMENT && !v.MODE_ENTRAINEMENT;
+  var suite = passageReel
+    ? confirmer('Vous quittez le mode entraînement.\nLes e-mails partiront réellement vers les adhérents et la réinitialisation des données sera désactivée.',
+        { titre: 'Passer en mode réel ?', bouton: 'Passer en mode réel', danger: true })
+    : Promise.resolve(true);
+  suite.then(function (ok) {
+    if (!ok) return;
+    appelServeur('enregistrerParametres', [v]).then(function () { admParamModifie = false; admRemplirParametres(); }).catch(function () {});
+  });
+}
+
+/* ---------------------------------------------------------------------
+   Catégories
+   ------------------------------------------------------------------- */
+function admNouvelleCategorie() {
+  var f = document.getElementById('form-categorie');
+  remplirFormulaire(f, { id: '', categorie: '', sousCategorie: '', type: 'Les deux' });
+  document.getElementById('cat-form-titre').textContent = 'Nouvelle catégorie / sous-catégorie';
+  document.getElementById('cat-enregistrer').textContent = 'Créer';
+  if (APP.listes.categories) APP.listes.categories.surligner(null);
+}
+
+function admModifierCategorie(c) {
+  var f = document.getElementById('form-categorie');
+  remplirFormulaire(f, c);
+  document.getElementById('cat-form-titre').textContent = 'Modifier ' + c.id;
+  document.getElementById('cat-enregistrer').textContent = 'Enregistrer les modifications';
+  APP.listes.categories.surligner(c.id);
+  f.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  f.querySelector('[data-champ="categorie"]').focus();
+}
+
+function admEnregistrerCategorie() {
+  var f = document.getElementById('form-categorie');
+  var obj = lireFormulaire(f);
+  var erreurs = validerObjet('Categories', obj);
+  afficherErreurs(f, erreurs);
+  if (erreurs.length) return;
+  appelServeur('enregistrer', ['Categories', obj])
+    .then(function (rep) {
+      admNouvelleCategorie();
+      APP.listes.categories.surligner(rep.id);
+    })
+    .catch(function (e) { afficherErreurs(f, e.message.split('\n').map(function (m) { return { message: m }; })); });
+}
+
+function admSupprimerCategorie(c) {
+  confirmer('Supprimer ' + c.id + ' — ' + c.categorie + (c.sousCategorie ? ' / ' + c.sousCategorie : '') + ' ?',
+    { titre: 'Supprimer une catégorie', bouton: 'Supprimer', danger: true })
+    .then(function (ok) {
+      if (!ok) return;
+      appelServeur('supprimer', ['Categories', c.id], { attente: 'Suppression…' })
+        .then(function () { if (document.querySelector('#form-categorie [data-champ="id"]').value === c.id) admNouvelleCategorie(); })
+        .catch(function () {});
+    });
+}
+</script>

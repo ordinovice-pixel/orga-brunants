@@ -1,0 +1,378 @@
+<script>
+/* =====================================================================
+   Js_Import.html — Assistant d'import et sauvegardes (lot 6, rubrique Administration)
+   ---------------------------------------------------------------------
+   1. Fichier : CSV (lu ici) ou Excel (lu ici avec SheetJS, chargé à la demande),
+      onglet et ligne des en-têtes (détectée automatiquement).
+   2. Correspondance des colonnes, proposée d'après le nom des colonnes.
+   3. Contrôle par le serveur : lignes valides, à corriger, rejetées (+ rapport CSV).
+   4. Import : tester dans une copie, ajouter, ou remplacer (sauvegarde préalable).
+   Sauvegardes : liste, vérification, restauration.
+   ===================================================================== */
+
+var IMP = { fichier: null, onglets: {}, onglet: '', entetes: [], donnees: [], correspondance: {}, verif: null, lignes: [] };
+var URL_SHEETJS = 'https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+
+/** Ce qui est vidé en plus de la table en mode « remplacer » (miroir de DEPENDANCES_IMPORT, Import.gs). */
+var IMP_DEPENDANCES = {
+  Adherents: 'les inscriptions, les échéances, les locations de mobil-home et les recettes / dépenses automatiques qui en découlent ; l\'adhérent des recettes manuelles et l\'organisateur des activités sont effacés.',
+  Activites: 'les inscriptions, les échéances et les recettes automatiques de paiement ou de remboursement ; l\'activité liée des recettes et dépenses manuelles est effacée.',
+  Prestataires: 'rien d\'autre (« Autre » est conservé) ; le prestataire des dépenses et le camping des locations sont effacés s\'ils ne figurent plus dans la liste.',
+  Categories: 'rien d\'autre ; les recettes, dépenses et activités gardent leur catégorie (signalée si elle n\'existe plus).'
+};
+
+/** Autres noms de colonnes reconnus (en plus du titre et de la clé de chaque champ). */
+var IMP_SYNONYMES = {
+  civilite: ['titre', 'civ'], sexe: ['sexe', 'genre'], nom: ['nomdefamille', 'patronyme'], prenom: ['prenoms'],
+  dateNaissance: ['naissance', 'datenaissance', 'nele', 'datedenaissance'], adresse: ['adresse1', 'rue', 'adressepostale'],
+  complementAdresse: ['adresse2', 'complement'], codePostal: ['cp', 'codepostal'], ville: ['commune', 'localite'],
+  mobile: ['portable', 'telportable', 'telephoneportable', 'gsm'], telFixe: ['telephonedomicile', 'telephone', 'tel', 'fixe', 'teldomicile'],
+  email: ['mail', 'courriel', 'adressemail', 'adresseemail', 'email1'], email2: ['email2', 'mail2'],
+  dateInscription: ['dateentreebrunants', 'dateadhesion', 'adhesion', 'inscription', 'dateentree'],
+  rattacheA: ['rattachea', 'conjoint', 'rattache'], commentaire: ['remarques', 'observations', 'notes', 'commentaires'],
+  recoitMaillon: ['maillon', 'maillonpapier'], toutParMail: ['toutparmail', 'communicationsparmail'],
+  raisonSociale: ['raisonsociale', 'entreprise', 'societe', 'nomentreprise', 'prestataire'], activite: ['domaine', 'secteur', 'activite'],
+  contact: ['contact', 'interlocuteur', 'nomducontact'], siret: ['siret', 'nsiret'], dateDebutRelation: ['depuis', 'debutrelation'],
+  dateDebut: ['date', 'datedebut', 'debut', 'le'], dateFin: ['datefin', 'fin', 'jusquau'], lieu: ['lieu', 'adresse', 'endroit'],
+  descriptif: ['description', 'detail', 'details'], maxParticipants: ['places', 'nombredeplaces', 'max', 'placesmax'],
+  prixParPersonne: ['prix', 'tarif', 'prixparpersonne', 'participation'], coutReelParPersonne: ['cout', 'coutreel', 'coutparpersonne'],
+  organisateur: ['organisateur', 'referent', 'responsable'], categorie: ['categorie', 'rubrique'], sousCategorie: ['souscategorie', 'detailcategorie']
+};
+
+function impCle(t) { return sansAccents(t).replace(/[^a-z0-9]/g, ''); }
+
+enregistrerRubrique('import-assistant', {
+  init: function () {
+    document.getElementById('imp-fichier').addEventListener('change', impChoisirFichier);
+    document.getElementById('imp-table').addEventListener('change', function () { if (IMP.donnees.length) impProposerCorrespondance(); impMajAideMode(); });
+    document.getElementById('imp-onglet').addEventListener('change', function () { IMP.onglet = this.value; impDetecterEntetes(); impAppliquerEntetes(); });
+    document.getElementById('imp-ligne-entetes').addEventListener('change', impAppliquerEntetes);
+    document.getElementById('imp-correspondance').addEventListener('change', function (ev) {
+      var s = ev.target.closest('select[data-cle]');
+      if (!s) return;
+      IMP.correspondance[s.getAttribute('data-cle')] = s.value === '' ? -1 : Number(s.value);
+      impRendreCorrespondance();
+      impMasquer(3);
+    });
+    document.getElementById('imp-verifier').onclick = impVerifier;
+    document.getElementById('imp-filtre-statut').addEventListener('change', impRendreLignes);
+    document.getElementById('imp-rapport').onclick = impRapport;
+    document.getElementById('imp-modele').onclick = impModele;
+    document.getElementById('imp-importer').onclick = impImporter;
+    document.querySelectorAll('input[name="imp-mode"]').forEach(function (r) {
+      r.addEventListener('change', function () { impMajAideMode(); if (IMP.verif) impVerifier(); });
+    });
+    document.getElementById('sav-actualiser').onclick = savLister;
+    document.getElementById('sav-liste').addEventListener('click', savClic);
+    impMajAideMode();
+  },
+  rendre: function () { }
+});
+
+function impTable() { return document.getElementById('imp-table').value; }
+function impLigneEntetes() { return Math.max(1, Number(document.getElementById('imp-ligne-entetes').value) || 1); }
+function impMode() { return document.querySelector('input[name="imp-mode"]:checked').value; }
+function impChamps(table) {
+  return APP.d.schema.tables[table].champs.filter(function (c) { return c.type !== 'calcule'; });
+}
+/** Champ obligatoire sans valeur par défaut : une colonne doit lui être associée. */
+function impRequis(c) { return c.requis && c.defaut === undefined && !c.defautParam; }
+function impMasquer(depuis) { for (var k = depuis; k <= 3; k++) document.getElementById('imp-etape-' + k).classList.add('hidden'); if (depuis <= 3) { IMP.verif = null; document.getElementById('imp-resultat').classList.add('hidden'); } }
+
+/* ---------------------------------------------------------------------
+   1. Lecture du fichier
+   ------------------------------------------------------------------- */
+function impChoisirFichier() {
+  var f = this.files && this.files[0];
+  impMasquer(2);
+  if (!f) return;
+  IMP.fichier = f.name;
+  var lecteur = new FileReader();
+  lecteur.onload = function () {
+    var buf = lecteur.result;
+    if (/\.(csv|txt)$/i.test(f.name)) {
+      IMP.onglets = { 'Fichier CSV': impLireCsv(impDecoder(buf)) };
+      impApresLecture();
+    } else {
+      afficherChargement('Lecture du fichier Excel…');
+      impChargerSheetJS().then(function () {
+        var classeur = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: true });
+        IMP.onglets = {};
+        classeur.SheetNames.forEach(function (n) {
+          IMP.onglets[n] = XLSX.utils.sheet_to_json(classeur.Sheets[n], { header: 1, raw: true, defval: '', blankrows: true }).map(function (l) { return l.map(impValeurCellule); });
+        });
+        masquerChargement();
+        impApresLecture();
+      }).catch(function (e) { masquerChargement(); notifier('Lecture impossible : ' + e.message, 'erreur'); });
+    }
+  };
+  lecteur.readAsArrayBuffer(f);
+}
+
+/** Texte du CSV : UTF-8, sinon Windows-1252 (CSV enregistré par Excel). */
+function impDecoder(buf) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(buf).replace(/^﻿/, ''); }
+  catch (e) { return new TextDecoder('windows-1252').decode(buf); }
+}
+
+/** CSV → lignes (séparateur « ; », « , » ou tabulation détecté sur la première ligne). */
+function impLireCsv(texte) {
+  var premiere = texte.split(/\r?\n/)[0];
+  var sep = [';', '\t', ','].sort(function (a, b) { return premiere.split(b).length - premiere.split(a).length; })[0];
+  var lignes = [], ligne = [], champ = '', guil = false;
+  for (var i = 0; i < texte.length; i++) {
+    var c = texte[i];
+    if (guil) {
+      if (c === '"' && texte[i + 1] === '"') { champ += '"'; i++; }
+      else if (c === '"') guil = false;
+      else champ += c;
+    } else if (c === '"') guil = true;
+    else if (c === sep) { ligne.push(champ); champ = ''; }
+    else if (c === '\n' || c === '\r') {
+      if (c === '\r' && texte[i + 1] === '\n') i++;
+      ligne.push(champ); lignes.push(ligne); ligne = []; champ = '';
+    } else champ += c;
+  }
+  if (champ !== '' || ligne.length) { ligne.push(champ); lignes.push(ligne); }
+  return lignes;
+}
+
+/** Valeur d'une cellule Excel → texte (date → JJ/MM/AAAA, nombre → chiffres). */
+function impValeurCellule(v) {
+  if (v instanceof Date) {
+    var d = new Date(v.getTime() + 12 * 3600 * 1000);   // absorbe les décalages horaires de la lecture des dates
+    return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' + d.getFullYear();
+  }
+  if (typeof v === 'number') return Number.isInteger(v) ? String(v) : String(Math.round(v * 100) / 100).replace('.', ',');
+  if (typeof v === 'boolean') return v ? 'Oui' : 'Non';
+  return v === null || v === undefined ? '' : String(v).trim();
+}
+
+function impChargerSheetJS() {
+  if (window.XLSX) return Promise.resolve();
+  return new Promise(function (ok, ko) {
+    var s = document.createElement('script');
+    s.src = URL_SHEETJS;
+    s.onload = function () { ok(); };
+    s.onerror = function () { ko(new Error('la bibliothèque de lecture Excel (SheetJS) n\'a pas pu être chargée : enregistrez le fichier en CSV et recommencez.')); };
+    document.head.appendChild(s);
+  });
+}
+
+function impApresLecture() {
+  var noms = Object.keys(IMP.onglets);
+  // onglet par défaut : celui qui ressemble le plus à la table choisie (meilleur score d'en-têtes)
+  IMP.onglet = noms.map(function (n) { return { n: n, s: impScoreEntetes(IMP.onglets[n]).score }; }).sort(function (a, b) { return b.s - a.s; })[0].n;
+  remplirSelect(document.getElementById('imp-onglet'), noms);
+  document.getElementById('imp-onglet').value = IMP.onglet;
+  document.getElementById('imp-options-fichier').classList.remove('hidden');
+  impDetecterEntetes();
+  impAppliquerEntetes();
+}
+
+/** Ligne des en-têtes : celle (parmi les 40 premières) dont le plus de cellules ressemblent à des champs de l'outil. */
+function impScoreEntetes(lignes) {
+  var noms = {};
+  impChamps(impTable()).forEach(function (c) {
+    [c.titre, c.cle].concat(c.anciensTitres || [], IMP_SYNONYMES[c.cle] || []).forEach(function (t) { noms[impCle(t)] = true; });
+  });
+  var meilleur = { ligne: 0, score: 0 };
+  lignes.slice(0, 40).forEach(function (l, i) {
+    var s = l.filter(function (v) { return v && noms[impCle(v)]; }).length;
+    if (s > meilleur.score) meilleur = { ligne: i, score: s };
+  });
+  return meilleur;
+}
+
+function impDetecterEntetes() {
+  document.getElementById('imp-ligne-entetes').value = impScoreEntetes(IMP.onglets[IMP.onglet]).ligne + 1;
+}
+
+function impAppliquerEntetes() {
+  var lignes = IMP.onglets[IMP.onglet] || [];
+  var k = Math.max(1, Number(document.getElementById('imp-ligne-entetes').value) || 1) - 1;
+  IMP.entetes = (lignes[k] || []).map(function (h, i) { return String(h || '').trim() || 'Colonne ' + (i + 1); });
+  IMP.donnees = lignes.slice(k + 1).filter(function (l) { return l.some(function (v) { return String(v).trim() !== ''; }); });
+  texteEl('imp-resume-fichier', IMP.donnees.length + ' ligne(s) · ' + IMP.entetes.length + ' colonne(s)');
+  impProposerCorrespondance();
+}
+
+/* ---------------------------------------------------------------------
+   2. Correspondance des colonnes
+   ------------------------------------------------------------------- */
+function impProposerCorrespondance() {
+  var cles = IMP.entetes.map(impCle);
+  var prises = {};
+  IMP.correspondance = {};
+  impChamps(impTable()).forEach(function (c) {
+    var candidats = [impCle(c.titre), impCle(c.cle)].concat((c.anciensTitres || []).concat(IMP_SYNONYMES[c.cle] || []).map(impCle));
+    var i = -1;
+    candidats.some(function (cand) { var j = cles.indexOf(cand); if (j >= 0 && !prises[j]) { i = j; return true; } return false; });
+    if (i < 0) {   // ressemblance partielle (au moins 5 lettres)
+      cles.some(function (h, j) {
+        if (prises[j] || h.length < 5) return false;
+        if (candidats.some(function (cand) { return cand.length >= 5 && (h.indexOf(cand) === 0 || cand.indexOf(h) === 0); })) { i = j; return true; }
+        return false;
+      });
+    }
+    if (i >= 0) prises[i] = true;
+    IMP.correspondance[c.cle] = i;
+  });
+  impRendreCorrespondance();
+  document.getElementById('imp-etape-2').classList.remove('hidden');
+  impMasquer(3);
+}
+
+function impRendreCorrespondance() {
+  var options = '<option value="">— Ignorer —</option>' + IMP.entetes.map(function (h, i) {
+    return '<option value="' + i + '">' + echapper(impLettre(i) + ' · ' + h) + '</option>';
+  }).join('');
+  document.getElementById('imp-correspondance').innerHTML = impChamps(impTable()).map(function (c) {
+    var i = IMP.correspondance[c.cle];
+    var exemples = i >= 0 ? IMP.donnees.map(function (l) { return l[i]; }).filter(function (v) { return String(v).trim() !== ''; }).slice(0, 3) : [];
+    return '<tr' + (impRequis(c) && !(i >= 0) ? ' class="ligne-manquante"' : '') + '><td><strong>' + echapper(c.titre) + '</strong>' + (impRequis(c) ? ' <span class="required">*</span>' : '') +
+      (c.requis && !impRequis(c) ? '<small>vide ou non associé : « ' + echapper(c.defaut === true ? 'Oui' : (c.defaut === false ? 'Non' : String(c.defaut === undefined ? 'paramètre' : c.defaut))) + ' »</small>' : '') +
+      (c.valeurs ? '<small>valeurs : ' + echapper(c.valeurs.join(', ')) + '</small>' : '') + '</td>' +
+      '<td><select class="form-select" data-cle="' + c.cle + '">' + options.replace('value="' + i + '"', 'value="' + i + '" selected') + '</select></td>' +
+      '<td class="texte-discret" style="font-style:normal">' + exemples.map(echapper).join(' · ') + '</td></tr>';
+  }).join('');
+}
+
+function impLettre(i) { var s = ''; i++; while (i > 0) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+
+/** Lignes envoyées au serveur : { clé du champ : valeur texte } pour les champs associés à une colonne. */
+function impConstruireLignes() {
+  var champs = impChamps(impTable()).filter(function (c) { return IMP.correspondance[c.cle] >= 0; });
+  return IMP.donnees.map(function (l) {
+    var o = {};
+    champs.forEach(function (c) { o[c.cle] = String(l[IMP.correspondance[c.cle]] === undefined ? '' : l[IMP.correspondance[c.cle]]); });
+    return o;
+  });
+}
+
+/* ---------------------------------------------------------------------
+   3. Contrôle
+   ------------------------------------------------------------------- */
+function impVerifier() {
+  var manquants = impChamps(impTable()).filter(function (c) { return impRequis(c) && !(IMP.correspondance[c.cle] >= 0); });
+  if (manquants.length) { notifier('Associez d\'abord une colonne aux champs obligatoires : ' + manquants.map(function (c) { return c.titre; }).join(', ') + '.', 'erreur'); return; }
+  IMP.lignes = impConstruireLignes();
+  appelServeur('verifierImport', [impTable(), IMP.lignes, impMode() === 'ajouter' ? 'ajouter' : 'remplacer', impLigneEntetes()], { attente: 'Contrôle des ' + IMP.lignes.length + ' ligne(s)…', sansMessage: true })
+    .then(function (rep) {
+      IMP.verif = rep;
+      var s = rep.stats;
+      document.getElementById('imp-stats').innerHTML =
+        impCarte('', 'Lignes lues', s.lues, '') + impCarte('green', 'Valides', s.valides, 'importées telles quelles') +
+        impCarte('accent', 'À corriger', s.aCorriger, 'importées, avec une remarque') + impCarte('red', 'Rejetées', s.rejetees, 'non importées : voir le motif');
+      document.getElementById('imp-etape-3').classList.remove('hidden');
+      document.getElementById('imp-filtre-statut').value = s.rejetees ? 'Rejetée' : (s.aCorriger ? 'À corriger' : '');
+      impRendreLignes();
+      document.getElementById('imp-etape-3').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }).catch(function () {});
+}
+
+function impCarte(classe, libelle, valeur, detail) {
+  return '<div class="kpi-card ' + classe + '"><div class="kpi-label">' + libelle + '</div><div class="kpi-value">' + valeur + '</div><div class="kpi-trend neutre">' + detail + '</div></div>';
+}
+
+function impRendreLignes() {
+  if (!IMP.verif) return;
+  var f = document.getElementById('imp-filtre-statut').value;
+  var lignes = IMP.verif.lignes.filter(function (l) { return !f || l.statut === f; });
+  var badge = { 'Valide': 'badge-green', 'À corriger': 'badge-amber', 'Rejetée': 'badge-red' };
+  texteEl('imp-compteur', lignes.length + ' ligne(s)');
+  document.getElementById('imp-lignes').innerHTML = lignes.slice(0, 500).map(function (l) {
+    return '<tr><td class="center">' + l.n + '</td><td><span class="badge ' + badge[l.statut] + '">' + l.statut + '</span></td><td>' + echapper(l.resume) + '</td><td>' + echapper(l.motifs.join(' · ')) + '</td></tr>';
+  }).join('') || '<tr><td colspan="4" class="liste-vide">Aucune ligne.</td></tr>';
+}
+
+function impRapport() {
+  if (!IMP.verif) return;
+  var lignes = [['Ligne du fichier', 'Résultat', 'Contenu', 'Motifs']].concat(IMP.verif.lignes.filter(function (l) { return l.statut !== 'Valide'; })
+    .map(function (l) { return [l.n, l.statut, l.resume, l.motifs.join(' · ')]; }));
+  telecharger('rapport_import_' + impTable().toLowerCase() + '.csv', '﻿' + lignes.map(function (l) {
+    return l.map(function (v) { v = String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(';');
+  }).join('\r\n'));
+}
+
+function impModele() {
+  var t = impTable();
+  var titres = impChamps(t).map(function (c) { return c.titre; });
+  telecharger('modele_import_' + t.toLowerCase() + '.csv', '﻿' + titres.map(function (v) { return /[;"]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; }).join(';') + '\r\n');
+}
+
+/* ---------------------------------------------------------------------
+   4. Import
+   ------------------------------------------------------------------- */
+function impMajAideMode() {
+  var m = impMode(), t = impTable();
+  var aide = document.getElementById('imp-mode-aide');
+  aide.className = 'help-text' + (m === 'remplacer' ? ' alerte' : '');
+  aide.innerHTML = m === 'test'
+    ? 'L\'outil fabrique une <strong>copie</strong> du classeur (dossier Outil_Brunants/Tests_import), y remplace la table et ajoute un onglet « Rapport_import ». <strong>Le classeur de l\'outil n\'est pas modifié.</strong>'
+    : (m === 'ajouter'
+      ? 'Les lignes valides et à corriger sont <strong>ajoutées</strong> aux données existantes ; les doublons avec l\'existant sont rejetés. Une sauvegarde complète est faite juste avant.'
+      : '<strong>Attention :</strong> la table est <strong>vidée puis remplacée</strong> par le fichier. Sont aussi vidés : ' + IMP_DEPENDANCES[t] + ' Une sauvegarde complète est faite juste avant. Faites d\'abord un test dans une copie.');
+  document.getElementById('imp-importer').textContent = m === 'test' ? 'Tester dans une copie' : (m === 'ajouter' ? 'Ajouter les lignes' : 'Remplacer la table');
+}
+
+function impImporter() {
+  if (!IMP.verif) { notifier('Lancez d\'abord le contrôle (étape 3).', 'erreur'); return; }
+  var s = IMP.verif.stats, m = impMode(), t = impTable();
+  var n = s.valides + s.aCorriger;
+  if (!n) { notifier('Aucune ligne importable : corrigez le fichier.', 'erreur'); return; }
+  var sel = document.getElementById('imp-table');
+  var libelle = sel.options[sel.selectedIndex].text.toLowerCase();
+  var texte = m === 'test' ? 'Tester l\'import de ' + n + ' ligne(s) (' + libelle + ') dans une copie du classeur ?'
+    : (m === 'ajouter' ? 'Ajouter ' + n + ' ligne(s) (' + libelle + ') aux données existantes ? Une sauvegarde est faite juste avant.'
+      : 'Remplacer toute la table par ' + n + ' ligne(s) (' + libelle + ') ?\nSont aussi vidés : ' + IMP_DEPENDANCES[t] + '\nUne sauvegarde est faite juste avant.' +
+        (t === 'Adherents' && APP.d.adherentsReels ? '\n\n⚠️ ATTENTION : l\'outil contient déjà vos adhérents réels (importés le ' + fmtDateHeure(APP.d.adherentsReels.date) + '). Tout ce que vous avez complété ou modifié dans leurs fiches depuis sera PERDU.' : ''));
+  confirmer(texte, { titre: 'Assistant d\'import', bouton: m === 'test' ? 'Lancer le test' : (m === 'ajouter' ? 'Ajouter' : 'Remplacer'), danger: m === 'remplacer', double: m === 'remplacer' })
+    .then(function (ok) {
+      if (!ok) return;
+      appelServeur('importerDonnees', [t, IMP.lignes, m, impLigneEntetes()], { attente: m === 'test' ? 'Copie du classeur puis import de test…' : 'Sauvegarde puis import…' })
+        .then(function (rep) {
+          var z = document.getElementById('imp-resultat');
+          z.innerHTML = '<strong>Résultat :</strong> ' + echapper(rep.message).replace(/\n/g, '<br>') +
+            (rep.url ? '<br>&#128196; <a class="lien" href="' + echapper(rep.url) + '" target="_blank" rel="noopener">Ouvrir la copie « ' + echapper(rep.nom) + ' »</a> (onglet Rapport_import).' : '');
+          z.classList.remove('hidden');
+        }).catch(function () {});
+    });
+}
+
+/* ---------------------------------------------------------------------
+   Sauvegardes : liste, vérification, restauration
+   ------------------------------------------------------------------- */
+function savLister() {
+  appelServeur('listerSauvegardes', [], { attente: 'Lecture du dossier Sauvegardes…', sansMessage: true }).then(function (rep) {
+    SAV_LISTE = rep.sauvegardes;
+    document.getElementById('sav-liste').innerHTML = rep.sauvegardes.length ? rep.sauvegardes.map(function (s, i) {
+      return '<tr><td><a class="lien" href="' + echapper(s.url) + '" target="_blank" rel="noopener">' + echapper(s.nom) + '</a></td><td class="nowrap">' + fmtDateHeure(s.date) + '</td>' +
+        '<td>' + (s.urlXlsx ? '<a class="lien" href="' + echapper(s.urlXlsx) + '" target="_blank" rel="noopener">.xlsx</a>' : '—') + '</td>' +
+        '<td class="center nowrap"><button type="button" class="btn btn-secondary btn-sm" data-sav="verifier" data-i="' + i + '">Vérifier</button> ' +
+        '<button type="button" class="btn btn-danger btn-sm" data-sav="restaurer" data-i="' + i + '">Restaurer</button></td></tr>';
+    }).join('') : '<tr><td colspan="4" class="liste-vide">Aucune sauvegarde pour le moment : cliquez sur « Sauvegarder maintenant ».</td></tr>';
+  }).catch(function () {});
+}
+var SAV_LISTE = [];
+
+function savClic(ev) {
+  var b = ev.target.closest('[data-sav]');
+  if (!b) return;
+  var s = SAV_LISTE[Number(b.getAttribute('data-i'))];
+  if (b.getAttribute('data-sav') === 'verifier') {
+    appelServeur('verifierSauvegarde', [s.id], { attente: 'Comparaison de la sauvegarde avec le classeur…', sansMessage: true }).then(function (rep) {
+      document.getElementById('sav-verification').innerHTML = '<h4 class="sous-titre">Vérification de « ' + echapper(s.nom) + ' »</h4>' +
+        '<div class="table-scroll"><table class="data-table table-encadree dense"><thead><tr><th>Table</th><th class="center">Dans la sauvegarde</th><th class="center">Aujourd\'hui</th><th>État</th></tr></thead><tbody>' +
+        rep.tables.map(function (t) {
+          return '<tr><td>' + echapper(t.table) + '</td><td class="center">' + (t.sauvegarde === null ? '—' : t.sauvegarde) + '</td><td class="center">' + t.actuel + '</td><td>' +
+            (t.sauvegarde === null ? '<span class="badge badge-red">onglet absent</span>' : (t.sauvegarde === t.actuel ? '<span class="badge badge-green">identique</span>' : '<span class="badge badge-amber">' + (t.actuel - t.sauvegarde > 0 ? '+' : '') + (t.actuel - t.sauvegarde) + ' ligne(s) depuis</span>')) + '</td></tr>';
+        }).join('') + '</tbody></table></div><p class="help-text">' + echapper(rep.message) + '</p>';
+    }).catch(function () {});
+  } else {
+    confirmer('Restaurer la sauvegarde « ' + s.nom + ' » ?\nToutes les données actuelles (adhérents, activités, recettes, dépenses…) seront remplacées par celles de la sauvegarde. Les paramètres et le journal sont conservés.\nUne sauvegarde de l\'état actuel est faite juste avant.',
+      { titre: 'Restaurer une sauvegarde', bouton: 'Restaurer', danger: true, double: true })
+      .then(function (ok) { if (ok) appelServeur('restaurerSauvegarde', [s.id], { attente: 'Sauvegarde de l\'état actuel puis restauration…' }).then(savLister).catch(function () {}); });
+  }
+}
+</script>

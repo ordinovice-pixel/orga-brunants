@@ -1,0 +1,260 @@
+<script>
+/* =====================================================================
+   Js_TableauDeBord.html — Rubrique « Tableau de bord » (lot 5)
+   ---------------------------------------------------------------------
+   Indicateurs : effectif (titulaires / sympathisants, nouveaux arrivants),
+                 solde budget, activités réalisées / prévues, alertes ;
+                 graphiques Recettes vs Dépenses, dépenses et activités par
+                 catégorie (chiffres et % écrits sur les graphiques) ;
+                 alertes calculées à partir des données.
+   Listes      : prochaines activités, Participation Association par membre.
+   Toutes les règles de calcul sont celles des rubriques (Js_Commun : ANNEE, CALC).
+   ===================================================================== */
+
+var TDB = { recherche: null };
+
+enregistrerRubrique('dashboard', {
+  titre: 'Tableau de bord',
+  sousTitre: "Vue synthétique de l'association",
+
+  init: function () {
+    TDB.recherche = brancherRechercheAdherent(document.getElementById('tdb-part-saisie'), document.getElementById('tdb-part-adherent'), null);
+    document.getElementById('tdb-part-adherent').addEventListener('change', tdbRendreParticipation);
+    document.getElementById('tdb-voir-calendrier').onclick = function () { allerA('chantier-4'); };
+    document.getElementById('tdb-alertes').addEventListener('click', tdbClicAlerte);
+    document.getElementById('tdb-prochaines').addEventListener('click', function (ev) {
+      var b = ev.target.closest('[data-act]');
+      if (b) { allerA('chantier-3'); actSelectionner(b.getAttribute('data-act')); }
+    });
+  },
+
+  rendre: function () {
+    tdbRendreIndicateurs();
+    dessinerRecettesDepensesMois('tdb-graph-mensuel', APP.annee);
+    dessinerDepensesCategories('tdb-graph-categories', APP.annee, window.innerWidth > 1700 ? 'right' : 'bottom');
+    tdbRendreActivitesCategories();
+    tdbRendreAlertes();
+    tdbRendreProchaines();
+    TDB.recherche.majListe();
+    TDB.recherche.afficher();
+    tdbRendreParticipation();
+  }
+});
+
+/* ---------------------------------------------------------------------
+   Indicateurs
+   ------------------------------------------------------------------- */
+/** Activités de l'année N : total, réalisées (terminées avant aujourd'hui), annulées, restantes. */
+function tdbActivites(N) {
+  var auj = APP.d.aujourdhui;
+  var acts = T('Activites').filter(function (a) { return ANNEE.activite(a, N); });
+  var annulees = acts.filter(function (a) { return a.statut === 'Annulé'; }).length;
+  var realisees = acts.filter(function (a) { return (a.dateFin || a.dateDebut) < auj && a.statut !== 'Annulé'; }).length;
+  return { liste: acts, total: acts.length, realisees: realisees, annulees: annulees, restantes: acts.length - realisees - annulees };
+}
+
+function tdbRendreIndicateurs() {
+  var N = APP.annee;
+  var tous = T('Adherents');
+  var actifs = tous.filter(function (a) { return ANNEE.adherent(a, N); });
+  var tit = actifs.filter(function (a) { return a.type === 'Titulaire'; }).length;
+  var sym = actifs.length - tit;
+  var nouveaux = tous.filter(function (a) { return anneeDe(a.dateInscription) === N; }).length;
+  texteEl('tdb-kpi-effectif', fmtNombre(actifs.length));
+  texteEl('tdb-kpi-effectif-detail', 'dont ' + nouveaux + (nouveaux > 1 ? ' nouveaux arrivants' : ' nouvel arrivant') + ' en ' + N);
+  texteEl('tdb-kpi-types', tit + ' / ' + sym);
+  texteEl('tdb-kpi-types-detail', pct(tit, actifs.length) + ' % titulaires · ' + pct(sym, actifs.length) + ' % sympathisants');
+
+  var t = CALC.suiviBudget(N).total;
+  var solde = document.getElementById('tdb-kpi-solde');
+  solde.textContent = (t.reste >= 0 ? '' : '− ') + fmtEuro(Math.abs(t.reste), 0);
+  solde.className = 'kpi-value' + (t.reste < 0 ? ' montant-negatif' : '');
+  texteEl('tdb-kpi-solde-detail', t.budget
+    ? Math.round(100 - t.pct) + ' % du budget restant · consommé ' + fmtEuro(t.consomme, 0) + ' / ' + fmtEuro(t.budget, 0)
+    : 'aucun budget prévisionnel saisi pour ' + N);
+  document.getElementById('tdb-kpi-solde-carte').className = 'kpi-card ' + (t.reste < 0 ? 'red' : 'green');
+
+  var a = tdbActivites(N);
+  texteEl('tdb-kpi-activites', a.realisees + ' / ' + (a.total - a.annulees));
+  texteEl('tdb-kpi-activites-detail', a.restantes + ' restante(s)' + (a.annulees ? ' · ' + a.annulees + ' annulée(s)' : ''));
+}
+
+/** Camembert : nombre d'activités de l'année par catégorie (annulées exclues). */
+function tdbRendreActivitesCategories() {
+  var acts = tdbActivites(APP.annee).liste.filter(function (a) { return a.statut !== 'Annulé'; });
+  var ordre = categoriesConnues();
+  var parCat = {};
+  acts.forEach(function (a) { parCat[a.categorie] = (parCat[a.categorie] || 0) + 1; });
+  var cats = Object.keys(parCat).sort(function (x, y) { return parCat[y] - parCat[x] || ordre.indexOf(x) - ordre.indexOf(y); });
+  texteEl('tdb-act-badge', acts.length + ' activité(s)');
+  dessinerGraphique('tdb-graph-activites', configSecteurs({
+    type: 'pie',
+    idCanvas: 'tdb-graph-activites',
+    libelles: cats,
+    valeurs: cats.map(function (c) { return parCat[c]; }),
+    couleurs: cats.map(function (c) { var i = ordre.indexOf(c); return COULEURS_CATEGORIES[(i < 0 ? ordre.length + cats.indexOf(c) : i) % COULEURS_CATEGORIES.length]; }),
+    format: function (v) { return v + ' activité' + (v > 1 ? 's' : ''); },
+    formatCourt: function (v) { return String(v); }
+  }));
+}
+
+/* ---------------------------------------------------------------------
+   Alertes calculées (au jour d'aujourd'hui ; budget et cotisations : année choisie)
+   ------------------------------------------------------------------- */
+/** Liste des alertes : { niveau: 'urgent' | 'warning' | 'info', titre, detail, action, cible, bouton }. */
+function tdbAlertes() {
+  var N = APP.annee, auj = APP.d.aujourdhui;
+  var alertes = [];
+
+  // 1. Échéances en retard (inscrits uniquement)
+  var inscrit = {};
+  T('Inscriptions').forEach(function (i) { if (i.statut === 'Inscrit') inscrit[i.id] = i; });
+  var retards = T('Echeances').filter(function (e) { return inscrit[e.inscriptionId] && !e.paye && e.datePrevue && e.datePrevue < auj; });
+  if (retards.length) {
+    var parAct = {};
+    retards.forEach(function (e) { var id = inscrit[e.inscriptionId].activiteId; parAct[id] = (parAct[id] || 0) + 1; });
+    var tops = Object.keys(parAct).sort(function (x, y) { return parAct[y] - parAct[x]; });
+    var vieux = retards.some(function (e) { return ajouterJoursClient(e.datePrevue, 30) < auj; });
+    alertes.push({ niveau: vieux ? 'urgent' : 'warning',
+      titre: retards.length + ' échéance(s) de paiement en retard — total : ' + fmtEuro(CALC.somme(retards), 0),
+      detail: tops.slice(0, 3).map(function (id) { return libelleActivite(id) + ' (' + parAct[id] + ')'; }).join(' · ') + (tops.length > 3 ? ' · …' : '') +
+        (vieux ? ' · certaines depuis plus de 30 jours' : ''),
+      action: 'retards', cible: tops[0], bouton: 'Voir' });
+  }
+
+  // 2. Activités à venir presque complètes (3 places ou moins)
+  T('Activites').filter(function (a) { return a.statut !== 'Annulé' && a.maxParticipants && a.dateDebut >= auj; })
+    .sort(function (x, y) { return x.dateDebut.localeCompare(y.dateDebut); })
+    .forEach(function (a) {
+      var reste = Number(a.maxParticipants) - actInscrits(a.id).length;
+      if (reste > 3) return;
+      alertes.push({ niveau: 'warning',
+        titre: a.nom + ' du ' + fmtDate(a.dateDebut) + ' — ' + (reste <= 0 ? 'complète' : reste + ' place(s) restante(s)'),
+        detail: actInscrits(a.id).length + ' / ' + a.maxParticipants + ' inscrits', action: 'activite', cible: a.id, bouton: 'Voir' });
+    });
+
+  // 3. Catégories qui dépassent leur budget (année choisie)
+  CALC.suiviBudget(N).lignes.filter(function (l) { return l.budget > 0 && l.consomme > l.budget; }).forEach(function (l) {
+    alertes.push({ niveau: 'urgent',
+      titre: l.categorie + ' — dépassement budgétaire de ' + Math.round(l.pct - 100) + ' %',
+      detail: 'consommé ' + fmtEuro(l.consomme, 0) + ' pour un budget de ' + fmtEuro(l.budget, 0) + ' en ' + N, action: 'budget', bouton: 'Voir' });
+  });
+
+  // 4. Cotisations supérieures à l'attendu (année choisie)
+  var attendu = Number(APP.d.parametres.COTISATION_DEFAUT || 0);
+  var exc = T('Adherents').filter(function (a) { return ANNEE.adherent(a, N) && Number(a.cotisation || 0) > attendu; });
+  if (exc.length) {
+    var total = exc.reduce(function (s, a) { return s + Number(a.cotisation) - attendu; }, 0);
+    alertes.push({ niveau: 'info',
+      titre: '💵 ' + exc.length + ' cotisation(s) supérieure(s) à l\'attendu — total excédent : ' + fmtEuro(total, 0),
+      detail: 'Adhérents ayant versé plus que la cotisation attendue (' + fmtEuro(attendu, 0) + ')', action: 'excedents', bouton: 'Afficher la liste',
+      liste: exc.sort(function (x, y) { return (Number(y.cotisation) - Number(x.cotisation)) || x.nom.localeCompare(y.nom); }) });
+  }
+
+  // 5. Lignes du classeur à corriger
+  var av = APP.d.avertissements || [];
+  if (av.length) {
+    var ign = av.filter(function (a) { return a.niveau === 'Ignorée'; }).length;
+    alertes.push({ niveau: ign ? 'urgent' : 'warning', titre: av.length + ' ligne(s) du classeur à corriger',
+      detail: ign ? ign + ' ignorée(s) par l\'outil' : 'à vérifier', action: 'administration', bouton: 'Voir' });
+  }
+
+  // 6. Sauvegarde ancienne
+  var s = (APP.d.derniereSauvegarde || '').split('|')[0];
+  var jours = s ? Math.floor((isoVersDateClient(auj) - isoVersDateClient(s.slice(0, 10))) / 86400000) : null;
+  if (jours === null || jours > 40) {
+    alertes.push({ niveau: 'info', titre: jours === null ? 'Aucune sauvegarde enregistrée' : 'Dernière sauvegarde il y a ' + jours + ' jours',
+      detail: 'La sauvegarde automatique a lieu le 1er de chaque mois', action: 'sauvegarder', bouton: 'Sauvegarder' });
+  }
+  return alertes;
+}
+
+function tdbRendreAlertes() {
+  var alertes = tdbAlertes();
+  TDB.alertes = alertes;
+  var urgentes = alertes.filter(function (a) { return a.niveau === 'urgent'; }).length;
+  texteEl('tdb-kpi-alertes', alertes.length);
+  var d = document.getElementById('tdb-kpi-alertes-detail');
+  d.textContent = urgentes ? urgentes + ' urgente(s)' : (alertes.length ? 'aucune urgente' : 'rien à signaler');
+  d.className = 'kpi-trend' + (urgentes ? ' negative' : ' neutre');
+  document.getElementById('tdb-kpi-alertes-carte').className = 'kpi-card ' + (urgentes ? 'red' : (alertes.length ? 'accent' : 'green'));
+  texteEl('tdb-alertes-badge', alertes.length + ' alerte(s)');
+  var classe = { urgent: '', warning: ' warning', info: ' info' };
+  document.getElementById('tdb-alertes').innerHTML = alertes.length ? alertes.map(function (a, i) {
+    var html = '<div class="alert-item' + classe[a.niveau] + '"><div><strong>' + echapper(a.titre) + '</strong>' + (a.detail ? '<br><small>' + echapper(a.detail) + '</small>' : '') + '</div>' +
+      '<button type="button" class="btn ' + (a.niveau === 'urgent' ? 'btn-accent' : 'btn-secondary') + ' btn-sm" data-alerte="' + i + '">' + echapper(a.bouton) + '</button></div>';
+    if (a.liste) {
+      var attendu = Number(APP.d.parametres.COTISATION_DEFAUT || 0);
+      html += '<div class="hidden" id="tdb-liste-excedents" style="padding:10px;background:var(--light-blue);border-radius:4px">' +
+        '<table class="data-table dense"><thead><tr><th>Adhérent</th><th class="number">Attendu</th><th class="number">Versé</th><th class="number">Excédent</th></tr></thead><tbody>' +
+        a.liste.map(function (x) {
+          return '<tr><td>' + echapper(x.nom + ' ' + x.prenom) + '</td><td class="number">' + fmtEuro(attendu, 0) + '</td><td class="number">' + fmtEuro(x.cotisation, 0) +
+            '</td><td class="number montant-positif">+' + fmtEuro(Number(x.cotisation) - attendu, 0) + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+    }
+    return html;
+  }).join('') : '<p class="texte-discret" style="margin:0">Aucune alerte : tout est en ordre.</p>';
+}
+
+function tdbClicAlerte(ev) {
+  var b = ev.target.closest('[data-alerte]');
+  if (!b) return;
+  var a = TDB.alertes[Number(b.getAttribute('data-alerte'))];
+  if (a.action === 'excedents') { document.getElementById('tdb-liste-excedents').classList.toggle('hidden'); return; }
+  if (a.action === 'sauvegarder') { sauvegarderMaintenant(); return; }
+  if (a.action === 'administration') { allerA('administration'); return; }
+  if (a.action === 'budget') { allerA('chantier-2'); return; }
+  allerA('chantier-3');
+  var act = parId('Activites', a.cible);
+  if (act && anneeDe(act.dateDebut) !== APP.annee) {
+    notifier('Cette activité est en ' + anneeDe(act.dateDebut) + ' : choisissez cette année en haut de page pour la voir.', 'info');
+    return;
+  }
+  actSelectionner(a.cible);
+  if (a.action === 'retards') { document.getElementById('act-suivi-filtre').value = 'retard'; actRendreSuivi(); }
+}
+
+/* ---------------------------------------------------------------------
+   Listes
+   ------------------------------------------------------------------- */
+/** Prochaines activités de l'année choisie (à partir d'aujourd'hui) ; pour une année passée : ses activités. */
+function tdbRendreProchaines() {
+  var N = APP.annee, auj = APP.d.aujourdhui;
+  var acts = tdbActivites(N).liste;
+  var aVenir = acts.filter(function (a) { return (a.dateFin || a.dateDebut) >= auj; })
+    .sort(function (x, y) { return x.dateDebut.localeCompare(y.dateDebut); });
+  var passees = !aVenir.length;
+  var liste = passees ? acts.slice().sort(function (x, y) { return y.dateDebut.localeCompare(x.dateDebut); }) : aVenir;
+  texteEl('tdb-prochaines-titre', passees ? 'Activités de ' + N : 'Prochaines activités');
+  var html = liste.slice(0, 8).map(function (a) {
+    var ins = actInscrits(a.id).length;
+    var complet = a.maxParticipants && ins >= Number(a.maxParticipants);
+    var classe = a.statut === 'Annulé' ? '' : ((a.dateFin || a.dateDebut) < auj ? ' done' : (complet ? ' pending' : ''));
+    var org = a.organisateur ? parId('Adherents', a.organisateur) : null;
+    return '<li class="timeline-item' + classe + '"><div class="timeline-date">' + fmtDateLongue(a.dateDebut) + (a.dateFin ? ' → ' + fmtDateLongue(a.dateFin) : '') + '</div>' +
+      '<div class="timeline-title"><button type="button" class="lien-bouton" data-act="' + echapper(a.id) + '">' + echapper(a.nom) + '</button> ' +
+      '<span class="badge ' + actBadgeStatut(a.statut) + '">' + echapper(a.statut) + '</span></div>' +
+      '<div class="timeline-desc">' + ins + (a.maxParticipants ? ' / ' + a.maxParticipants : '') + ' inscrit(s)' +
+      (org ? ' · organisateur : ' + echapper(org.prenom + ' ' + org.nom.charAt(0) + '.') : '') +
+      ' · ' + (Number(a.prixParPersonne) ? fmtEuro(a.prixParPersonne, 0) + '/pers.' : 'gratuit') + (a.lieu ? ' · ' + echapper(a.lieu) : '') + '</div></li>';
+  }).join('');
+  document.getElementById('tdb-prochaines').innerHTML = html || '<li class="texte-discret" style="list-style:none">Aucune activité en ' + N + '.</li>';
+}
+
+/** Participation Association cumulée d'un adhérent pour l'année choisie, avec le détail. */
+function tdbRendreParticipation() {
+  var id = document.getElementById('tdb-part-adherent').value;
+  var v = document.getElementById('tdb-part-valeur'), det = document.getElementById('tdb-part-detail');
+  if (!id) { v.textContent = '—'; det.innerHTML = ''; return; }
+  var lignes = CALC.participations(id, APP.annee);
+  v.textContent = fmtEuro(CALC.totalParticipation(id, APP.annee));
+  det.innerHTML = lignes.length
+    ? '<table class="data-table table-encadree dense"><thead><tr><th>Activité / location</th><th class="nowrap">Date</th><th class="number">Coût</th><th class="number">Payé</th><th class="number">Part asso</th></tr></thead><tbody>' +
+      lignes.map(function (l) {
+        return '<tr><td>' + echapper(l.nom) + '</td><td class="nowrap">' + fmtDate(l.date) + '</td><td class="number">' + (l.cout === '' ? '—' : fmtEuro(l.cout)) +
+          '</td><td class="number">' + fmtEuro(l.paye) + '</td><td class="number montant-positif">' + fmtEuro(l.pa) + ' <small>(' + Math.round(l.pct) + ' %)</small></td></tr>';
+      }).join('') + '</tbody></table>'
+    : '<p class="texte-discret">Aucune activité ni location de mobil-home en ' + APP.annee + '.</p>';
+}
+
+</script>

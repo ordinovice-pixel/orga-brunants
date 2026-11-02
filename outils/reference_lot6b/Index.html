@@ -1,0 +1,2076 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Les Brunants — Outil de gestion</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chartjs-plugin-datalabels/2.2.0/chartjs-plugin-datalabels.min.js"></script>
+<?!= include('Styles'); ?>
+</head>
+<body>
+
+<!-- Écran de chargement / attente -->
+<div id="chargement" class="chargement">
+  <div class="chargement-boite"><div class="roue"></div><span id="chargement-texte">Chargement des données…</span></div>
+</div>
+<div id="notifications" class="notifications"></div>
+<div id="modale" class="modale-fond hidden"></div>
+
+<div class="app">
+
+<!-- ═══════════════ BARRE LATÉRALE (POC) ═══════════════ -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo"><img src="<?!= include('Logo'); ?>" alt="Logo Les Brunants"></div>
+    <div>
+      <div class="sidebar-title">Les Brunants</div>
+      <div class="sidebar-subtitle">Outil de gestion</div>
+    </div>
+  </div>
+
+  <nav class="nav">
+    <div class="nav-section">Pilotage</div>
+    <div class="nav-item active" data-section="dashboard"><span class="nav-icon">&#128200;</span> Tableau de bord</div>
+
+    <div class="nav-section">Chantiers prioritaires</div>
+    <div class="nav-item" data-section="chantier-1"><span class="nav-icon">&#128100;</span> 1. Adhérents <span class="nav-badge hidden" id="badge-adherents"></span></div>
+    <div class="nav-item" data-section="chantier-2"><span class="nav-icon">&#128176;</span> 2. Budget &amp; Compta</div>
+    <div class="nav-item" data-section="chantier-3"><span class="nav-icon">&#128221;</span> 3. Activités</div>
+    <div class="nav-item" data-section="prestataires"><span class="nav-icon">&#127970;</span> 4. Prestataires</div>
+
+    <div class="nav-section">Étapes suivantes</div>
+    <div class="nav-item" data-section="chantier-4"><span class="nav-icon">&#128197;</span> 5. Calendrier</div>
+    <div class="nav-item" data-section="chantier-5"><span class="nav-icon">&#128218;</span> 6. Procédures</div>
+    <div class="nav-item" data-section="chantier-6"><span class="nav-icon">&#127775;</span> 7. Assemblée Générale</div>
+
+    <div class="nav-section">Autre</div>
+    <div class="nav-item" data-section="chantier-7"><span class="nav-icon">&#128193;</span> 8. Classement NAS</div>
+    <div class="nav-item" data-section="administration"><span class="nav-icon">&#9881;&#65039;</span> 9. Administration</div>
+  </nav>
+
+  <div class="sidebar-footer">
+    <span id="version-outil">Version opérationnelle</span><br>
+    Jeff Madeline — OrdiNovice
+  </div>
+</aside>
+
+<main class="content">
+
+  <!-- ═══════════════ EN-TÊTE : bandeau, titre, ANNÉE, actions ═══════════════ -->
+  <div class="entete-fixe">
+    <div id="bandeau-entrainement" class="bandeau-entrainement hidden">
+      <span>&#127891; MODE ENTRAÎNEMENT — données d'essai · e-mails redirigés vers <strong id="bandeau-email"></strong></span>
+    </div>
+    <div class="topbar">
+      <div>
+        <div id="topbar-title" class="topbar-title">Tableau de bord</div>
+        <div id="topbar-subtitle" class="topbar-subtitle">Vue synthétique de l'association</div>
+      </div>
+      <div class="topbar-actions">
+        <label class="annee-selecteur" title="Toutes les rubriques n'affichent que les données de l'année choisie">
+          Année <select id="annee-select" aria-label="Année affichée"></select>
+        </label>
+        <button class="btn btn-secondary" id="btn-actualiser" title="Relire le classeur (après une modification faite à la main)">&#10227; Actualiser</button>
+        <button class="btn btn-secondary" id="btn-sauvegarder" title="Copie complète du classeur + export .xlsx dans Outil_Brunants/Sauvegardes">&#128190; Sauvegarder maintenant</button>
+        <span class="utilisateur" id="utilisateur">&#128100;</span>
+      </div>
+    </div>
+    <div id="bandeau-avertissements" class="bandeau-avertissements hidden"></div>
+  </div>
+
+  <!-- ═══════════════ TABLEAU DE BORD ═══════════════ -->
+  <section id="dashboard" class="section-content active">
+    <div class="section-intro">
+      <strong>Tableau de bord de pilotage général</strong> — Vue synthétique de l'état de l'association, calculée à partir des données des rubriques pour l'année choisie en haut de page.
+    </div>
+
+    <!-- ── Zone 1 : INDICATEURS ── -->
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+      <div class="kpi-grid">
+        <div class="kpi-card primary">
+          <div class="kpi-label" data-titre-annee="Effectif total">Effectif total</div>
+          <div class="kpi-value" id="tdb-kpi-effectif">—</div>
+          <div class="kpi-trend neutre" id="tdb-kpi-effectif-detail"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Titulaires / Sympathisants</div>
+          <div class="kpi-value" id="tdb-kpi-types">—</div>
+          <div class="kpi-trend neutre" id="tdb-kpi-types-detail"></div>
+        </div>
+        <div class="kpi-card green" id="tdb-kpi-solde-carte">
+          <div class="kpi-label" data-titre-annee="Solde budget">Solde budget</div>
+          <div class="kpi-value" id="tdb-kpi-solde">—</div>
+          <div class="kpi-trend neutre" id="tdb-kpi-solde-detail"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label" data-titre-annee="Activités réalisées / prévues">Activités réalisées / prévues</div>
+          <div class="kpi-value" id="tdb-kpi-activites">—</div>
+          <div class="kpi-trend neutre" id="tdb-kpi-activites-detail"></div>
+        </div>
+        <div class="kpi-card red" id="tdb-kpi-alertes-carte">
+          <div class="kpi-label">Alertes actives</div>
+          <div class="kpi-value" id="tdb-kpi-alertes">—</div>
+          <div class="kpi-trend" id="tdb-kpi-alertes-detail"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128200; <span data-titre-annee="Recettes vs Dépenses">Recettes vs Dépenses</span></div>
+            <span class="badge badge-blue">Évolution mensuelle</span>
+          </div>
+          <div class="panel-body"><div class="chart-container" style="height:420px"><canvas id="tdb-graph-mensuel" aria-label="Recettes et dépenses par mois"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128203; <span data-titre-annee="Répartition des dépenses par catégorie">Répartition des dépenses par catégorie</span></div>
+            <span class="badge badge-blue">Montants et % affichés</span>
+          </div>
+          <div class="panel-body"><div class="chart-container secteurs" style="height:420px"><canvas id="tdb-graph-categories" aria-label="Dépenses par catégorie"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#127919; <span data-titre-annee="Répartition des activités par catégorie">Répartition des activités par catégorie</span></div>
+            <span class="badge badge-blue" id="tdb-act-badge"></span>
+          </div>
+          <div class="panel-body"><div class="chart-container secteurs" style="height:380px"><canvas id="tdb-graph-activites" aria-label="Activités par catégorie"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128276; Alertes en cours</div>
+            <span class="badge badge-red" id="tdb-alertes-badge"></span>
+          </div>
+          <div class="panel-body">
+            <div class="alert-list" id="tdb-alertes"></div>
+            <div class="help-text" style="margin-bottom:0">Alertes calculées à partir des données, au jour d'aujourd'hui : activités presque complètes, échéances en retard, catégories qui dépassent leur budget, cotisations supérieures à l'attendu, lignes du classeur à corriger, sauvegarde ancienne.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 3 : LISTES ── -->
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128197; <span id="tdb-prochaines-titre">Prochaines activités</span></div>
+            <button type="button" class="btn btn-secondary btn-sm" id="tdb-voir-calendrier">Voir le calendrier</button>
+          </div>
+          <div class="panel-body"><ul class="timeline" id="tdb-prochaines"></ul></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128181; <span data-titre-annee="Participation Association cumulée par membre">Participation Association cumulée par membre</span></div>
+            <span class="badge badge-blue">Réservé au bureau</span>
+          </div>
+          <div class="panel-body">
+            <p class="texte-discret" style="font-style:normal;margin-top:0">Choisissez un adhérent pour afficher le cumul de la Participation Association de l'année (coût des activités et du mobil-home pris en charge par les Brunants).</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Adhérent / Sympathisant</label>
+                <input class="form-input" type="text" id="tdb-part-saisie" list="tdb-part-liste" placeholder="Taper un nom…">
+                <datalist id="tdb-part-liste"></datalist>
+                <input type="hidden" id="tdb-part-adherent">
+              </div>
+              <div class="form-group">
+                <label class="form-label" data-titre-annee="Participation Association cumulée">Participation Association cumulée</label>
+                <div class="valeur-encadree" id="tdb-part-valeur">—</div>
+              </div>
+            </div>
+            <div id="tdb-part-detail"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 1. ADHÉRENTS ═══════════════ -->
+  <section id="chantier-1" class="section-content">
+    <div class="section-intro">
+      <strong>Chantier 1 — Adhérents</strong> — Annuaire des adhérents titulaires et sympathisants. Chaque fiche porte un identifiant unique (ADH-0001…) qui la relie à toutes les autres rubriques. Données personnelles soumises au RGPD.
+    </div>
+
+    <!-- ── Zone 1 : INDICATEURS ── -->
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+      <div class="kpi-grid">
+        <div class="kpi-card primary">
+          <div class="kpi-label" data-titre-annee="Effectif total">Effectif total</div>
+          <div class="kpi-value" id="adh-kpi-effectif">—</div>
+          <div class="kpi-trend neutre" id="adh-kpi-effectif-detail"></div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label" data-titre-annee="Nouveaux arrivants">Nouveaux arrivants</div>
+          <div class="kpi-value" id="adh-kpi-nouveaux">—</div>
+          <div class="kpi-trend" id="adh-kpi-nouveaux-detail"></div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-label" data-titre-annee="Âge moyen">Âge moyen</div>
+          <div class="kpi-value" id="adh-kpi-age">—</div>
+          <div class="kpi-trend neutre" id="adh-kpi-age-detail"></div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label" data-titre-annee="Décès">Décès</div>
+          <div class="kpi-value" id="adh-kpi-deces">—</div>
+          <div class="kpi-trend neutre" id="adh-kpi-deces-detail"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128200; <span data-titre-annee="Répartitions et démographie">Répartitions et démographie</span></div>
+          <span class="badge badge-blue" id="adh-badge-repartition"></span>
+        </div>
+        <div class="panel-body">
+          <div class="kpi-grid" style="margin-bottom: 16px;">
+            <div class="kpi-card">
+              <div class="kpi-label">&#9794;&#9792; Hommes / Femmes</div>
+              <div class="kpi-value" id="adh-kpi-hf">—</div>
+              <div class="kpi-trend neutre" id="adh-kpi-hf-detail"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Titulaires / Sympathisants</div>
+              <div class="kpi-value" id="adh-kpi-ts">—</div>
+              <div class="kpi-trend neutre" id="adh-kpi-ts-detail"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Île-de-France / Province</div>
+              <div class="kpi-value" id="adh-kpi-region">—</div>
+              <div class="kpi-trend neutre" id="adh-kpi-region-detail"></div>
+            </div>
+            <div class="kpi-card accent">
+              <div class="kpi-label">Ancienneté moyenne</div>
+              <div class="kpi-value" id="adh-kpi-anciennete">—</div>
+              <div class="kpi-trend neutre">durée moyenne de la relation avec l'association</div>
+            </div>
+          </div>
+
+          <h4 class="sous-titre" data-titre-annee="Répartition par tranche d'âge">Répartition par tranche d'âge</h4>
+          <table class="data-table table-encadree">
+            <thead>
+              <tr><th class="center">Tranche</th><th class="center">Effectif</th><th class="center">Part</th><th>Visualisation</th></tr>
+            </thead>
+            <tbody id="adh-tranches"></tbody>
+          </table>
+          <div class="form-hint" style="margin-top:6px">Âge atteint à la date du jour pour l'année en cours, au 31/12 pour une année passée (ou à la date de départ).</div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#127919; <span data-titre-annee="Participation aux activités">Participation aux activités</span></div>
+          <span class="badge badge-blue">Activités et mobil-home</span>
+        </div>
+        <div class="panel-body">
+          <div class="kpi-grid" style="margin-bottom: 4px;">
+            <div class="kpi-card green">
+              <div class="kpi-label">Participants</div>
+              <div class="kpi-value" id="adh-kpi-participants">—</div>
+              <div class="kpi-trend neutre" id="adh-kpi-participants-detail"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Non-participants</div>
+              <div class="kpi-value" id="adh-kpi-nonpart">—</div>
+              <div class="kpi-trend negative" id="adh-kpi-nonpart-detail"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Non-participants Île-de-France</div>
+              <div class="kpi-value" id="adh-kpi-nonpart-idf">—</div>
+              <div class="kpi-trend neutre" id="adh-kpi-nonpart-idf-detail"></div>
+            </div>
+            <div class="kpi-card">
+              <div class="kpi-label">Non-participants Province</div>
+              <div class="kpi-value" id="adh-kpi-nonpart-prov">—</div>
+              <div class="kpi-trend neutre" id="adh-kpi-nonpart-prov-detail"></div>
+            </div>
+          </div>
+          <div class="help-text"><strong>Participant :</strong> adhérent de l'année inscrit à au moins une activité de l'année (inscription non annulée) ou ayant loué un mobil-home dans l'année.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 2 : SAISIE ── -->
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+      <div class="panel" id="panneau-fiche-adherent">
+        <div class="panel-header">
+          <div class="panel-title">&#128221; <span id="adh-form-titre">Formulaire de saisie d'un nouvel adhérent</span></div>
+          <span class="badge badge-amber" id="adh-form-badge">Nouvelle fiche</span>
+        </div>
+        <div class="panel-body">
+          <form id="form-adherent" autocomplete="off" onsubmit="return false;">
+            <div class="form-erreurs hidden"></div>
+            <input type="hidden" data-champ="id">
+
+            <div class="form-row-4">
+              <div class="form-group">
+                <label class="form-label">Civilité</label>
+                <select class="form-select" data-champ="civilite"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Sexe <span class="required">*</span></label>
+                <select class="form-select" data-champ="sexe"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Nom <span class="required">*</span></label>
+                <input class="form-input" type="text" data-champ="nom" placeholder="MOREAU">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Prénom <span class="required">*</span></label>
+                <input class="form-input" type="text" data-champ="prenom" placeholder="Isabelle">
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label class="form-label">Date de naissance</label>
+                <input class="form-input" type="date" data-champ="dateNaissance">
+                <div class="form-hint">Donnée sensible RGPD</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date d'inscription <span class="required">*</span></label>
+                <input class="form-input" type="date" data-champ="dateInscription">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Type <span class="required">*</span></label>
+                <select class="form-select" data-champ="type"></select>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Adresse (numéro et rue)</label>
+                <input class="form-input" type="text" data-champ="adresse" placeholder="123 rue des Fleurs">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Complément d'adresse</label>
+                <input class="form-input" type="text" data-champ="complementAdresse" placeholder="Bâtiment, résidence, lieu-dit…">
+              </div>
+            </div>
+
+            <div class="form-row-3">
+              <div class="form-group">
+                <label class="form-label">Code postal</label>
+                <input class="form-input" type="text" data-champ="codePostal" placeholder="91160" maxlength="5" inputmode="numeric">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Ville</label>
+                <input class="form-input" type="text" data-champ="ville" placeholder="Saulx-les-Chartreux">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Région (calculée)</label>
+                <input class="form-input champ-calcule" type="text" id="adh-region" readonly tabindex="-1" placeholder="selon le code postal">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Mobile</label>
+                <input class="form-input" type="tel" data-champ="mobile" placeholder="06 XX XX XX XX">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Téléphone fixe</label>
+                <input class="form-input" type="tel" data-champ="telFixe" placeholder="01 XX XX XX XX">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">E-mail principal</label>
+                <input class="form-input" type="email" data-champ="email" placeholder="isabelle.moreau@email.fr">
+              </div>
+              <div class="form-group">
+                <label class="form-label">E-mail secondaire</label>
+                <input class="form-input" type="email" data-champ="email2" placeholder="facultatif">
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Cotisation (€)</label>
+                <input class="form-input" type="number" min="0" step="0.01" data-champ="cotisation">
+                <div class="form-hint" id="adh-cotisation-aide">Montant par défaut, modifiable pour un don supérieur.</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Rattachement conjoint(e)</label>
+                <input class="form-input" type="text" id="adh-rattache-saisie" list="adh-liste-conjoints" placeholder="Taper un nom… (facultatif)">
+                <datalist id="adh-liste-conjoints"></datalist>
+                <input type="hidden" data-champ="rattacheA">
+                <div class="form-hint">Utile si le nom est différent ; laisser vide sinon.</div>
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Année entrée JMB</label>
+                <input class="form-input" type="number" min="1940" max="2100" step="1" data-champ="anneeEntreeJMB" placeholder="ex. 1978">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date sortie JMB</label>
+                <input class="form-input" type="date" data-champ="dateSortieJMB">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Communications</label>
+              <div class="cases-ligne">
+                <label class="case"><input type="checkbox" data-champ="abonneFacebook"> Abonné à Facebook</label>
+                <label class="case"><input type="checkbox" data-champ="toutParMail"> Recevoir toutes les communications par mail</label>
+                <label class="case"><input type="checkbox" data-champ="recoitMaillon"> Souhaite recevoir le Maillon papier</label>
+                <label class="case"><input type="checkbox" data-champ="neRienEnvoyer"> Ne plus rien envoyer</label>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Fin d'adhésion</label>
+              <div class="cases-ligne">
+                <label class="case"><input type="checkbox" data-champ="desinscrit"> Désinscrit</label>
+                <label class="case"><input type="checkbox" data-champ="deces"> Décès</label>
+              </div>
+              <div class="bloc-fin hidden" id="adh-bloc-fin">
+                <div class="form-row-3">
+                  <div class="form-group" id="adh-groupe-deces">
+                    <label class="form-label">Date du décès <span class="required">*</span></label>
+                    <input class="form-input" type="date" data-champ="dateDeces">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Date de fin <span class="required">*</span></label>
+                    <input class="form-input" type="date" data-champ="dateFin">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Motif de fin <span class="required">*</span></label>
+                    <select class="form-select" data-champ="motifFin"></select>
+                  </div>
+                </div>
+                <div class="form-hint">La fiche passera dans « Anciens adhérents (archives) ».</div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Commentaire</label>
+              <textarea class="form-textarea" rows="2" data-champ="commentaire" placeholder="Informations utiles (facultatif)"></textarea>
+            </div>
+
+            <div class="help-text">
+              <strong>Info RGPD :</strong> les données marquées sensibles (date de naissance, coordonnées) sont soumises à un accès restreint. Le responsable des données est désigné par le bureau.
+            </div>
+
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="adh-annuler">Annuler</button>
+              <button type="button" class="btn btn-primary" id="adh-enregistrer">Enregistrer l'adhérent</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 3 : LISTES ── -->
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128100; <span data-titre-annee="Liste des adhérents">Liste des adhérents</span></div>
+          <button class="btn btn-primary btn-sm" id="adh-nouveau">+ Nouvel adhérent</button>
+        </div>
+        <div class="panel-body no-padding">
+          <div class="liste-aide">Adhérents de l'année choisie, y compris ceux partis en cours d'année (colonne « Désinscrit »). Cochez « Désinscrit » pour enregistrer un départ ou un décès.</div>
+          <div id="liste-adherents"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128193; Anciens adhérents (archives)</div>
+          <span class="badge badge-gray" id="adh-badge-archives"></span>
+        </div>
+        <div class="panel-body no-padding">
+          <div class="liste-aide">
+            Les anciens adhérents et sympathisants sont conservés pour permettre l'envoi ponctuel d'informations (invitations, communications, faire-part…).
+            <div class="boutons-filtres">
+              <button class="btn btn-secondary btn-sm" id="adh-arch-deces">&#9905; Décès de <span class="annee-courante"></span></button>
+              <button class="btn btn-secondary btn-sm" id="adh-arch-autres">&#128194; Autres fins d'adhésion de <span class="annee-courante"></span></button>
+              <button class="btn btn-secondary btn-sm" id="adh-arch-toutes">Toutes les archives</button>
+            </div>
+          </div>
+          <div id="liste-archives"></div>
+          <div class="help-text" style="margin: 12px 16px;">
+            <strong>RGPD :</strong> les anciens adhérents peuvent à tout moment demander le retrait de leurs données. Le consentement pour recevoir des informations est renouvelé tacitement chaque année sauf opposition (case « Ne plus rien envoyer »).
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panneau-historique">
+        <div class="panel-header">
+          <div class="panel-title">&#128100; Historique d'un adhérent — activités suivies</div>
+          <span class="badge badge-blue">Participation Association</span>
+        </div>
+        <div class="panel-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Sélectionner un adhérent / sympathisant</label>
+              <input class="form-input" type="text" id="hist-saisie" list="hist-liste-adherents" placeholder="Taper un nom…">
+              <datalist id="hist-liste-adherents"></datalist>
+              <input type="hidden" id="hist-adherent">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Période</label>
+              <select class="form-select" id="hist-periode">
+                <option value="annee">Année sélectionnée</option>
+                <option value="toutes">Toutes les années</option>
+              </select>
+            </div>
+          </div>
+          <div id="hist-resultat"><p class="texte-discret">Sélectionnez un adhérent pour afficher son historique d'activités.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 2. BUDGET & COMPTA ═══════════════ -->
+  <section id="chantier-2" class="section-content">
+    <div class="section-intro">
+      <strong>Chantier 2 — Budget &amp; Compta</strong> — Comptabilité générale et suivi du budget prévisionnel par catégorie. Une seule saisie : les paiements et remboursements des activités et les locations de mobil-home arrivent ici automatiquement (origine « Automatique »). Recettes et dépenses sont rattachées à l'année de leur date d'encaissement ou de paiement.
+    </div>
+
+    <!-- ── Zone 1 : INDICATEURS ── -->
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+      <div class="kpi-grid">
+        <div class="kpi-card green">
+          <div class="kpi-label" data-titre-annee="Recettes">Recettes</div>
+          <div class="kpi-value" id="bud-kpi-recettes">—</div>
+          <div class="kpi-trend" id="bud-kpi-recettes-detail"></div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label" data-titre-annee="Dépenses">Dépenses</div>
+          <div class="kpi-value" id="bud-kpi-depenses">—</div>
+          <div class="kpi-trend" id="bud-kpi-depenses-detail"></div>
+        </div>
+        <div class="kpi-card primary" id="bud-kpi-solde-carte">
+          <div class="kpi-label" data-titre-annee="Solde budget">Solde budget</div>
+          <div class="kpi-value" id="bud-kpi-solde">—</div>
+          <div class="kpi-trend neutre" id="bud-kpi-solde-detail"></div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-label" data-titre-annee="Dépenses hors budget">Dépenses hors budget</div>
+          <div class="kpi-value" id="bud-kpi-hors">—</div>
+          <div class="kpi-trend neutre" id="bud-kpi-hors-detail"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128202; <span data-titre-annee="Recettes vs Dépenses">Recettes vs Dépenses</span></div>
+            <span class="badge badge-blue">Évolution mensuelle</span>
+          </div>
+          <div class="panel-body"><div class="chart-container" style="height:420px"><canvas id="bud-graph-mensuel" aria-label="Recettes et dépenses par mois"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128203; <span data-titre-annee="Répartition des dépenses par catégorie">Répartition des dépenses par catégorie</span></div>
+            <span class="badge badge-blue">Montants et % affichés</span>
+          </div>
+          <div class="panel-body"><div class="chart-container secteurs" style="height:420px"><canvas id="bud-graph-categories" aria-label="Dépenses par catégorie"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128200; <span data-titre-annee="Budget prévisionnel par catégorie — suivi">Budget prévisionnel par catégorie — suivi</span></div>
+          <span class="badge badge-blue">8 catégories</span>
+        </div>
+        <div class="panel-body no-padding">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Catégorie</th><th class="number">Budget prévisionnel</th><th class="number">Dépenses réalisées</th><th class="number">Reste</th><th class="center">Consommé</th><th style="min-width:160px">Progression</th><th class="number">Hors budget</th></tr></thead>
+              <tbody id="bud-suivi"></tbody>
+            </table>
+          </div>
+          <div class="liste-aide" style="border-top:1px solid var(--border);border-bottom:none">Dépenses réalisées = dépenses « Budgété » de l'année. Les dépenses « Hors budget » sont suivies à part et ne consomment pas le budget.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 2 : SAISIE ── -->
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+      <div class="grid-2">
+        <div class="panel" id="panneau-depense">
+          <div class="panel-header">
+            <div class="panel-title">&#128221; <span id="dep-form-titre">Formulaire de saisie dépense</span></div>
+            <span class="badge badge-amber" id="dep-form-badge">Nouvelle dépense</span>
+          </div>
+          <div class="panel-body">
+            <form id="form-depense" autocomplete="off" onsubmit="return false;">
+              <div class="form-erreurs hidden"></div>
+              <input type="hidden" data-champ="id">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Date de paiement <span class="required">*</span></label>
+                  <input class="form-input" type="date" data-champ="date"></div>
+                <div class="form-group"><label class="form-label">Montant € <span class="required">*</span></label>
+                  <input class="form-input" type="number" min="0.01" step="0.01" data-champ="montant" placeholder="0,00"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Libellé <span class="required">*</span></label>
+                <input class="form-input" type="text" data-champ="libelle" placeholder="ex. Bus sortie Fontainebleau (acompte)"></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Catégorie <span class="required">*</span></label>
+                  <select class="form-select" data-champ="categorie"></select></div>
+                <div class="form-group"><label class="form-label">Sous-catégorie</label>
+                  <select class="form-select" data-champ="sousCategorie"></select></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Prestataire</label>
+                  <select class="form-select" data-champ="prestataireId"></select></div>
+                <div class="form-group"><label class="form-label">Activité liée</label>
+                  <select class="form-select" data-champ="activiteId"></select></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Mode de paiement</label>
+                  <select class="form-select" data-champ="modePaiement"></select></div>
+                <div class="form-group"><label class="form-label">Facture / justificatif</label>
+                  <input class="form-input" type="text" data-champ="justificatif" placeholder="n° de facture ou lien vers le document (Drive…)">
+                  <div class="form-hint lien-justif-form"></div></div>
+              </div>
+              <div class="form-group"><label class="form-label">Commentaire</label>
+                <textarea class="form-textarea" rows="2" data-champ="commentaire"></textarea></div>
+              <div class="form-group"><label class="form-label">Budget</label>
+                <div class="cases-ligne">
+                  <label class="case"><input type="radio" name="dep-budgete" value="Budgété" data-radio="budgete" checked> Budgété</label>
+                  <label class="case"><input type="radio" name="dep-budgete" value="Hors budget" data-radio="budgete"> Hors budget</label>
+                </div></div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="dep-annuler">Annuler</button>
+                <button type="button" class="btn btn-primary" id="dep-enregistrer">Enregistrer la dépense</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div class="panel" id="panneau-recette">
+          <div class="panel-header">
+            <div class="panel-title">&#128221; <span id="rec-form-titre">Formulaire de saisie recette</span></div>
+            <span class="badge badge-amber" id="rec-form-badge">Nouvelle recette</span>
+          </div>
+          <div class="panel-body">
+            <form id="form-recette" autocomplete="off" onsubmit="return false;">
+              <div class="form-erreurs hidden"></div>
+              <input type="hidden" data-champ="id">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Date d'encaissement <span class="required">*</span></label>
+                  <input class="form-input" type="date" data-champ="date"></div>
+                <div class="form-group"><label class="form-label">Montant € <span class="required">*</span></label>
+                  <input class="form-input" type="number" min="0.01" step="0.01" data-champ="montant" placeholder="0,00"></div>
+              </div>
+              <div class="form-group"><label class="form-label">Libellé <span class="required">*</span></label>
+                <input class="form-input" type="text" data-champ="libelle" placeholder="ex. Cotisations octobre (5 adhérents)"></div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Catégorie <span class="required">*</span></label>
+                  <select class="form-select" data-champ="categorie"></select></div>
+                <div class="form-group"><label class="form-label">Sous-catégorie</label>
+                  <select class="form-select" data-champ="sousCategorie"></select></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Activité liée</label>
+                  <select class="form-select" data-champ="activiteId"></select></div>
+                <div class="form-group"><label class="form-label">Adhérent concerné</label>
+                  <input class="form-input" type="text" id="rec-adherent-saisie" list="rec-liste-adherents" placeholder="Optionnel · taper un nom">
+                  <datalist id="rec-liste-adherents"></datalist>
+                  <input type="hidden" data-champ="adherentId"></div>
+              </div>
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Mode d'encaissement</label>
+                  <select class="form-select" data-champ="modePaiement"></select></div>
+                <div class="form-group"><label class="form-label">Justificatif</label>
+                  <input class="form-input" type="text" data-champ="justificatif" placeholder="n° de reçu ou lien vers le document (Drive…)">
+                  <div class="form-hint lien-justif-form"></div></div>
+              </div>
+              <div class="form-group"><label class="form-label">Commentaire</label>
+                <textarea class="form-textarea" rows="2" data-champ="commentaire"></textarea></div>
+              <div class="form-group"><label class="form-label">Budget</label>
+                <div class="cases-ligne">
+                  <label class="case"><input type="radio" name="rec-budgete" value="Budgété" data-radio="budgete" checked> Budgété</label>
+                  <label class="case"><input type="radio" name="rec-budgete" value="Hors budget" data-radio="budgete"> Hors budget</label>
+                </div></div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="rec-annuler">Annuler</button>
+                <button type="button" class="btn btn-primary" id="rec-enregistrer">Enregistrer la recette</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel" id="panneau-budgets">
+        <div class="panel-header">
+          <div class="panel-title">&#127919; <span data-titre-annee="Budgets prévisionnels">Budgets prévisionnels</span></div>
+          <span class="badge badge-amber">Onglet Budgets</span>
+        </div>
+        <div class="panel-body">
+          <form id="form-budgets" autocomplete="off" onsubmit="return false;">
+            <div class="form-erreurs hidden"></div>
+            <div class="table-scroll">
+              <table class="data-table table-encadree">
+                <thead><tr><th>Catégorie</th><th class="number" style="width:200px">Budget prévisionnel (€)</th><th class="number">Budget <span class="annee-precedente"></span></th><th class="number">Dépenses <span class="annee-precedente"></span></th></tr></thead>
+                <tbody id="bud-form-lignes"></tbody>
+              </table>
+            </div>
+            <div class="form-actions" style="margin-top:12px">
+              <button type="button" class="btn btn-secondary" id="bud-reprendre">Reprendre les budgets <span class="annee-precedente"></span></button>
+              <button type="button" class="btn btn-secondary" id="bud-annuler">Annuler les modifications</button>
+              <button type="button" class="btn btn-primary" id="bud-enregistrer">Enregistrer le budget prévisionnel <span class="annee-courante"></span></button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 3 : LISTES ── -->
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128220; <span data-titre-annee="Dépenses">Dépenses</span></div>
+          <button class="btn btn-primary btn-sm" id="dep-nouvelle">+ Nouvelle dépense</button>
+        </div>
+        <div class="panel-body no-padding"><div id="liste-depenses"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128184; <span data-titre-annee="Recettes">Recettes</span></div>
+          <button class="btn btn-primary btn-sm" id="rec-nouvelle">+ Nouvelle recette</button>
+        </div>
+        <div class="panel-body no-padding"><div id="liste-recettes"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128181; <span data-titre-annee="Cotisations supérieures à l'attendu">Cotisations supérieures à l'attendu</span></div>
+          <span class="badge badge-green" id="bud-badge-excedent"></span>
+        </div>
+        <div class="panel-body no-padding">
+          <div class="liste-aide">Certains adhérents versent plus que la cotisation attendue (soutien à l'association). L'excédent est tracé ici par transparence (montant attendu : paramètre « Cotisation par défaut »).</div>
+          <div id="liste-excedents"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 3. ACTIVITÉS ═══════════════ -->
+  <section id="chantier-3" class="section-content">
+    <div class="section-intro">
+      <strong>Chantier 3 — Activités</strong> — Fiche standard de chaque activité, inscriptions et paiements échelonnés, mobil-home et fiche d'inscription imprimable. Une seule saisie : cocher « Payé » crée la recette, « Rembourser » crée la dépense, une location de mobil-home crée les deux lignes dans Budget &amp; Compta.
+    </div>
+
+    <!-- ── Zone 1 : INDICATEURS ── -->
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+      <div class="kpi-grid">
+        <div class="kpi-card primary">
+          <div class="kpi-label" data-titre-annee="Activités">Activités</div>
+          <div class="kpi-value" id="act-kpi-nombre">—</div>
+          <div class="kpi-trend neutre" id="act-kpi-nombre-detail"></div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-label" data-titre-annee="Participants uniques">Participants uniques</div>
+          <div class="kpi-value" id="act-kpi-participants">—</div>
+          <div class="kpi-trend neutre" id="act-kpi-participants-detail"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label" data-titre-annee="Non-participants">Non-participants</div>
+          <div class="kpi-value" id="act-kpi-non">—</div>
+          <div class="kpi-trend negative" id="act-kpi-non-detail"></div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label" data-titre-annee="Paiements des activités">Paiements des activités</div>
+          <div class="kpi-value" id="act-kpi-encaisse">—</div>
+          <div class="kpi-trend neutre" id="act-kpi-encaisse-detail"></div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#127957; <span data-titre-annee="Suivi mobil-home — temps réel">Suivi mobil-home — temps réel</span></div>
+            <span class="badge badge-amber">Titulaires uniquement</span>
+          </div>
+          <div class="panel-body">
+            <div class="help-text" style="margin-top:0">
+              <strong>Règle :</strong> chaque année, seuls les <strong>titulaires</strong> bénéficient d'au plus <strong><span class="mh-nb-aides">2</span> aides de <span class="mh-aide">60</span> €</strong> (leurs premières semaines de l'année). L'outil l'applique automatiquement.
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-label" data-titre-annee="Semaines vendues">Semaines vendues</div>
+                <div class="kpi-value" id="mh-kpi-semaines">—</div>
+                <div class="kpi-trend neutre" id="mh-kpi-semaines-detail"></div>
+              </div>
+              <div class="kpi-card">
+                <div class="kpi-label">Montant total</div>
+                <div class="kpi-value" id="mh-kpi-total">—</div>
+                <div class="kpi-trend neutre">coût global des locations</div>
+              </div>
+              <div class="kpi-card accent">
+                <div class="kpi-label">Mont. total payé par l'asso</div>
+                <div class="kpi-value" id="mh-kpi-asso">—</div>
+                <div class="kpi-trend neutre" id="mh-kpi-asso-detail"></div>
+              </div>
+            </div>
+            <h4 class="sous-titre">Semaines vendues par camping</h4>
+            <table class="data-table table-encadree">
+              <thead><tr><th>Camping</th><th class="center">Semaines</th><th class="number">Montant total</th><th class="number">Aides versées</th></tr></thead>
+              <tbody id="mh-campings"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#127942; <span data-titre-annee="Part des adhérents subventionnés">Part des adhérents subventionnés</span></div>
+            <span class="badge badge-blue">Participation Asso &gt; 0 €</span>
+          </div>
+          <div class="panel-body">
+            <div class="help-text" style="margin-top:0">
+              Un adhérent est <strong>subventionné</strong> lorsqu'au moins une de ses activités ou locations de mobil-home de l'année a une <strong>Participation Association &gt; 0 €</strong>.
+            </div>
+            <div class="kpi-grid">
+              <div class="kpi-card">
+                <div class="kpi-label" data-titre-annee="Global">Global</div>
+                <div class="kpi-value" id="sub-kpi-global">—</div>
+                <div class="kpi-trend neutre" id="sub-kpi-global-detail"></div>
+              </div>
+              <div class="kpi-card accent">
+                <div class="kpi-label">Montant total subventionné</div>
+                <div class="kpi-value" id="sub-kpi-montant">—</div>
+                <div class="kpi-trend neutre" id="sub-kpi-montant-detail"></div>
+              </div>
+            </div>
+            <table class="data-table table-encadree">
+              <thead><tr><th>Région</th><th class="center">Subventionnés</th><th class="center">Part</th><th>Visualisation</th></tr></thead>
+              <tbody id="sub-regions"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#129383; <span data-titre-annee="Répartition des activités">Répartition des activités</span></div>
+          <label class="selecteur-mesure">Part de chaque activité selon
+            <select class="form-select" id="act-graph-mesure">
+              <option value="inscrits">le nombre d'inscrits</option>
+              <option value="encaisse">le montant encaissé</option>
+              <option value="cout">le coût total</option>
+              <option value="asso">la participation de l'association</option>
+            </select>
+          </label>
+        </div>
+        <div class="panel-body">
+          <div class="chart-container secteurs" style="height:380px"><canvas id="act-graph-parts" aria-label="Répartition des activités de l'année"></canvas></div>
+          <div class="help-text" id="act-graph-aide" style="margin-bottom:0"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#127919; <span data-titre-annee="Coût par activité">Coût par activité</span></div>
+          <span class="badge badge-blue">Coût réel × inscrits</span>
+        </div>
+        <div class="panel-body no-padding">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Activité</th><th>Catégorie</th><th class="center">Inscrits</th><th class="number">Coût total</th><th class="number">Prix / pers.</th><th class="number">Part. asso</th><th class="center">Recouvrement</th></tr></thead>
+              <tbody id="act-couts"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 2 : SAISIE ── -->
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+      <div class="panel" id="panneau-fiche-activite">
+        <div class="panel-header">
+          <div class="panel-title">&#10133; <span id="act-form-titre">Enregistrer une nouvelle activité</span></div>
+          <span class="badge badge-amber" id="act-form-badge">Nouvelle activité</span>
+        </div>
+        <div class="panel-body">
+          <form id="form-activite" autocomplete="off" onsubmit="return false;">
+            <div class="form-erreurs hidden"></div>
+            <input type="hidden" data-champ="id">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Intitulé <span class="required">*</span></label>
+                <input class="form-input" type="text" data-champ="nom" placeholder="ex. Visite du château de Versailles"></div>
+              <div class="form-group"><label class="form-label">Statut</label>
+                <select class="form-select" data-champ="statut"></select></div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group"><label class="form-label">Catégorie <span class="required">*</span></label>
+                <select class="form-select" data-champ="categorie"></select></div>
+              <div class="form-group"><label class="form-label">Sous-catégorie</label>
+                <select class="form-select" data-champ="sousCategorie"></select></div>
+              <div class="form-group"><label class="form-label">Organisateur (adhérent)</label>
+                <input class="form-input" type="text" id="act-organisateur-saisie" list="act-liste-organisateurs" placeholder="Taper un nom…">
+                <datalist id="act-liste-organisateurs"></datalist>
+                <input type="hidden" data-champ="organisateur"></div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group"><label class="form-label">Date de début <span class="required">*</span></label>
+                <input class="form-input" type="date" data-champ="dateDebut"></div>
+              <div class="form-group"><label class="form-label">Date de fin (si différente)</label>
+                <input class="form-input" type="date" data-champ="dateFin"></div>
+              <div class="form-group"><label class="form-label">Lieu</label>
+                <input class="form-input" type="text" data-champ="lieu"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Description / détails</label>
+              <textarea class="form-textarea" rows="2" data-champ="descriptif"></textarea></div>
+            <div class="form-row-3">
+              <div class="form-group"><label class="form-label">Places max</label>
+                <input class="form-input" type="number" min="1" step="1" data-champ="maxParticipants"></div>
+              <div class="form-group"><label class="form-label">Budget prévu (€)</label>
+                <input class="form-input" type="number" min="0" step="0.01" data-champ="budgetPrevu"></div>
+              <div class="form-group"><label class="form-label">Nombre d'échéances</label>
+                <select class="form-select" data-champ="nbEcheances"></select>
+                <div class="form-hint">Paiement en 1 à 12 fois</div></div>
+            </div>
+            <div class="form-group" id="act-dates-echeances-bloc">
+              <label class="form-label">Dates des échéances</label>
+              <div class="dates-echeances" id="act-dates-echeances"></div>
+              <input type="hidden" data-champ="datesEcheances">
+              <div class="form-hint">Facultatif. Une date laissée vide est calculée par l'outil (paiements échelonnés jusqu'à la veille de l'activité). Une date peut être <strong>après</strong> l'activité.</div>
+              <label class="case hidden" id="act-appliquer-bloc"><input type="checkbox" id="act-appliquer-echeances"> Appliquer aussi ces dates aux échéances non payées des inscrits actuels</label>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group"><label class="form-label">Prix par personne (€)</label>
+                <input class="form-input" type="number" min="0" step="0.01" data-champ="prixParPersonne"></div>
+              <div class="form-group"><label class="form-label">Coût réel par personne (€)</label>
+                <input class="form-input" type="number" min="0" step="0.01" data-champ="coutReelParPersonne"></div>
+              <div class="form-group"><label class="form-label">Participation de l'association / pers.</label>
+                <input class="form-input champ-calcule" type="text" id="act-participation" readonly tabindex="-1" placeholder="calculée : coût − prix"></div>
+            </div>
+            <label class="case"><input type="checkbox" data-champ="notification"> Notification par mail aux adhérents à la création de l'activité</label>
+            <div class="form-hint" style="margin-bottom:10px">En mode entraînement, l'e-mail part uniquement vers l'adresse de test.</div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="act-annuler">Annuler</button>
+              <button type="button" class="btn btn-primary" id="act-enregistrer">Enregistrer l'activité</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <div class="panel" id="panneau-activite-selectionnee">
+        <div class="panel-header">
+          <div class="panel-title">&#128269; Sélectionner une activité existante à consulter ou modifier</div>
+          <select class="form-select" id="act-selection" style="width:auto;min-width:260px" aria-label="Activité sélectionnée"></select>
+        </div>
+        <div class="panel-body">
+          <div id="act-fiche-resume"></div>
+          <div class="boutons-filtres" style="margin:12px 0">
+            <button class="btn btn-secondary btn-sm" id="act-modifier-selection">&#9998; Modifier la fiche</button>
+            <button class="btn btn-secondary btn-sm" id="act-fiche-inscription">&#128424; Générer la fiche d'inscription</button>
+            <button class="btn btn-secondary btn-sm" id="act-notifier">&#9993;&#65039; Envoyer la notification</button>
+          </div>
+          <div id="act-fiche-liens" class="help-text hidden"></div>
+
+          <h4 class="sous-titre">&#128100; Inscrire un membre</h4>
+          <form id="form-inscription" autocomplete="off" onsubmit="return false;" class="form-row-3" style="align-items:end">
+            <div class="form-group"><label class="form-label">Adhérent (actif)</label>
+              <input class="form-input" type="text" id="ins-adherent-saisie" list="ins-liste-adherents" placeholder="Taper un nom…">
+              <datalist id="ins-liste-adherents"></datalist>
+              <input type="hidden" id="ins-adherent"></div>
+            <div class="form-group"><label class="form-label">Montant dû (€)</label>
+              <input class="form-input" type="number" min="0" step="0.01" id="ins-montant">
+              <div class="form-hint">Prix par personne par défaut</div></div>
+            <div class="form-group"><button type="button" class="btn btn-primary" id="ins-inscrire">Inscrire</button></div>
+          </form>
+
+          <h4 class="sous-titre">&#128179; Paiement échelonné — suivi par participant</h4>
+          <div class="liste-barre" style="border:1px solid var(--border);border-radius:6px 6px 0 0">
+            <input type="search" class="form-input liste-recherche" id="act-suivi-recherche" placeholder="&#128269; Rechercher un participant…" aria-label="Rechercher un participant">
+            <select class="form-select" id="act-suivi-filtre" aria-label="Filtrer les participants">
+              <option value="">Tous les participants</option>
+              <option value="reste">Avec un reste dû</option>
+              <option value="retard">Avec une échéance en retard</option>
+              <option value="ajour">À jour de leurs paiements</option>
+            </select>
+            <label class="case"><input type="checkbox" id="act-voir-desinscrits"> Afficher aussi les désinscriptions</label>
+            <span class="liste-compteur" id="act-suivi-compteur"></span>
+          </div>
+          <div id="act-suivi"></div>
+        </div>
+      </div>
+
+      <div class="panel" id="panneau-mobilhome">
+        <div class="panel-header">
+          <div class="panel-title">&#127957; <span id="mh-form-titre">Mobil-home — enregistrer une location</span></div>
+          <span class="badge badge-amber" id="mh-form-badge">Nouvelle location</span>
+        </div>
+        <div class="panel-body">
+          <form id="form-mobilhome" autocomplete="off" onsubmit="return false;">
+            <div class="form-erreurs hidden"></div>
+            <input type="hidden" data-champ="id">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Adhérent <span class="required">*</span></label>
+                <input class="form-input" type="text" id="mh-adherent-saisie" list="mh-liste-adherents" placeholder="Taper un nom…">
+                <datalist id="mh-liste-adherents"></datalist>
+                <input type="hidden" data-champ="adherentId"></div>
+              <div class="form-group"><label class="form-label">Camping <span class="required">*</span></label>
+                <select class="form-select" data-champ="campingId"></select></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Semaine (date de début) <span class="required">*</span></label>
+                <input class="form-input" type="date" data-champ="semaine"></div>
+              <div class="form-group"><label class="form-label">Coût de la location (€) <span class="required">*</span></label>
+                <input class="form-input" type="number" min="0.01" step="0.01" data-champ="coutLocation"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Date de paiement (dépense et recette)</label>
+                <input class="form-input" type="date" data-champ="dateLignes">
+                <div class="form-hint">Par défaut : le jour de la saisie. Date des deux lignes créées dans Budget &amp; Compta.</div></div>
+              <div class="form-group"></div>
+            </div>
+            <div class="help-text" id="mh-info-aide">Choisissez un adhérent et une semaine : l'aide est calculée automatiquement.</div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="mh-annuler">Annuler</button>
+              <button type="button" class="btn btn-primary" id="mh-enregistrer">Enregistrer la location</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 3 : LISTES ── -->
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128221; <span data-titre-annee="Liste des activités">Liste des activités</span></div>
+          <button class="btn btn-primary btn-sm" id="act-nouvelle">+ Nouvelle activité</button>
+        </div>
+        <div class="panel-body no-padding"><div id="liste-activites"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#127957; <span data-titre-annee="Locations de mobil-home">Locations de mobil-home</span></div>
+          <button class="btn btn-primary btn-sm" id="mh-nouvelle">+ Nouvelle location</button>
+        </div>
+        <div class="panel-body no-padding"><div id="liste-mobilhome"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128176; <span data-titre-annee="Aides mobil-home par titulaire">Aides mobil-home par titulaire</span></div>
+          <span class="badge badge-amber" id="mh-badge-aides"></span>
+        </div>
+        <div class="panel-body no-padding"><div id="liste-aides-mh"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 4. PRESTATAIRES ═══════════════ -->
+  <section id="prestataires" class="section-content">
+    <div class="section-intro">
+      <strong>Prestataires</strong> — Base des prestataires et fournisseurs de l'association. Elle alimente la liste de saisie des dépenses (avec l'entrée permanente « Autre ») et le suivi des factures, c'est-à-dire des dépenses liées à chaque prestataire.
+    </div>
+
+    <!-- ── Zone 1 : INDICATEURS ── -->
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+      <div class="kpi-grid">
+        <div class="kpi-card primary">
+          <div class="kpi-label">Nombre de prestataires</div>
+          <div class="kpi-value" id="pre-kpi-nombre">—</div>
+          <div class="kpi-trend neutre" id="pre-kpi-nombre-detail"></div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label" data-titre-annee="Factures">Factures</div>
+          <div class="kpi-value" id="pre-kpi-factures">—</div>
+          <div class="kpi-trend neutre" id="pre-kpi-factures-detail"></div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label" data-titre-annee="Prestataires sollicités">Prestataires sollicités</div>
+          <div class="kpi-value" id="pre-kpi-actifs">—</div>
+          <div class="kpi-trend neutre" id="pre-kpi-actifs-detail"></div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-label">Ancienneté moyenne de la relation</div>
+          <div class="kpi-value" id="pre-kpi-anciennete">—</div>
+          <div class="kpi-trend neutre">depuis la date de début de la relation</div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128209; <span data-titre-annee="Suivi des factures par prestataire">Suivi des factures par prestataire</span></div>
+            <span class="badge badge-blue">Tous prestataires confondus</span>
+          </div>
+          <div class="panel-body no-padding">
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead><tr><th>Prestataire</th><th class="center">Factures</th><th class="number">Cumul</th><th class="center">% du total</th><th style="min-width:110px"></th></tr></thead>
+                <tbody id="pre-suivi"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#127942; <span data-titre-annee="10 principaux prestataires">10 principaux prestataires</span></div>
+            <span class="badge badge-blue">Cumul des factures</span>
+          </div>
+          <div class="panel-body"><div class="chart-container" style="height:340px"><canvas id="pre-graph-top" aria-label="Dix principaux prestataires"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 2 : SAISIE ── -->
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+      <div class="panel" id="panneau-fiche-prestataire">
+        <div class="panel-header">
+          <div class="panel-title">&#127970; <span id="pre-form-titre">Fiche prestataire — nouveau</span></div>
+          <span class="badge badge-amber" id="pre-form-badge">Nouvelle fiche</span>
+        </div>
+        <div class="panel-body">
+          <form id="form-prestataire" autocomplete="off" onsubmit="return false;">
+            <div class="form-erreurs hidden"></div>
+            <input type="hidden" data-champ="id">
+            <div class="form-row">
+              <div class="form-group"><label class="form-label">Raison sociale <span class="required">*</span></label>
+                <input class="form-input" type="text" data-champ="raisonSociale" placeholder="ex. Cars Hurepoix Évasion"></div>
+              <div class="form-group"><label class="form-label">Activité</label>
+                <select class="form-select" data-champ="activite"></select></div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group"><label class="form-label">Adresse</label>
+                <input class="form-input" type="text" data-champ="adresse"></div>
+              <div class="form-group"><label class="form-label">Code postal</label>
+                <input class="form-input" type="text" data-champ="codePostal" maxlength="5" inputmode="numeric"></div>
+              <div class="form-group"><label class="form-label">Ville</label>
+                <input class="form-input" type="text" data-champ="ville"></div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group"><label class="form-label">Contact</label>
+                <input class="form-input" type="text" data-champ="contact" placeholder="Nom de l'interlocuteur"></div>
+              <div class="form-group"><label class="form-label">Téléphone</label>
+                <input class="form-input" type="tel" data-champ="telephone"></div>
+              <div class="form-group"><label class="form-label">E-mail</label>
+                <input class="form-input" type="email" data-champ="email"></div>
+            </div>
+            <div class="form-row-3">
+              <div class="form-group"><label class="form-label">Site web</label>
+                <input class="form-input" type="text" data-champ="siteWeb" placeholder="www.…"></div>
+              <div class="form-group"><label class="form-label">SIRET</label>
+                <input class="form-input" type="text" data-champ="siret" maxlength="17"></div>
+              <div class="form-group"><label class="form-label">Début de la relation</label>
+                <input class="form-input" type="date" data-champ="dateDebutRelation">
+                <div class="form-hint" id="pre-anciennete-aide">Sert à calculer l'ancienneté.</div></div>
+            </div>
+            <div class="form-group"><label class="form-label">Commentaire</label>
+              <textarea class="form-textarea" rows="2" data-champ="commentaire"></textarea></div>
+            <div class="form-actions">
+              <button type="button" class="btn btn-secondary" id="pre-annuler">Annuler</button>
+              <button type="button" class="btn btn-primary" id="pre-enregistrer">Enregistrer le prestataire</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 3 : LISTES ── -->
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#127970; Liste des prestataires</div>
+          <button class="btn btn-primary btn-sm" id="pre-nouveau">+ Nouveau prestataire</button>
+        </div>
+        <div class="panel-body no-padding">
+          <div class="liste-aide">Cliquez sur le nom d'un prestataire pour afficher ses factures (dépenses liées).</div>
+          <div id="liste-prestataires"></div>
+        </div>
+      </div>
+      <div class="panel" id="panneau-factures">
+        <div class="panel-header">
+          <div class="panel-title">&#128196; <span id="pre-factures-titre">Factures d'un prestataire</span></div>
+          <select class="form-select" id="pre-factures-periode" style="width:auto">
+            <option value="annee">Année sélectionnée</option>
+            <option value="toutes">Toutes les années</option>
+          </select>
+        </div>
+        <div class="panel-body no-padding">
+          <input type="hidden" id="pre-factures-id">
+          <div id="liste-factures"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 5. CALENDRIER ═══════════════ -->
+  <section id="chantier-4" class="section-content">
+    <div class="section-intro">
+      <strong>Chantier 5 — Calendrier des activités</strong> — Agenda alimenté automatiquement par les activités de l'année choisie en haut de page (rubrique Activités). Mis à jour par Guy (backup Gérard), consulté par le CA et les organisateurs hors CA.
+    </div>
+
+    <!-- ── Zone 1 : INDICATEURS ── -->
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+      <div class="kpi-grid">
+        <div class="kpi-card primary">
+          <div class="kpi-label" data-titre-annee="Activités de l'année">Activités de l'année</div>
+          <div class="kpi-value" id="cal-kpi-annee">—</div>
+          <div class="kpi-trend neutre" id="cal-kpi-annee-detail"></div>
+        </div>
+        <div class="kpi-card">
+          <div class="kpi-label">Activités du mois affiché</div>
+          <div class="kpi-value" id="cal-kpi-mois">—</div>
+          <div class="kpi-trend neutre" id="cal-kpi-mois-detail"></div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-label">Prochaine activité</div>
+          <div class="kpi-value petit" id="cal-kpi-prochaine">—</div>
+          <div class="kpi-trend neutre" id="cal-kpi-prochaine-detail"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 2 : SAISIE ── -->
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#10133; Ajouter un événement</div>
+        </div>
+        <div class="panel-body">
+          <p style="margin-top:0">Le calendrier n'a pas de saisie propre : <strong>un événement est une activité</strong>. Le bouton ouvre la fiche activité (rubrique Activités) avec la date choisie ; l'activité apparaît ensuite ici automatiquement.</p>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Date de l'événement</label><input class="form-input" type="date" id="cal-nouvelle-date"></div>
+            <div class="form-group" style="display:flex;align-items:flex-end"><button type="button" class="btn btn-primary" id="cal-nouvelle">+ Nouvelle activité à cette date</button></div>
+          </div>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#128276; Système de notifications automatiques</div>
+            <span class="badge badge-amber">Fonctionnalité phase 2</span>
+          </div>
+          <div class="panel-body">
+            <div class="bandeau-poc">Repris du POC à titre d'aperçu : non actif. Aujourd'hui, la notification part à la création de l'activité (case « Notification par mail » de la fiche).</div>
+            <p style="margin-top:0">Lors de la création ou modification d'un événement, l'outil pourra envoyer automatiquement un e-mail aux personnes intéressées.</p>
+            <div class="form-group">
+              <label class="form-label">Cibler les personnes intéressées par :</label>
+              <div class="cases-ligne">
+                <label class="case"><input type="checkbox" checked disabled> Catégorie d'activité</label>
+                <label class="case"><input type="checkbox" checked disabled> Historique participation</label>
+                <label class="case"><input type="checkbox" disabled> Adhérents titulaires uniquement</label>
+                <label class="case"><input type="checkbox" disabled> Canal préféré = e-mail</label>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Aperçu du mail généré</label>
+              <div style="background:var(--light-bg);padding:12px;border-radius:5px;font-size:14px">
+                <div><strong>Objet :</strong> [Brunants] Nouvelle sortie : Musée des Beaux-Arts de Lyon</div>
+                <div style="margin-top:8px">Bonjour {{Prénom}},<br><br>Une nouvelle sortie a été ajoutée au calendrier :<br><br>&#128197; <strong>Musée des Beaux-Arts de Lyon</strong><br>&#128337; 15 septembre 2026, départ 8 h 30<br><br>Inscriptions auprès de l'organisateur.</div>
+              </div>
+            </div>
+            <button type="button" class="btn btn-primary poc" disabled title="Prévu en phase 2">Envoyer les notifications</button>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><div class="panel-title">&#128100; Droits sur le calendrier</div></div>
+          <div class="panel-body">
+            <div class="table-scroll"><table class="data-table">
+              <thead><tr><th>Personne</th><th>Rôle</th><th>Droit</th></tr></thead>
+              <tbody>
+                <tr><td><strong>Guy CHONEZ</strong></td><td>Coordinateur</td><td><span class="badge badge-green">Écriture (principal)</span></td></tr>
+                <tr><td><strong>Gérard COUTURIER</strong></td><td>Président</td><td><span class="badge badge-amber">Écriture (backup)</span></td></tr>
+                <tr><td>Membres CA (10)</td><td>CA</td><td><span class="badge badge-blue">Lecture</span></td></tr>
+                <tr><td>Organisateurs hors CA</td><td>JMBD, autres</td><td><span class="badge badge-blue">Lecture</span></td></tr>
+                <tr><td>Adhérents</td><td>Adhésion simple</td><td><span class="badge badge-gray">Aucun accès direct</span></td></tr>
+              </tbody>
+            </table></div>
+            <div class="help-text"><strong>Note technique :</strong> la liaison entre le calendrier et la base adhérents doit être stabilisée avant d'activer les notifications automatiques (éviter les envois sur données obsolètes).</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Zone 3 : LISTES ── -->
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128197; <span id="cal-titre">Calendrier</span></div>
+          <div class="cal-navigation">
+            <button type="button" class="btn btn-secondary btn-sm" id="cal-precedent" aria-label="Mois précédent">&#9664;</button>
+            <strong id="cal-mois-libelle"></strong>
+            <button type="button" class="btn btn-secondary btn-sm" id="cal-suivant" aria-label="Mois suivant">&#9654;</button>
+            <button type="button" class="btn btn-secondary btn-sm" id="cal-aujourdhui">Aujourd'hui</button>
+          </div>
+        </div>
+        <div class="panel-body no-padding"><div class="calendar-grid" id="cal-grille"></div></div>
+        <div class="panel-body" style="border-top:1px solid var(--border)"><div class="cal-legende" id="cal-legende"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128203; <span id="cal-liste-titre">Activités du mois</span></div>
+        </div>
+        <div class="panel-body no-padding"><div class="table-scroll"><table class="data-table">
+          <thead><tr><th class="nowrap">Date</th><th>Activité</th><th>Catégorie</th><th>Lieu</th><th class="center">Inscrits</th><th>Statut</th></tr></thead>
+          <tbody id="cal-liste"></tbody>
+        </table></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 6. PROCÉDURES (repris du POC) ═══════════════ -->
+  <section id="chantier-5" class="section-content">
+    <div class="section-intro">
+    <strong>Chantier 6 &mdash; Proc&eacute;dures</strong> &mdash; Registre des proc&eacute;dures consultables en ligne. R&eacute;vision annuelle planifi&eacute;e avant l&rsquo;AG. Regroupe les proc&eacute;dures existantes et celles &agrave; r&eacute;diger.
+  </div>
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+<div class="kpi-grid">
+    <div class="kpi-card primary">
+      <div class="kpi-label">Proc&eacute;dures actives</div>
+      <div class="kpi-value">3</div>
+      <div class="kpi-trend">Toutes r&eacute;vis&eacute;es &lt; 1 an</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-label">&Agrave; r&eacute;diger</div>
+      <div class="kpi-value">2</div>
+      <div class="kpi-trend">Quick wins</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">R&eacute;visions dues</div>
+      <div class="kpi-value">1</div>
+      <div class="kpi-trend negative">Proc. s&eacute;curit&eacute;</div>
+    </div>
+  </div>
+    </div>
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+<div class="bandeau-poc">Rubrique reprise du POC telle quelle (contenu d'exemple). Les boutons seront actifs dans une version ultérieure.</div>
+<div class="help-text" style="margin-top:0">
+    <strong>&#128204; &Agrave; faire (demande de Patrice) :</strong> harmoniser le nom des plaquettes en cr&eacute;ant une nomenclature commune (pr&eacute;fixes types, num&eacute;rotation, versionnage) pour tous les supports de communication.
+  </div>
+<div class="panel"><div class="panel-header"><div class="panel-title">&#10133; Nouvelle proc&eacute;dure</div></div><div class="panel-body"><p style="margin-top:0">R&eacute;diger une proc&eacute;dure, lui donner une cat&eacute;gorie, un r&eacute;f&eacute;rent et une date de r&eacute;vision annuelle.</p><button type="button" class="btn btn-primary btn-sm poc" disabled title="Prévu dans une version ultérieure">+ Nouvelle proc&eacute;dure</button></div></div>
+    </div>
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">&#128218; Registre des proc&eacute;dures</div>
+      <span class="badge badge-blue">5 proc&eacute;dures</span>
+    </div>
+    <div class="panel-body no-padding">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Proc&eacute;dure</th><th>Cat&eacute;gorie</th><th>Version</th><th>Derni&egrave;re r&eacute;vision</th><th>Prochaine r&eacute;vision</th><th>R&eacute;f&eacute;rent</th><th>Statut</th><th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Proc&eacute;dure de s&eacute;curit&eacute;</strong><br><small>&Eacute;vacuation, premiers secours</small></td>
+            <td><span class="badge badge-red">S&eacute;curit&eacute;</span></td>
+            <td>v3.2</td>
+            <td>Mars 2025</td>
+            <td><strong style="color: var(--red);">Mars 2026 (en retard)</strong></td>
+            <td>G&eacute;rard C.</td>
+            <td><span class="badge badge-red">R&eacute;vision due</span></td>
+            <td><button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Ouvrir</button></td>
+          </tr>
+          <tr>
+            <td><strong>Activit&eacute; en ext&eacute;rieur</strong><br><small>Sorties, s&eacute;jours</small></td>
+            <td><span class="badge badge-blue">Activit&eacute;s</span></td>
+            <td>v2.1</td>
+            <td>F&eacute;vrier 2026</td>
+            <td>F&eacute;vrier 2027</td>
+            <td>Guy C.</td>
+            <td><span class="badge badge-green">&Agrave; jour</span></td>
+            <td><button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Ouvrir</button></td>
+          </tr>
+          <tr>
+            <td><strong>Activit&eacute; au club</strong><br><small>Ateliers, chorale, relaxation</small></td>
+            <td><span class="badge badge-blue">Activit&eacute;s</span></td>
+            <td>v1.4</td>
+            <td>Avril 2026</td>
+            <td>Avril 2027</td>
+            <td>Guy C.</td>
+            <td><span class="badge badge-green">&Agrave; jour</span></td>
+            <td><button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Ouvrir</button></td>
+          </tr>
+          <tr style="background: var(--light-amber);">
+            <td><strong>Utilisation ordinateur / imprimante</strong><br><small>&Agrave; r&eacute;diger</small></td>
+            <td><span class="badge badge-amber">Mat&eacute;riel</span></td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+            <td>Florent R.</td>
+            <td><span class="badge badge-amber">&Agrave; r&eacute;diger</span></td>
+            <td><button type="button" class="btn btn-accent btn-sm poc" disabled title="Prévu dans une version ultérieure">R&eacute;diger</button></td>
+          </tr>
+          <tr style="background: var(--light-amber);">
+            <td><strong>Lecteur vid&eacute;o / micros</strong><br><small>&Agrave; r&eacute;diger</small></td>
+            <td><span class="badge badge-amber">Mat&eacute;riel</span></td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+            <td>&mdash;</td>
+            <td>Florent R.</td>
+            <td><span class="badge badge-amber">&Agrave; r&eacute;diger</span></td>
+            <td><button type="button" class="btn btn-accent btn-sm poc" disabled title="Prévu dans une version ultérieure">R&eacute;diger</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+<div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">&#128196; Aper&ccedil;u &mdash; Proc&eacute;dure activit&eacute; au club (v1.4)</div>
+      </div>
+      <div class="panel-body">
+        <div style="border-left: 3px solid var(--secondary); padding-left: 14px; font-size: 14px;">
+          <p style="color: var(--primary); font-weight: 600; margin-bottom: 10px;">1. Pr&eacute;paration</p>
+          <ul style="padding-left: 20px; line-height: 1.9; color: var(--dark);">
+            <li>V&eacute;rifier la disponibilit&eacute; de la salle 24h avant</li>
+            <li>Sortir le mat&eacute;riel n&eacute;cessaire depuis le placard de r&eacute;serve</li>
+            <li>V&eacute;rifier la liste des inscrits sur la fiche organisateur</li>
+          </ul>
+
+          <p style="color: var(--primary); font-weight: 600; margin: 14px 0 10px;">2. Accueil des participants</p>
+          <ul style="padding-left: 20px; line-height: 1.9; color: var(--dark);">
+            <li>Pointer les pr&eacute;sents sur la liste imprim&eacute;e</li>
+            <li>Encaisser les paiements en attente (voir fiche)</li>
+            <li>Rappeler les consignes de s&eacute;curit&eacute;</li>
+          </ul>
+
+          <p style="color: var(--primary); font-weight: 600; margin: 14px 0 10px;">3. Fin de s&eacute;ance</p>
+          <ul style="padding-left: 20px; line-height: 1.9; color: var(--dark);">
+            <li>Ranger le mat&eacute;riel et nettoyer la salle</li>
+            <li>Reporter les paiements re&ccedil;us dans le fichier</li>
+            <li>Informer le coordinateur en cas d&rsquo;incident</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">&#128198; Calendrier de r&eacute;vision annuelle</div>
+      </div>
+      <div class="panel-body">
+        <ul class="timeline">
+          <li class="timeline-item done">
+            <div class="timeline-date">F&eacute;vrier 2026</div>
+            <div class="timeline-title">Activit&eacute; en ext&eacute;rieur &middot; v2.1</div>
+            <div class="timeline-desc">R&eacute;vis&eacute;e par Guy C. &middot; Valid&eacute;e</div>
+          </li>
+          <li class="timeline-item done">
+            <div class="timeline-date">Avril 2026</div>
+            <div class="timeline-title">Activit&eacute; au club &middot; v1.4</div>
+            <div class="timeline-desc">R&eacute;vis&eacute;e par Guy C. &middot; Valid&eacute;e</div>
+          </li>
+          <li class="timeline-item pending">
+            <div class="timeline-date">Septembre 2026</div>
+            <div class="timeline-title">Proc&eacute;dures mat&eacute;rielles &agrave; r&eacute;diger</div>
+            <div class="timeline-desc">Ordi/imprimante + audio-vid&eacute;o &middot; Florent R.</div>
+          </li>
+          <li class="timeline-item">
+            <div class="timeline-date">Novembre 2026</div>
+            <div class="timeline-title">Proc&eacute;dure s&eacute;curit&eacute; &middot; v3.3</div>
+            <div class="timeline-desc">R&eacute;vision majeure due &middot; G&eacute;rard C.</div>
+          </li>
+          <li class="timeline-item">
+            <div class="timeline-date">F&eacute;vrier 2027</div>
+            <div class="timeline-title">Revue g&eacute;n&eacute;rale annuelle</div>
+            <div class="timeline-desc">Avant l&rsquo;AG &middot; Bureau complet</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 7. ASSEMBLÉE GÉNÉRALE (repris du POC) ═══════════════ -->
+  <section id="chantier-6" class="section-content">
+    <div class="section-intro">
+    <strong>Chantier 7 &mdash; Assembl&eacute;e G&eacute;n&eacute;rale</strong> &mdash; Cycle complet : convocations personnalis&eacute;es, formulaire de r&eacute;ponse structur&eacute; (pr&eacute;sence, repas, cotisation), listes automatis&eacute;es de non-retours et pointage.
+   <br><em>Rubrique pas encore d&eacute;finie par le bureau : reprise du POC sans fonctionnalit&eacute; nouvelle.</em></div>
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+<div class="bandeau-poc">Chiffres d'exemple du POC (cycle AG 2027) : non reliés aux données de l'outil.</div>
+<div class="kpi-grid">
+    <div class="kpi-card primary">
+      <div class="kpi-label">Convocations envoy&eacute;es</div>
+      <div class="kpi-value">230</div>
+      <div class="kpi-trend">198 email &middot; 32 courrier</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">R&eacute;ponses re&ccedil;ues</div>
+      <div class="kpi-value">156</div>
+      <div class="kpi-trend">Taux : 68%</div>
+    </div>
+    <div class="kpi-card accent">
+      <div class="kpi-label">Non-retours</div>
+      <div class="kpi-value">74</div>
+      <div class="kpi-trend">Relance J-7 programm&eacute;e</div>
+    </div>
+    <div class="kpi-card red">
+      <div class="kpi-label">Non-renouvellements</div>
+      <div class="kpi-value">8</div>
+      <div class="kpi-trend negative">Fichier &agrave; nettoyer</div>
+    </div>
+  </div>
+<div class="grid-3">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title" style="font-size: 14px;">&#9989; Pr&eacute;sents confirm&eacute;s</div>
+        <span class="badge badge-green">148</span>
+      </div>
+      <div class="panel-body">
+        <div style="font-size: 14px; line-height: 2;">
+          <div style="display: flex; justify-content: space-between;"><span>Avec conjoint(e)</span><strong>92</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Seul(e)</span><strong>56</strong></div>
+          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 6px;"><strong>Total personnes attendues : 240</strong></div>
+        </div>
+        <div class="progress-bar" style="margin-top: 10px;">
+          <div class="progress-fill green" style="width: 74%;"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title" style="font-size: 14px;">&#127860; Repas AG</div>
+        <span class="badge badge-amber">124</span>
+      </div>
+      <div class="panel-body">
+        <div style="font-size: 14px; line-height: 2;">
+          <div style="display: flex; justify-content: space-between;"><span>Repas 2 personnes</span><strong>78</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Repas 1 personne</span><strong>46</strong></div>
+          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 6px;"><strong>Total couverts : 202</strong></div>
+        </div>
+        <div class="help-text" style="margin-top: 10px;">Traiteur &agrave; informer avant le 5 f&eacute;vrier</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title" style="font-size: 14px;">&#128176; Cotisations 2027</div>
+        <span class="badge badge-blue">156</span>
+      </div>
+      <div class="panel-body">
+        <div style="font-size: 14px; line-height: 2;">
+          <div style="display: flex; justify-content: space-between;"><span>Renouvellements</span><strong style="color: var(--green);">148</strong></div>
+          <div style="display: flex; justify-content: space-between;"><span>Non-renouvellements</span><strong style="color: var(--red);">8</strong></div>
+          <div style="border-top: 1px solid var(--border); padding-top: 6px; margin-top: 6px;"><strong>Recettes attendues : 4 440 &euro;</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+<div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">&#128203; Formulaire d&rsquo;inscription AG</div>
+        <span class="badge badge-blue">Google Forms</span>
+      </div>
+      <div class="panel-body">
+        <p style="font-size: 14px; color: var(--mid); margin-bottom: 12px;">Aper&ccedil;u du formulaire envoy&eacute; aux adh&eacute;rents avec la convocation.</p>
+
+        <div style="background: var(--light-bg); padding: 16px; border-radius: 6px; border: 1px solid var(--border);">
+          <p style="font-weight: 600; color: var(--primary); margin-bottom: 12px;">R&eacute;ponse &agrave; l&rsquo;AG du 15 f&eacute;vrier 2027</p>
+
+          <div class="form-group">
+            <label class="form-label" style="font-size: 14px;">1. Serez-vous pr&eacute;sent(e) &agrave; l&rsquo;AG ? *</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item"><input type="radio" name="q1" checked> Oui</label>
+              <label class="checkbox-item"><input type="radio" name="q1"> Non</label>
+              <label class="checkbox-item"><input type="radio" name="q1"> Procuration</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-size: 14px;">2. Vous venez ? *</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item"><input type="radio" name="q2"> Seul(e)</label>
+              <label class="checkbox-item"><input type="radio" name="q2" checked> Avec conjoint(e)</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-size: 14px;">3. Repas AG ? *</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item"><input type="radio" name="q3" checked> Oui, 2 personnes (30 &euro;)</label>
+              <label class="checkbox-item"><input type="radio" name="q3"> Oui, 1 personne (15 &euro;)</label>
+              <label class="checkbox-item"><input type="radio" name="q3"> Non, AG uniquement</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" style="font-size: 14px;">4. R&egrave;glement de la cotisation 2027 *</label>
+            <div class="checkbox-group">
+              <label class="checkbox-item"><input type="radio" name="q4" checked> Oui, je renouvelle (30 &euro;)</label>
+              <label class="checkbox-item"><input type="radio" name="q4"> Non, je ne renouvelle pas</label>
+            </div>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-sm poc" disabled title="Prévu dans une version ultérieure" style="width: 100%;">Envoyer ma r&eacute;ponse</button>
+        </div>
+      </div>
+    </div>
+    </div>
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+<div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">&#128231; Cycle AG 2027 &mdash; &Eacute;tapes</div>
+      </div>
+      <div class="panel-body">
+        <ul class="timeline">
+          <li class="timeline-item done">
+            <div class="timeline-date">15 janvier 2027</div>
+            <div class="timeline-title">Convocations envoy&eacute;es</div>
+            <div class="timeline-desc">230 destinataires (email + postal)</div>
+          </li>
+          <li class="timeline-item pending">
+            <div class="timeline-date">1er f&eacute;vrier 2027</div>
+            <div class="timeline-title">Date limite r&eacute;ponses (J-14)</div>
+            <div class="timeline-desc">Actuellement : 156/230 r&eacute;ponses</div>
+          </li>
+          <li class="timeline-item">
+            <div class="timeline-date">8 f&eacute;vrier 2027</div>
+            <div class="timeline-title">Relance non-retours (J-7)</div>
+            <div class="timeline-desc">Envoi automatique aux 74 non-r&eacute;pondants</div>
+          </li>
+          <li class="timeline-item">
+            <div class="timeline-date">15 f&eacute;vrier 2027</div>
+            <div class="timeline-title">&#127775; Assembl&eacute;e G&eacute;n&eacute;rale</div>
+            <div class="timeline-desc">Pointage automatis&eacute; via liste g&eacute;n&eacute;r&eacute;e</div>
+          </li>
+          <li class="timeline-item">
+            <div class="timeline-date">20 f&eacute;vrier 2027</div>
+            <div class="timeline-title">Diffusion CR + mise &agrave; jour fichier</div>
+            <div class="timeline-desc">Non-renouvellements archiv&eacute;s</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">&#128196; Listes automatis&eacute;es</div>
+    </div>
+    <div class="panel-body">
+      <div class="grid-3">
+        <div>
+          <p style="font-weight: 600; color: var(--red); margin-bottom: 8px;">&#128681; Non-retours (74)</p>
+          <p style="font-size: 14px; color: var(--mid); margin-bottom: 8px;">Adh&eacute;rents n&rsquo;ayant pas encore r&eacute;pondu &agrave; la convocation. Relance J-7 programm&eacute;e.</p>
+          <button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Voir la liste</button>
+          <button type="button" class="btn btn-accent btn-sm poc" disabled title="Prévu dans une version ultérieure">Relancer maintenant</button>
+        </div>
+        <div>
+          <p style="font-weight: 600; color: var(--accent); margin-bottom: 8px;">&#128683; Non-renouvellements (8)</p>
+          <p style="font-size: 14px; color: var(--mid); margin-bottom: 8px;">Adh&eacute;rents ayant explicitement refus&eacute; de renouveler leur cotisation 2027.</p>
+          <button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Voir la liste</button>
+          <button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Archiver</button>
+        </div>
+        <div>
+          <p style="font-weight: 600; color: var(--green); margin-bottom: 8px;">&#128203; Liste de pointage (148)</p>
+          <p style="font-size: 14px; color: var(--mid); margin-bottom: 8px;">Liste des personnes attendues le jour de l&rsquo;AG, prete &agrave; imprimer.</p>
+          <button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Aper&ccedil;u</button>
+          <button type="button" class="btn btn-primary btn-sm poc" disabled title="Prévu dans une version ultérieure">Imprimer</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 8. CLASSEMENT NAS (repris du POC) ═══════════════ -->
+  <section id="chantier-7" class="section-content">
+    <div class="section-intro">
+    <strong>Chantier 8 &mdash; Classement &amp; historique</strong> &mdash; R&eacute;organisation de l&rsquo;arborescence du NAS Synology existant. Objectif : ergonomie d&rsquo;acc&egrave;s (le stockage n&rsquo;est pas le probl&egrave;me).
+  </div>
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+<div class="bandeau-poc">Rubrique reprise du POC telle quelle (chiffres indicatifs).</div>
+<div class="kpi-grid">
+    <div class="kpi-card primary">
+      <div class="kpi-label">Espace NAS occup&eacute;</div>
+      <div class="kpi-value">3.8 To</div>
+      <div class="kpi-trend">Sur 8 To disponibles</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Documents archiv&eacute;s</div>
+      <div class="kpi-value">~ 12 500</div>
+      <div class="kpi-trend">Photos, vid&eacute;os, PDF</div>
+    </div>
+    <div class="kpi-card green">
+      <div class="kpi-label">Ann&eacute;es couvertes</div>
+      <div class="kpi-value">2018 &rarr; 2026</div>
+      <div class="kpi-trend">9 ann&eacute;es d&rsquo;archives</div>
+    </div>
+  </div>
+    </div>
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+<div class="panel">
+    <div class="panel-header">
+      <div class="panel-title">&#128200; Actions &agrave; mener</div>
+    </div>
+    <div class="panel-body">
+      <table class="data-table">
+        <thead>
+          <tr><th>Action</th><th>Responsable</th><th>&Eacute;ch&eacute;ance</th><th>Statut</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Cartographier l&rsquo;existant</strong><br><small>Recensement des dossiers actuels et de leur contenu</small></td>
+            <td>Florent R. + Jeff</td>
+            <td>Novembre 2026</td>
+            <td><span class="badge badge-amber">&Agrave; d&eacute;marrer</span></td>
+          </tr>
+          <tr>
+            <td><strong>Cr&eacute;er la nouvelle arborescence</strong><br><small>Selon la structure propos&eacute;e ci-dessus</small></td>
+            <td>Florent R.</td>
+            <td>Novembre 2026</td>
+            <td><span class="badge badge-gray">Planifi&eacute;</span></td>
+          </tr>
+          <tr>
+            <td><strong>Migrer les documents</strong><br><small>D&eacute;placement progressif ann&eacute;e par ann&eacute;e</small></td>
+            <td>Florent R.</td>
+            <td>D&eacute;cembre 2026</td>
+            <td><span class="badge badge-gray">Planifi&eacute;</span></td>
+          </tr>
+          <tr>
+            <td><strong>R&eacute;diger le mode d&rsquo;emploi</strong><br><small>2 pages, illustr&eacute; avec captures d&rsquo;&eacute;cran</small></td>
+            <td>Jeff</td>
+            <td>D&eacute;cembre 2026</td>
+            <td><span class="badge badge-gray">Planifi&eacute;</span></td>
+          </tr>
+          <tr>
+            <td><strong>Formation du CA</strong><br><small>Session courte de 30 minutes</small></td>
+            <td>Florent R. + Jeff</td>
+            <td>D&eacute;cembre 2026</td>
+            <td><span class="badge badge-gray">Planifi&eacute;</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+    </div>
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+<div class="grid-2">
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">&#128193; Nouvelle arborescence propos&eacute;e</div>
+      </div>
+      <div class="panel-body">
+        <div class="file-tree"><span class="file-tree-folder">&#128193; /Brunants_Archives/</span>
+   &#9500; <span class="file-tree-folder">&#128193; 2026/</span>
+   &#9474;   &#9500; <span class="file-tree-folder">&#128193; Activit&eacute;s/</span> <span class="file-tree-note">(par activit&eacute;)</span>
+   &#9474;   &#9500; <span class="file-tree-folder">&#128193; Photos/</span>
+   &#9474;   &#9500; <span class="file-tree-folder">&#128193; Vid&eacute;os/</span>
+   &#9474;   &#9500; <span class="file-tree-folder">&#128193; Maillons/</span> <span class="file-tree-note">(bulletins)</span>
+   &#9474;   &#9500; <span class="file-tree-folder">&#128193; Documents administratifs/</span>
+   &#9474;   &#9492; <span class="file-tree-folder">&#128193; Comptes rendus/</span>
+   &#9500; <span class="file-tree-folder">&#128193; 2025/</span>
+   &#9500; <span class="file-tree-folder">&#128193; 2024/</span>
+   &#9500; <span class="file-tree-folder">&#128193; ... jusqu'&agrave; 2018/</span>
+   &#9500; <span class="file-tree-folder">&#128193; _MODELES/</span> <span class="file-tree-note">(templates r&eacute;utilisables)</span>
+   &#9500; <span class="file-tree-folder">&#128193; _PROCEDURES/</span> <span class="file-tree-note">(chantier 5)</span>
+   &#9492; <span class="file-tree-file">&#128196; README_acces.pdf</span> <span class="file-tree-note">(mode d'emploi)</span></div>
+
+        <div class="help-text">
+          <strong>Principe :</strong> Chaque ann&eacute;e est un dossier autonome avec la m&ecirc;me structure. Facilite les recherches (par ann&eacute;e puis par type) et les migrations futures.
+        </div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">&#128196; Mode d&rsquo;emploi d&rsquo;acc&egrave;s NAS</div>
+      </div>
+      <div class="panel-body">
+        <p style="font-size: 14px; margin-bottom: 12px; color: var(--mid);">Court guide destin&eacute; aux membres du CA (2 pages) :</p>
+
+        <ol style="padding-left: 20px; font-size: 14px; line-height: 2;">
+          <li><strong>Se connecter au NAS</strong><br><small>Depuis l&rsquo;ordi du club ou &agrave; distance via l&rsquo;URL fournie par Florent</small></li>
+          <li><strong>Naviguer dans l&rsquo;arborescence</strong><br><small>Ann&eacute;e &rarr; Type de document &rarr; Fichier</small></li>
+          <li><strong>Rechercher un document</strong><br><small>Utiliser la loupe et taper des mots-cl&eacute;s (ex : &laquo; AG 2025 &raquo;)</small></li>
+          <li><strong>T&eacute;l&eacute;charger ou ouvrir</strong><br><small>Clic droit &rarr; T&eacute;l&eacute;charger, ou double-clic pour ouvrir</small></li>
+          <li><strong>Ajouter un document</strong><br><small>R&eacute;serv&eacute; au CA &middot; Glisser-d&eacute;poser dans le bon dossier</small></li>
+          <li><strong>En cas de probl&egrave;me</strong><br><small>Contacter Florent Rossi (contact technique)</small></li>
+        </ol>
+
+        <div style="margin-top: 16px; display: flex; gap: 8px;">
+          <button type="button" class="btn btn-secondary btn-sm poc" disabled title="Prévu dans une version ultérieure">Aper&ccedil;u PDF</button>
+          <button type="button" class="btn btn-primary btn-sm poc" disabled title="Prévu dans une version ultérieure">T&eacute;l&eacute;charger le guide</button>
+        </div>
+      </div>
+    </div>
+  </div>
+    </div>
+  </section>
+
+  <!-- ═══════════════ 9. ADMINISTRATION ═══════════════ -->
+  <section id="administration" class="section-content">
+    <div class="section-intro">
+      <strong>Administration</strong> — Paramètres de l'outil, sauvegardes, catégories budgétaires, contrôle des lignes saisies à la main dans le classeur et journal de toutes les opérations.
+    </div>
+
+    <div class="zone zone-indicateurs"><div class="zone-titre">Indicateurs</div>
+      <div class="kpi-grid">
+        <div class="kpi-card primary">
+          <div class="kpi-label">Lignes chargées</div>
+          <div class="kpi-value" id="adm-kpi-lignes">—</div>
+          <div class="kpi-trend neutre" id="adm-kpi-lignes-detail"></div>
+        </div>
+        <div class="kpi-card" id="adm-kpi-av-carte">
+          <div class="kpi-label">Lignes à corriger</div>
+          <div class="kpi-value" id="adm-kpi-av">—</div>
+          <div class="kpi-trend neutre" id="adm-kpi-av-detail"></div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Dernière sauvegarde</div>
+          <div class="kpi-value petit" id="adm-kpi-sauv">—</div>
+          <div class="kpi-trend neutre" id="adm-kpi-sauv-detail">Automatique le 1er de chaque mois, vers 2 h</div>
+        </div>
+        <div class="kpi-card accent">
+          <div class="kpi-label">Mode de fonctionnement</div>
+          <div class="kpi-value petit" id="adm-kpi-mode">—</div>
+          <div class="kpi-trend neutre" id="adm-kpi-mode-detail"></div>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128202; <span data-titre-annee="Contenu du classeur">Contenu du classeur</span></div>
+          <span class="badge badge-blue">Règles de rattachement à l'année</span>
+        </div>
+        <div class="panel-body no-padding">
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead><tr><th>Onglet</th><th>Rattachement à l'année</th><th class="number">Lignes valides</th><th class="number" id="adm-th-annee">Dans l'année</th><th class="number">Ignorées</th><th class="number">À vérifier</th></tr></thead>
+              <tbody id="adm-etat-tables"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone zone-saisie"><div class="zone-titre">Saisie</div>
+      <div class="grid-2">
+        <div class="panel">
+          <div class="panel-header">
+            <div class="panel-title">&#9881;&#65039; Paramètres</div>
+            <span class="badge badge-amber">Onglet Parametres</span>
+          </div>
+          <div class="panel-body">
+            <form id="form-parametres" autocomplete="off" onsubmit="return false;">
+              <div class="form-erreurs hidden"></div>
+              <label class="case"><input type="checkbox" data-champ="MODE_ENTRAINEMENT"> <strong>Mode entraînement</strong></label>
+              <div class="form-hint" style="margin-bottom:12px">Bandeau visible, e-mails redirigés vers l'adresse de test, réinitialisation des données d'essai possible.</div>
+              <div class="form-group">
+                <label class="form-label">E-mail de test</label>
+                <input class="form-input" type="email" data-champ="EMAIL_TEST" placeholder="adresse@exemple.fr">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Aide mobil-home (€)</label>
+                  <input class="form-input" type="number" min="0" step="0.01" data-champ="AIDE_MOBILHOME">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Aides par titulaire et par an</label>
+                  <input class="form-input" type="number" min="0" step="1" data-champ="NB_AIDES_MOBILHOME">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label class="form-label">Cotisation par défaut (€)</label>
+                  <input class="form-input" type="number" min="0" step="0.01" data-champ="COTISATION_DEFAUT">
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Sauvegardes conservées</label>
+                  <input class="form-input" type="number" min="1" step="1" data-champ="NB_SAUVEGARDES">
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Liste de diffusion (facultatif)</label>
+                <input class="form-input" type="email" data-champ="EMAIL_LISTE" placeholder="groupe-adherents@googlegroups.com">
+                <div class="form-hint">Adresse d'un groupe Google des adhérents : les notifications partent en un seul envoi (quota de 100 destinataires par jour).</div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Départements d'Île-de-France</label>
+                <input class="form-input" type="text" data-champ="DEPARTEMENTS_IDF">
+                <div class="form-hint">Sert à calculer la région à partir du code postal.</div>
+              </div>
+              <div class="form-actions">
+                <button type="button" class="btn btn-secondary" id="param-annuler">Annuler les modifications</button>
+                <button type="button" class="btn btn-primary" id="param-enregistrer">Enregistrer les paramètres</button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <div>
+          <div class="panel">
+            <div class="panel-header">
+              <div class="panel-title">&#127991;&#65039; <span id="cat-form-titre">Nouvelle catégorie / sous-catégorie</span></div>
+              <span class="badge badge-amber">Onglet Categories</span>
+            </div>
+            <div class="panel-body">
+              <form id="form-categorie" autocomplete="off" onsubmit="return false;">
+                <div class="form-erreurs hidden"></div>
+                <input type="hidden" data-champ="id">
+                <div class="form-group">
+                  <label class="form-label">Catégorie <span class="required">*</span></label>
+                  <input class="form-input" type="text" data-champ="categorie" list="liste-categories" placeholder="ex. 2. Sorties et spectacles">
+                  <datalist id="liste-categories"></datalist>
+                </div>
+                <div class="form-row">
+                  <div class="form-group">
+                    <label class="form-label">Sous-catégorie</label>
+                    <input class="form-input" type="text" data-champ="sousCategorie" placeholder="ex. 2.3 Randonnées">
+                  </div>
+                  <div class="form-group">
+                    <label class="form-label">Type <span class="required">*</span></label>
+                    <select class="form-select" data-champ="type"></select>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label class="form-label">Ce qu'elle recouvre</label>
+                  <textarea class="form-textarea" data-champ="descriptif" rows="3" placeholder="Ce que l'on met dans cette sous-catégorie : affiché sous la liste des sous-catégories dans les formulaires de recettes, de dépenses et d'activités."></textarea>
+                </div>
+                <div class="form-hint" style="margin-bottom:10px">Catégories du bureau (dossier budgétaire V5). Gardez le numéro en tête du nom (« 2.3 … ») : il fixe l'ordre des listes.</div>
+                <div class="form-actions">
+                  <button type="button" class="btn btn-secondary" id="cat-annuler">Annuler</button>
+                  <button type="button" class="btn btn-primary" id="cat-enregistrer">Enregistrer</button>
+                </div>
+              </form>
+            </div>
+          </div>
+
+          <div class="panel">
+            <div class="panel-header"><div class="panel-title">&#128295; Outils</div></div>
+            <div class="panel-body">
+              <div style="display:flex; flex-direction:column; gap:10px; align-items:flex-start">
+                <button class="btn btn-primary" id="adm-sauvegarder">&#128190; Sauvegarder maintenant</button>
+                <button class="btn btn-secondary" id="adm-mail-test">&#9993;&#65039; Envoyer un e-mail de test</button>
+                <a class="btn btn-secondary" id="adm-lien-classeur" href="#" target="_blank" rel="noopener">&#128196; Ouvrir le classeur Google Sheets</a>
+              </div>
+              <div class="help-text" style="margin-top:14px">
+                <strong>Réinitialiser les données d'entraînement</strong> : vide toutes les tables et recharge le jeu fictif complet. Une sauvegarde est faite juste avant. Les paramètres et le journal sont conservés.
+              </div>
+              <button class="btn btn-danger" id="adm-reinitialiser">&#8635; Réinitialiser les données d'entraînement</button>
+              <div class="form-hint" id="adm-reinit-aide"></div>
+              <div class="help-text" style="margin-top:14px"><strong>Importer de vraies données</strong> ou <strong>restaurer une sauvegarde</strong> : voir les deux panneaux sous celui-ci.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Assistant d'import (lot 6) ── -->
+      <div class="panel" id="panneau-import">
+        <div class="panel-header">
+          <div class="panel-title">&#128229; Assistant d'import des vraies données</div>
+          <span class="badge badge-blue">Adhérents · Activités · Prestataires · Catégories</span>
+        </div>
+        <div class="panel-body">
+          <div class="etapes-import">
+            <div class="etape-import" id="imp-etape-1">
+              <h4 class="sous-titre">1. Fichier</h4>
+              <div class="form-row-3">
+                <div class="form-group"><label class="form-label">Table à remplir</label>
+                  <select class="form-select" id="imp-table">
+                    <option value="Adherents">Adhérents</option><option value="Activites">Activités</option>
+                    <option value="Prestataires">Prestataires</option><option value="Categories">Catégories</option>
+                  </select></div>
+                <div class="form-group"><label class="form-label">Fichier CSV ou Excel (.xlsx)</label>
+                  <input class="form-input" type="file" id="imp-fichier" accept=".csv,.txt,.xlsx,.xls,.xlsm"></div>
+                <div class="form-group"><label class="form-label">Modèle vide</label>
+                  <button type="button" class="btn btn-secondary" id="imp-modele">&#11015;&#65039; Télécharger le modèle (CSV)</button></div>
+              </div>
+              <div class="form-row-3 hidden" id="imp-options-fichier">
+                <div class="form-group"><label class="form-label">Onglet</label><select class="form-select" id="imp-onglet"></select></div>
+                <div class="form-group"><label class="form-label">Ligne des en-têtes</label><input class="form-input" type="number" min="1" id="imp-ligne-entetes">
+                  <div class="form-hint">Détectée automatiquement ; à corriger si besoin.</div></div>
+                <div class="form-group"><label class="form-label">Contenu lu</label><div class="valeur-encadree petit" id="imp-resume-fichier">—</div></div>
+              </div>
+            </div>
+            <div class="etape-import hidden" id="imp-etape-2">
+              <h4 class="sous-titre">2. Correspondance des colonnes</h4>
+              <p class="help-text" style="margin-top:0">Pour chaque champ de l'outil, choisissez la colonne du fichier. L'outil propose une correspondance d'après le nom des colonnes ; les colonnes non choisies sont ignorées. <span class="required">*</span> = obligatoire.</p>
+              <div class="table-scroll"><table class="data-table table-encadree dense">
+                <thead><tr><th>Champ de l'outil</th><th>Colonne du fichier</th><th>Exemples lus</th></tr></thead>
+                <tbody id="imp-correspondance"></tbody>
+              </table></div>
+              <div class="form-actions"><button type="button" class="btn btn-primary" id="imp-verifier">3. Vérifier les lignes</button></div>
+            </div>
+            <div class="etape-import hidden" id="imp-etape-3">
+              <h4 class="sous-titre">3. Contrôle avant import</h4>
+              <div class="kpi-grid" id="imp-stats"></div>
+              <div class="liste-barre" style="border-radius:4px">
+                <select class="form-select" id="imp-filtre-statut"><option value="">Toutes les lignes</option><option value="Rejetée">Rejetées</option><option value="À corriger">À corriger</option><option value="Valide">Valides</option></select>
+                <button type="button" class="btn btn-secondary btn-sm" id="imp-rapport">&#11015;&#65039; Rapport des rejets et remarques (CSV)</button>
+                <span class="liste-compteur" id="imp-compteur"></span>
+              </div>
+              <div class="table-scroll" style="max-height:420px;overflow:auto"><table class="data-table dense">
+                <thead><tr><th class="center">Ligne</th><th>Résultat</th><th>Contenu</th><th>Motifs</th></tr></thead>
+                <tbody id="imp-lignes"></tbody>
+              </table></div>
+              <h4 class="sous-titre">4. Import</h4>
+              <div class="cases-ligne" id="imp-modes">
+                <label class="case"><input type="radio" name="imp-mode" value="test" checked> <strong>Tester dans une copie</strong> (recommandé : le classeur de l'outil n'est pas modifié)</label>
+                <label class="case"><input type="radio" name="imp-mode" value="ajouter"> Ajouter aux données existantes</label>
+                <label class="case"><input type="radio" name="imp-mode" value="remplacer"> Remplacer les données de la table</label>
+              </div>
+              <div class="help-text" id="imp-mode-aide"></div>
+              <div class="form-actions"><button type="button" class="btn btn-accent" id="imp-importer">Lancer</button></div>
+              <div class="help-text hidden" id="imp-resultat"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Sauvegardes et restauration (lot 6) ── -->
+      <div class="panel" id="panneau-sauvegardes">
+        <div class="panel-header">
+          <div class="panel-title">&#128452;&#65039; Sauvegardes et restauration</div>
+          <button type="button" class="btn btn-secondary btn-sm" id="sav-actualiser">&#8635; Afficher les sauvegardes</button>
+        </div>
+        <div class="panel-body">
+          <p class="help-text" style="margin-top:0">Les sauvegardes (une par mois, plus celles faites à la demande ou avant un import) sont dans <strong>Outil_Brunants/Sauvegardes</strong>. <strong>Vérifier</strong> compare une sauvegarde au classeur actuel, table par table. <strong>Restaurer</strong> recopie ses données dans le classeur de l'outil (l'adresse de l'outil ne change pas) ; une sauvegarde de l'état actuel est faite juste avant.</p>
+          <div class="table-scroll"><table class="data-table dense">
+            <thead><tr><th>Sauvegarde</th><th class="nowrap">Date</th><th>Export .xlsx</th><th class="center">Actions</th></tr></thead>
+            <tbody id="sav-liste"><tr><td colspan="4" class="liste-vide">Cliquez sur « Afficher les sauvegardes ».</td></tr></tbody>
+          </table></div>
+          <div id="sav-verification"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="zone zone-listes"><div class="zone-titre">Listes</div>
+      <div class="panel" id="panneau-avertissements">
+        <div class="panel-header">
+          <div class="panel-title">&#9888;&#65039; Lignes à corriger dans le classeur</div>
+          <span class="badge badge-gray">Corriger dans Google Sheets, puis « Actualiser »</span>
+        </div>
+        <div class="panel-body no-padding"><div id="liste-avertissements"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header"><div class="panel-title">&#127991;&#65039; Catégories et sous-catégories</div></div>
+        <div class="panel-body no-padding"><div id="liste-categories-table"></div></div>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <div class="panel-title">&#128220; <span data-titre-annee="Journal des opérations">Journal des opérations</span></div>
+          <span class="badge badge-gray">1 000 dernières opérations</span>
+        </div>
+        <div class="panel-body no-padding"><div id="liste-journal"></div></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+</div>
+
+<?!= include('Js_Commun'); ?>
+<?!= include('Js_TableauDeBord'); ?>
+<?!= include('Js_Adherents'); ?>
+<?!= include('Js_Budget'); ?>
+<?!= include('Js_Activites'); ?>
+<?!= include('Js_Prestataires'); ?>
+<?!= include('Js_Calendrier'); ?>
+<?!= include('Js_Procedures'); ?>
+<?!= include('Js_AG'); ?>
+<?!= include('Js_NAS'); ?>
+<?!= include('Js_Administration'); ?>
+<?!= include('Js_Import'); ?>
+</body>
+</html>

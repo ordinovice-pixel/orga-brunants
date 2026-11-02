@@ -1,6 +1,6 @@
 # 05 — Carte des fichiers
 
-Mise à jour : 22/10/2026
+Mise à jour : 02/11/2026
 
 But : savoir **quel fichier fait quoi** sans parcourir les dossiers. À compléter à chaque création de fichier.
 
@@ -10,28 +10,28 @@ Dépôt privé **https://github.com/ordinovice-pixel/orga-brunants** (compte per
 
 | Élément du dépôt | Contenu |
 |---|---|
-| `README.md` | Présentation, organisation du dépôt, règles de commit |
+| `README.md` | Présentation complète : raison du projet, fonctionnalités, avantages, stack, guide HTML, données personnelles, méthode IA, historique, installation, organisation du dépôt |
 | `.gitignore` | Exclusions : confidentiel, données personnelles réelles, fichiers lourds, journaux et temporaires |
 | `memory-bank/` | Cette memory bank (copie identique aux documents du projet claude.ai) |
-| `docs/` | Cahier des charges opérationnel, compte rendu du 11/08 |
-| `apps_script/` | Code de l'outil (à remplir depuis le ZIP du lot 4) |
-| `outils/` | Simulateur et tests de Claude |
-| `livrables/` | LISEZMOI et assistants de mise à jour de chaque lot |
+| `docs/` | Cahier des charges opérationnel, compte rendu du 11/08, `Description_des_tables.md` (générée depuis le schéma), `Presentation_vitrine.md` (cas client **anonymisé**, DEC-090) |
+| `apps_script/` | **Code de l'outil, version lot 6c** (21 fichiers) + `LISEZMOI.md` (rôle de chaque fichier) |
+| `outils/` | Simulateur, tests serveur et interface, générateurs, versions de référence `reference_lot3` … `reference_lot6b` + `LISEZMOI.md` |
+| `livrables/` | LISEZMOI des lots 1 à 6c, assistant d'installation, assistant de mise à jour du lot 6c, aperçu local, modèle d'import, `guide/` (guide illustré) |
 
-Une fois le dépôt rempli, **c'est lui la version de référence du code**, plus le dernier ZIP.
+Depuis le 02/11/2026, **le dépôt est la version de référence du code** (même contenu que `Outil_Brunants_Lot6c.zip`). Pour reprendre le développement : cloner le dépôt.
 
-## 1. Code Apps Script (20 fichiers, dossier `apps_script/` du dernier ZIP)
+## 1. Code Apps Script (21 fichiers, dossier `apps_script/` du dépôt)
 
-> **Version de référence : `Outil_Brunants_Lot4.zip`** (12/10/2026). C'est ce ZIP qu'il faut joindre pour reprendre le développement.
+> **Version de référence : dossier `apps_script/` du dépôt GitHub** (lot 6c, `VERSION_OUTIL` « Lot 6c — adhérents réels, dons et sauvegardes (octobre 2026) »). Copie identique : `Outil_Brunants_Lot6c.zip`.
 
 | Fichier | Rôle | Si on cherche… |
 |---|---|---|
 | `appsscript.json` | Manifeste : V8, fuseau Europe/Paris, mode d'exécution de l'application web, autorisations | une autorisation Google, le fuseau |
 | `Code.gs` | `doGet()` (affiche l'outil), `include()`, **`setup()`** (installation, onglets, dossiers, déclencheur), menu « Brunants » du classeur | l'installation, la création des dossiers |
 | `Donnees.gs` | **Description des 12 onglets** (colonnes, validations), lecture robuste, écriture sous verrou, journal, paramètres | une colonne, une liste déroulante, une ligne ignorée |
-| `DonneesFictives.gs` | Jeu d'entraînement : catégories, budgets, 232 adhérents, activités, inscriptions, mobil-home ; réinitialisation | les données de test |
+| `DonneesFictives.gs` | Jeu d'entraînement : catégories du bureau, budgets, adhérents fictifs, activités, inscriptions, mobil-home ; réinitialisation (n'écrase pas les adhérents réels, DEC-089) | les données de test |
 | `Automatisations.gs` | Paiement → recette, remboursement → dépense, échéances, mobil-home, fiche d'inscription, e-mails, sauvegardes | une automatisation |
-| `Import.gs` | Réservé à l'assistant d'import (lot 6) | l'import des vraies données |
+| `Import.gs` | Assistant d'import côté serveur : contrôle, test dans une copie, ajouter / remplacer, marque ADHERENTS_REELS ; sauvegardes (liste, vérification, restauration) | l'import, la restauration |
 | `Index.html` | Squelette de la page unique et inclusion de tous les fichiers ci-dessous | l'ordre des rubriques |
 | `Styles.html` | Charte graphique du POC, 3 zones colorées | une couleur, une mise en forme |
 | `Logo.html` | Logo en base64 | le logo |
@@ -43,18 +43,20 @@ Une fois le dépôt rempli, **c'est lui la version de référence du code**, plu
 | `Js_Prestataires.html` | Rubrique Prestataires | lot 3 |
 | `Js_Calendrier.html` | Rubrique Calendrier | lot 5 |
 | `Js_Procedures.html`, `Js_AG.html`, `Js_NAS.html` | Rubriques reprises du POC | lot 5 |
-| `Js_Administration.html` | Paramètres, mode entraînement, sauvegarde, réinitialisation, avertissements de lecture | l'administration |
+| `Js_Administration.html` | Paramètres, mode entraînement, sauvegardes et restauration, catégories et descriptifs, réinitialisation, avertissements de lecture | l'administration |
+| `Js_Import.html` | Assistant d'import côté navigateur : lecture CSV / Excel (SheetJS), correspondance des colonnes, rapport | l'import |
 
 ## 2. Outils de Claude (dossier `outils/` du ZIP, **ne pas copier dans Apps Script**)
 
 | Fichier | Rôle |
 |---|---|
 | `faux_gas.js` | Simulateur des services Google pour tester hors ligne |
-| `test_serveur.js`, `test_serveur_lot2.js` … `_lot4.js` | Tests automatiques du serveur, lot par lot (tous rejoués à chaque lot) |
-| `test_interface_lot*.py` | Tests Playwright de l'interface sur l'aperçu |
+| `test_serveur.js`, `test_serveur_lot2.js` … `_lot6c.js`, `test_serveur_import.js` | Tests automatiques du serveur, lot par lot (≈ 340 vérifications, tous rejoués à chaque lot) |
+| `test_interface_lot*.py` | Tests Playwright de l'interface sur l'aperçu (≈ 370 vérifications) |
 | `construire_apercu.py` | Fabrique `Apercu_local_Brunants.html` |
 | `construire_assistant_mise_a_jour.py` | Fabrique `Assistant_mise_a_jour_LotN.html` (fichiers modifiés seulement) |
-| `construire_assistant_installation.py` | Fabrique `Assistant_installation.html` (les 20 fichiers, nouvelle installation) |
+| `construire_assistant_installation.py` | Fabrique `Assistant_installation.html` (les 21 fichiers, nouvelle installation) |
+| `construire_modele_import.py` | Fabrique `Modele_import_adherents.xlsx` |
 | `reference_lotN/` | Copie des fichiers du lot précédent, sert à détecter ce qui a changé |
 
 ## 3. Livrables à la racine de chaque ZIP
@@ -66,7 +68,7 @@ Une fois le dépôt rempli, **c'est lui la version de référence du code**, plu
 | `LISEZMOI_LotN.md` | Étapes de mise à jour, contenu du lot, **tests manuels avec valeurs attendues**, choix à valider | Jeff |
 | `Apercu_local_Brunants.html` | Aperçu hors ligne (rien n'est enregistré) | Démonstration sans Google |
 
-Historique des ZIP : `Outil_Brunants_Lot1.zip` → `…Lot2.zip` (6 fichiers modifiés) → `…Lot3.zip` (9) → `…Lot4.zip` (11). Garder au moins le dernier ZIP, sur le poste de Jeff et sur le NAS.
+Historique des ZIP : `Outil_Brunants_Lot1.zip` → `…Lot2.zip` (6 fichiers modifiés) → `…Lot3.zip` (9) → `…Lot4.zip` (11) → `…Lot4b/4c` → `…Lot5` → `…Lot6` → `…Lot6b` → `…Lot6c.zip`. Le dépôt GitHub garde tout ; garder aussi le dernier ZIP sur le poste de Jeff et sur le NAS.
 
 ## 4. Sur le Drive des Brunants
 

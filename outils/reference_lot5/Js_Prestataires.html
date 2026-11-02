@@ -1,0 +1,240 @@
+<script>
+/* =====================================================================
+   Js_Prestataires.html — Rubrique « Prestataires » (lot 3)
+   ---------------------------------------------------------------------
+   Indicateurs : nombre de prestataires, factures de l'année (dépenses
+                 liées), prestataires sollicités, ancienneté moyenne,
+                 suivi par prestataire (cumul € et % du total),
+                 graphique des 10 principaux.
+   Saisie      : fiche prestataire (l'entrée « Autre » est permanente).
+   Listes      : prestataires (clic → factures du prestataire).
+   « Facture » = dépense liée au prestataire (onglet Depenses).
+   ===================================================================== */
+
+var PRE_AUTRE = 'PRE-000';
+
+enregistrerRubrique('prestataires', {
+  titre: 'Prestataires',
+  sousTitre: 'Rubrique 4 · Priorité haute',
+
+  init: function () {
+    var f = document.getElementById('form-prestataire');
+    remplirSelect(f.querySelector('[data-champ="activite"]'),
+      ['Transport', 'Restauration / traiteur', 'Hébergement / mobil-home', 'Animation / intervenant', 'Fournitures / matériel',
+       'Assurance', 'Impression / communication', 'Autre'], { vide: '— Choisir —' });
+    f.querySelector('[data-champ="dateDebutRelation"]').addEventListener('change', preMajAnciennete);
+    document.getElementById('pre-enregistrer').onclick = preEnregistrer;
+    document.getElementById('pre-annuler').onclick = preNouveau;
+    document.getElementById('pre-nouveau').onclick = function () {
+      preNouveau();
+      document.getElementById('panneau-fiche-prestataire').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      f.querySelector('[data-champ="raisonSociale"]').focus();
+    };
+    document.getElementById('pre-factures-periode').addEventListener('change', function () { APP.listes.factures.rafraichir(); preTitreFactures(); });
+
+    APP.listes.prestataires = new Liste({
+      conteneur: 'liste-prestataires',
+      colonnes: [
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'raisonSociale', titre: 'Raison sociale', rendu: function (p) {
+            return '<button type="button" class="lien-bouton" data-action="factures" data-id="' + echapper(p.id) + '" title="Voir les factures">' +
+              echapper(p.id === PRE_AUTRE ? 'Autre (prestataire non listé)' : p.raisonSociale) + '</button>'; } },
+        { cle: 'activite', titre: 'Activité', type: 'liste' },
+        { cle: 'ville', titre: 'Ville' },
+        { cle: 'contact', titre: 'Contact' },
+        { cle: 'telephone', titre: 'Téléphone', classe: 'nowrap' },
+        { cle: 'email', titre: 'E-mail', classe: 'coupe', rendu: function (p) { return echapper(p.email || '').replace('@', '@<wbr>'); } },
+        { cle: 'anciennete', titre: 'Ancienneté', type: 'nombre', classe: 'center', filtre: false,
+          valeur: function (p) { return p.dateDebutRelation ? Math.floor(CALC.annees(p.dateDebutRelation, APP.d.aujourdhui)) : ''; },
+          rendu: function (p) { return p.dateDebutRelation ? Math.floor(CALC.annees(p.dateDebutRelation, APP.d.aujourdhui)) + ' an(s)' : '—'; } },
+        { cle: 'facturesAnnee', titre: 'Factures (€)', type: 'montant', classe: 'number nowrap', filtre: false,
+          valeur: function (p) { return CALC.somme(preFactures(p.id, APP.annee)); } }
+      ],
+      lignes: function () { return T('Prestataires'); },
+      filtres: [
+        { cle: 'activite', titre: 'Activité' },
+        { cle: 'sollicite', titre: 'Factures', valeur: function (p) { return preFactures(p.id, APP.annee).length ? 'Avec factures dans l\'année' : 'Sans facture dans l\'année'; } }
+      ],
+      triDefaut: { cle: 'raisonSociale', sens: 1 },
+      actions: [{ cle: 'factures', libelle: '', visible: function () { return false; }, fn: preVoirFactures }],
+      modifier: preModifier,
+      supprimer: preSupprimer,
+      compact: true, dense: true,
+      exportNom: 'prestataires',
+      vide: 'Aucun prestataire.'
+    });
+
+    APP.listes.factures = new Liste({
+      conteneur: 'liste-factures',
+      colonnes: [
+        { cle: 'date', titre: 'Date', type: 'date', classe: 'nowrap' },
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'libelle', titre: 'Libellé', classe: 'coupe' },
+        { cle: 'categorie', titre: 'Catégorie', type: 'liste' },
+        { cle: 'activite', titre: 'Activité', type: 'liste', valeur: function (d) { return libelleActivite(d.activiteId); } },
+        { cle: 'montant', titre: 'Montant', type: 'montant', classe: 'number nowrap' },
+        { cle: 'budgete', titre: 'Budget', type: 'liste' }
+      ],
+      lignes: function () {
+        var id = document.getElementById('pre-factures-id').value;
+        if (!id) return [];
+        return preFactures(id, document.getElementById('pre-factures-periode').value === 'toutes' ? null : APP.annee);
+      },
+      triDefaut: { cle: 'date', sens: -1 },
+      exportNom: 'factures_prestataire',
+      vide: 'Cliquez sur le nom d\'un prestataire dans la liste pour afficher ses factures.'
+    });
+
+    preNouveau();
+  },
+
+  rendre: function () {
+    preRendreIndicateurs();
+    var f = document.getElementById('form-prestataire');
+    var id = f.querySelector('[data-champ="id"]').value;
+    if (id && !parId('Prestataires', id)) preNouveau();
+    APP.listes.prestataires.rafraichir();
+    APP.listes.factures.rafraichir();
+    preTitreFactures();
+  }
+});
+
+/** Factures d'un prestataire = dépenses qui lui sont liées (année N, ou toutes si N est null). */
+function preFactures(id, N) {
+  return T('Depenses').filter(function (d) { return d.prestataireId === id && (N === null || ANNEE.mouvement(d, N)); });
+}
+
+/* ---------------------------------------------------------------------
+   Indicateurs
+   ------------------------------------------------------------------- */
+function preRendreIndicateurs() {
+  var N = APP.annee;
+  var tous = T('Prestataires');
+  var reels = tous.filter(function (p) { return p.id !== PRE_AUTRE; });
+  texteEl('pre-kpi-nombre', reels.length);
+  texteEl('pre-kpi-nombre-detail', 'hors entrée « Autre » · ' + reels.filter(function (p) { return anneeDe(p.dateDebutRelation) === N; }).length + ' nouveau(x) en ' + N);
+
+  // factures = dépenses de l'année liées à un prestataire (« Autre » compris)
+  var factures = CALC.depensesAnnee(N).filter(function (d) { return d.prestataireId; });
+  var total = CALC.somme(factures);
+  texteEl('pre-kpi-factures', fmtEuro(total, 0));
+  texteEl('pre-kpi-factures-detail', factures.length + ' facture(s) · ' + CALC.somme(CALC.depensesAnnee(N).filter(function (d) { return !d.prestataireId; })).toLocaleString('fr-FR', { maximumFractionDigits: 0 }) + ' € de dépenses sans prestataire');
+
+  var parPre = {};
+  factures.forEach(function (d) {
+    parPre[d.prestataireId] = parPre[d.prestataireId] || { id: d.prestataireId, n: 0, total: 0 };
+    parPre[d.prestataireId].n++; parPre[d.prestataireId].total += Number(d.montant || 0);
+  });
+  var classement = Object.keys(parPre).map(function (k) { return parPre[k]; }).sort(function (a, b) { return b.total - a.total; });
+  var sollicites = classement.filter(function (x) { return x.id !== PRE_AUTRE; }).length;
+  texteEl('pre-kpi-actifs', sollicites + ' / ' + reels.length);
+  texteEl('pre-kpi-actifs-detail', 'prestataires avec au moins une facture en ' + N);
+  var anc = reels.filter(function (p) { return p.dateDebutRelation; }).map(function (p) { return CALC.annees(p.dateDebutRelation, APP.d.aujourdhui); });
+  texteEl('pre-kpi-anciennete', anc.length ? fmtDecimal(anc.reduce(function (s, x) { return s + x; }, 0) / anc.length) + ' ans' : '—');
+
+  // Tableau de suivi : cumul et % du total des factures
+  var html = '';
+  classement.forEach(function (x) {
+    var p = Math.round(1000 * x.total / total) / 10;
+    html += '<tr><td><button type="button" class="lien-bouton" data-pre-id="' + echapper(x.id) + '">' + echapper(x.id === PRE_AUTRE ? 'Autre (non listé)' : libellePrestataire(x.id)) + '</button></td>' +
+      '<td class="center">' + x.n + '</td><td class="number nowrap">' + fmtEuro(x.total) + '</td>' +
+      '<td class="center">' + p.toLocaleString('fr-FR') + ' %</td>' +
+      '<td><div class="progress-bar"><div class="progress-fill" style="width:' + Math.round(100 * x.total / (classement[0].total || 1)) + '%"></div></div></td></tr>';
+  });
+  if (!classement.length) html = '<tr><td colspan="5" class="liste-vide">Aucune facture enregistrée pour ' + N + '.</td></tr>';
+  else html += '<tr class="ligne-total"><td>Total</td><td class="center">' + factures.length + '</td><td class="number nowrap">' + fmtEuro(total) + '</td><td class="center">100 %</td><td></td></tr>';
+  var corps = document.getElementById('pre-suivi');
+  corps.innerHTML = html;
+  corps.querySelectorAll('[data-pre-id]').forEach(function (b) {
+    b.onclick = function () { var p = parId('Prestataires', b.getAttribute('data-pre-id')); if (p) preVoirFactures(p); };
+  });
+
+  // Graphique : 10 principaux prestataires (« Autre » exclu, ce n'est pas un prestataire identifié)
+  var top = classement.filter(function (x) { return x.id !== PRE_AUTRE; }).slice(0, 10);
+  dessinerGraphique('pre-graph-top', {
+    type: 'bar',
+    data: { labels: top.map(function (x) { return libellePrestataire(x.id); }),
+            datasets: [{ label: 'Factures ' + N, data: top.map(function (x) { return Math.round(x.total * 100) / 100; }), backgroundColor: '#2E86C1', borderRadius: 3 }] },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: infobulleEuros(total) } } },
+      scales: { x: { beginAtZero: true, ticks: { callback: function (v) { return fmtEuro(v, 0); } } } }
+    }
+  });
+}
+
+/* ---------------------------------------------------------------------
+   Fiche prestataire
+   ------------------------------------------------------------------- */
+function preForm() { return document.getElementById('form-prestataire'); }
+
+function preMajAnciennete() {
+  var d = preForm().querySelector('[data-champ="dateDebutRelation"]').value;
+  texteEl('pre-anciennete-aide', d && APP.d ? 'Ancienneté : ' + fmtDecimal(CALC.annees(d, APP.d.aujourdhui)) + ' an(s).' : 'Sert à calculer l\'ancienneté.');
+}
+
+function preNouveau() {
+  remplirFormulaire(preForm(), { id: '' });
+  preMajAnciennete();
+  texteEl('pre-form-titre', 'Fiche prestataire — nouveau');
+  texteEl('pre-form-badge', 'Nouvelle fiche');
+  texteEl('pre-enregistrer', 'Enregistrer le prestataire');
+  if (APP.listes.prestataires) APP.listes.prestataires.surligner(null);
+}
+
+function preModifier(p) {
+  if (p.id === PRE_AUTRE) { notifier('L\'entrée « Autre » (' + PRE_AUTRE + ') est permanente : elle ne se modifie pas.', 'info'); return; }
+  remplirFormulaire(preForm(), p);
+  preMajAnciennete();
+  texteEl('pre-form-titre', 'Modifier ' + p.id + ' — ' + p.raisonSociale);
+  texteEl('pre-form-badge', 'Modification');
+  texteEl('pre-enregistrer', 'Enregistrer les modifications');
+  APP.listes.prestataires.surligner(p.id);
+  document.getElementById('panneau-fiche-prestataire').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function preEnregistrer() {
+  var f = preForm();
+  var o = lireFormulaire(f);
+  var erreurs = validerObjet('Prestataires', o);
+  if (o.siret && !/^\d{14}$/.test(o.siret.replace(/\s/g, ''))) erreurs.push({ cle: 'siret', message: '« SIRET » : 14 chiffres attendus.' });
+  afficherErreurs(f, erreurs);
+  if (erreurs.length) return;
+  appelServeur('enregistrer', ['Prestataires', o])
+    .then(function (rep) { preNouveau(); APP.listes.prestataires.surligner(rep.id); })
+    .catch(function (err) { afficherErreurs(f, err.message.split('\n').map(function (m) { return { message: m }; })); });
+}
+
+function preSupprimer(p) {
+  if (p.id === PRE_AUTRE) { notifier('L\'entrée « Autre » est permanente : elle ne peut pas être supprimée.', 'info'); return; }
+  confirmer('Supprimer le prestataire ' + p.id + ' — ' + p.raisonSociale + ' ?\nLa suppression est refusée s\'il a des factures (dépenses liées).',
+    { titre: 'Supprimer un prestataire', bouton: 'Supprimer', danger: true })
+    .then(function (ok) {
+      if (!ok) return;
+      appelServeur('supprimer', ['Prestataires', p.id], { attente: 'Suppression…' })
+        .then(function () { if (preForm().querySelector('[data-champ="id"]').value === p.id) preNouveau(); })
+        .catch(function () {});
+    });
+}
+
+/* ---------------------------------------------------------------------
+   Factures d'un prestataire
+   ------------------------------------------------------------------- */
+function preVoirFactures(p) {
+  document.getElementById('pre-factures-id').value = p.id;
+  APP.listes.factures.rafraichir();
+  preTitreFactures();
+  APP.listes.prestataires.surligner(p.id);
+  document.getElementById('panneau-factures').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function preTitreFactures() {
+  var id = document.getElementById('pre-factures-id').value;
+  var p = id ? parId('Prestataires', id) : null;
+  if (!p) { texteEl('pre-factures-titre', 'Factures d\'un prestataire'); return; }
+  var toutes = document.getElementById('pre-factures-periode').value === 'toutes';
+  var f = preFactures(p.id, toutes ? null : APP.annee);
+  texteEl('pre-factures-titre', 'Factures de ' + (p.id === PRE_AUTRE ? '« Autre »' : p.raisonSociale) + ' — ' + (toutes ? 'toutes années' : APP.annee) +
+    ' : ' + f.length + ' facture(s), ' + fmtEuro(CALC.somme(f)));
+}
+</script>

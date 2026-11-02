@@ -1,0 +1,171 @@
+<script>
+/* =====================================================================
+   Js_Calendrier.html — Rubrique « Calendrier » (lot 5)
+   ---------------------------------------------------------------------
+   Agenda mensuel alimenté automatiquement par la table Activites :
+   activités de l'année choisie (sur toute leur durée), couleur par
+   catégorie, et dates d'échéances fixées dans les fiches activités.
+   Un clic sur un événement ouvre l'activité ; « + Nouvelle activité »
+   ouvre la fiche activité à la date choisie.
+   ===================================================================== */
+
+var CAL = { mois: null, annee: null };
+var JOURS_COURTS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+var COULEUR_ECHEANCE = '#34495E';   // ardoise : distincte des 8 couleurs de catégories
+
+enregistrerRubrique('chantier-4', {
+  titre: 'Calendrier',
+  sousTitre: 'Chantier 5 · Priorité moyenne',
+
+  init: function () {
+    document.getElementById('cal-precedent').onclick = function () { calDeplacer(-1); };
+    document.getElementById('cal-suivant').onclick = function () { calDeplacer(1); };
+    document.getElementById('cal-aujourdhui').onclick = function () {
+      var auj = APP.d.aujourdhui;
+      if (anneeDe(auj) !== APP.annee) { notifier('Aujourd\'hui est en ' + anneeDe(auj) + ' : choisissez cette année en haut de page.', 'info'); return; }
+      CAL.mois = Number(auj.slice(5, 7)) - 1; calRendreMois();
+    };
+    document.getElementById('cal-grille').addEventListener('click', calClicEvenement);
+    document.getElementById('cal-liste').addEventListener('click', calClicEvenement);
+    document.getElementById('cal-nouvelle').onclick = calNouvelleActivite;
+  },
+
+  rendre: function () {
+    if (CAL.annee !== APP.annee) {   // changement d'année : mois en cours, sinon premier mois avec une activité
+      CAL.annee = APP.annee;
+      var auj = APP.d.aujourdhui;
+      if (anneeDe(auj) === APP.annee) CAL.mois = Number(auj.slice(5, 7)) - 1;
+      else {
+        var premiere = calActivites().map(function (a) { return a.dateDebut; }).sort()[0];
+        CAL.mois = premiere ? Number(premiere.slice(5, 7)) - 1 : 0;
+      }
+    }
+    var dn = document.getElementById('cal-nouvelle-date');
+    if (!dn.value || anneeDe(dn.value) !== APP.annee) dn.value = anneeDe(APP.d.aujourdhui) === APP.annee ? APP.d.aujourdhui : APP.annee + '-01-15';
+    calRendreMois();
+  }
+});
+
+/** Activités de l'année choisie. */
+function calActivites() { return T('Activites').filter(function (a) { return ANNEE.activite(a, APP.annee); }); }
+
+/** Couleur d'une catégorie (même ordre que les graphiques). */
+function calCouleur(categorie) {
+  var ordre = categoriesConnues();
+  var i = ordre.indexOf(categorie);
+  return COULEURS_CATEGORIES[(i < 0 ? ordre.length : i) % COULEURS_CATEGORIES.length];
+}
+
+function isoJour(a, m, j) { return a + '-' + ('0' + (m + 1)).slice(-2) + '-' + ('0' + j).slice(-2); }
+
+/** Événements d'un mois : { date: [ {type, act, libelle, numero} ] }. */
+function calEvenements(annee, mois) {
+  var debutMois = isoJour(annee, mois, 1), finMois = isoJour(annee, mois, new Date(annee, mois + 1, 0).getDate());
+  var parJour = {};
+  function ajouter(date, ev) { (parJour[date] = parJour[date] || []).push(ev); }
+  calActivites().forEach(function (a) {
+    var fin = a.dateFin && a.dateFin > a.dateDebut ? a.dateFin : a.dateDebut;
+    if (fin < debutMois || a.dateDebut > finMois) return;
+    var d = a.dateDebut < debutMois ? debutMois : a.dateDebut;
+    while (d <= fin && d <= finMois) {
+      ajouter(d, { type: 'activite', act: a, libelle: a.nom + (d !== a.dateDebut ? ' (suite)' : '') });
+      d = ajouterJoursClient(d, 1);
+    }
+  });
+  // dates d'échéances fixées dans les fiches activités (toutes années : un paiement peut suivre l'activité)
+  T('Activites').forEach(function (a) {
+    if (!a.datesEcheances || a.statut === 'Annulé') return;
+    String(a.datesEcheances).split(/[;,]/).forEach(function (t, k) {
+      var iso = texteVersIsoClient(t.trim());
+      if (iso && iso >= debutMois && iso <= finMois) ajouter(iso, { type: 'echeance', act: a, numero: k + 1, libelle: '€ Échéance ' + (k + 1) + ' — ' + a.nom });
+    });
+  });
+  return parJour;
+}
+
+function calRendreMois() {
+  var annee = CAL.annee, mois = CAL.mois, auj = APP.d.aujourdhui;
+  var libelle = MOIS_LONGS[mois].charAt(0).toUpperCase() + MOIS_LONGS[mois].slice(1) + ' ' + annee;
+  texteEl('cal-mois-libelle', libelle);
+  texteEl('cal-titre', libelle);
+  document.getElementById('cal-precedent').disabled = mois === 0;
+  document.getElementById('cal-suivant').disabled = mois === 11;
+  var evs = calEvenements(annee, mois);
+
+  // grille : semaines du lundi au dimanche
+  var premier = new Date(annee, mois, 1, 12), nbJours = new Date(annee, mois + 1, 0).getDate();
+  var decalage = (premier.getDay() + 6) % 7;
+  var html = JOURS_COURTS.map(function (j) { return '<div class="calendar-day-header">' + j + '</div>'; }).join('');
+  var cases = Math.ceil((decalage + nbJours) / 7) * 7;
+  for (var c = 0; c < cases; c++) {
+    var d = new Date(annee, mois, c - decalage + 1, 12);
+    var iso = isoJour(d.getFullYear(), d.getMonth(), d.getDate());
+    var dehors = d.getMonth() !== mois;
+    html += '<div class="calendar-day' + (dehors ? ' outside' : '') + (iso === auj ? ' aujourdhui' : '') + '"><div class="calendar-day-number">' + d.getDate() + '</div>';
+    if (!dehors) (evs[iso] || []).forEach(function (ev) {
+      var coul = ev.type === 'echeance' ? COULEUR_ECHEANCE : calCouleur(ev.act.categorie);
+      html += '<button type="button" class="calendar-event' + (ev.type === 'echeance' ? ' echeance' : '') + (ev.act.statut === 'Annulé' ? ' annule' : '') + '" data-act="' + echapper(ev.act.id) + '"' +
+        ' style="--c:' + coul + ';border-left-color:' + coul + (ev.type === 'echeance' ? '' : ';background:' + coul + '22') + '" title="' + echapper(ev.libelle + ' · ' + (ev.act.lieu || '') ) + '">' + echapper(ev.libelle) + '</button>';
+    });
+    html += '</div>';
+  }
+  document.getElementById('cal-grille').innerHTML = html;
+
+  // légende : catégories de l'année + échéances
+  var cats = valeursDistinctes(calActivites().map(function (a) { return a.categorie; }));
+  document.getElementById('cal-legende').innerHTML = cats.map(function (c) {
+    return '<span><span class="cal-pastille" style="background:' + calCouleur(c) + '"></span>' + echapper(c) + '</span>';
+  }).join('') + '<span><span class="cal-pastille" style="background:' + COULEUR_ECHEANCE + '"></span>Échéances de paiement (dates fixées dans la fiche activité)</span>';
+
+  // liste du mois
+  var debutMois = isoJour(annee, mois, 1), finMois = isoJour(annee, mois, nbJours);
+  var duMois = calActivites().filter(function (a) { var fin = a.dateFin || a.dateDebut; return a.dateDebut <= finMois && fin >= debutMois; })
+    .sort(function (x, y) { return x.dateDebut.localeCompare(y.dateDebut); });
+  texteEl('cal-liste-titre', 'Activités de ' + libelle.toLowerCase());
+  document.getElementById('cal-liste').innerHTML = duMois.length ? duMois.map(function (a) {
+    var ins = actInscrits(a.id).length;
+    return '<tr><td class="nowrap">' + fmtDate(a.dateDebut) + (a.dateFin && a.dateFin !== a.dateDebut ? ' → ' + fmtDate(a.dateFin) : '') + '</td>' +
+      '<td><span class="cal-pastille" style="background:' + calCouleur(a.categorie) + '"></span> <button type="button" class="lien-bouton" data-act="' + echapper(a.id) + '">' + echapper(a.nom) + '</button></td>' +
+      '<td>' + echapper(a.categorie) + '</td><td>' + echapper(a.lieu || '') + '</td><td class="center">' + ins + (a.maxParticipants ? ' / ' + a.maxParticipants : '') + '</td>' +
+      '<td><span class="badge ' + actBadgeStatut(a.statut) + '">' + echapper(a.statut) + '</span></td></tr>';
+  }).join('') : '<tr><td colspan="6" class="liste-vide">Aucune activité en ' + libelle.toLowerCase() + '.</td></tr>';
+
+  // indicateurs
+  var acts = calActivites();
+  var aVenir = acts.filter(function (a) { return a.statut !== 'Annulé' && (a.dateFin || a.dateDebut) >= auj; }).sort(function (x, y) { return x.dateDebut.localeCompare(y.dateDebut); });
+  texteEl('cal-kpi-annee', acts.length);
+  texteEl('cal-kpi-annee-detail', aVenir.length + ' à venir · ' + cats.length + ' catégorie(s)');
+  texteEl('cal-kpi-mois', duMois.length);
+  texteEl('cal-kpi-mois-detail', libelle);
+  var p = aVenir[0];
+  texteEl('cal-kpi-prochaine', p ? p.nom : '—');
+  texteEl('cal-kpi-prochaine-detail', p ? fmtDateLongue(p.dateDebut) + (p.lieu ? ' · ' + p.lieu : '') : 'aucune activité à venir en ' + annee);
+}
+
+function calDeplacer(sens) {
+  CAL.mois = Math.max(0, Math.min(11, CAL.mois + sens));
+  calRendreMois();
+}
+
+function calClicEvenement(ev) {
+  var b = ev.target.closest('[data-act]');
+  if (!b) return;
+  var a = parId('Activites', b.getAttribute('data-act'));
+  allerA('chantier-3');
+  if (a && anneeDe(a.dateDebut) !== APP.annee) {
+    notifier('Cette activité est en ' + anneeDe(a.dateDebut) + ' : choisissez cette année en haut de page pour la voir.', 'info');
+    return;
+  }
+  actSelectionner(a.id);
+}
+
+function calNouvelleActivite() {
+  var date = document.getElementById('cal-nouvelle-date').value;
+  allerA('chantier-3');
+  actNouvelle();
+  var f = actForm();
+  f.querySelector('[data-champ="dateDebut"]').value = date;
+  actAller('panneau-fiche-activite');
+  f.querySelector('[data-champ="nom"]').focus();
+}
+</script>

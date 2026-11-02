@@ -1,0 +1,364 @@
+<script>
+/* =====================================================================
+   Js_Budget.html — Rubrique « Budget & Compta » (lot 3)
+   ---------------------------------------------------------------------
+   Indicateurs : recettes, dépenses, solde budget, hors budget,
+                 évolution mensuelle, répartition par catégorie,
+                 suivi des 8 catégories (budget, réalisé, reste, %).
+   Saisie      : dépense et recette côte à côte, budgets prévisionnels.
+   Listes      : dépenses, recettes (filtres catégorie, activité,
+                 origine, budget…), cotisations supérieures à l'attendu.
+   Règle : une recette / dépense est rattachée à l'année de sa date.
+   ===================================================================== */
+
+var BUD = { recherche: null, budgetsModifies: false };
+
+enregistrerRubrique('chantier-2', {
+  titre: 'Budget & Compta',
+  sousTitre: 'Chantier 2 · Priorité haute',
+
+  init: function () {
+    // ---- Formulaires recette / dépense
+    [['form-depense', 'Dépense'], ['form-recette', 'Recette']].forEach(function (x) {
+      var f = document.getElementById(x[0]);
+      f.querySelector('[data-champ="categorie"]').addEventListener('change', function () {
+        remplirSousCategories(f.querySelector('[data-champ="sousCategorie"]'), this.value, x[1]);
+      });
+    });
+    BUD.recherche = brancherRechercheAdherent(document.getElementById('rec-adherent-saisie'),
+      document.querySelector('#form-recette [data-champ="adherentId"]'));
+    document.getElementById('dep-enregistrer').onclick = function () { budEnregistrer('Depenses'); };
+    document.getElementById('rec-enregistrer').onclick = function () { budEnregistrer('Recettes'); };
+    document.getElementById('dep-annuler').onclick = function () { budNouveau('Depenses'); };
+    document.getElementById('rec-annuler').onclick = function () { budNouveau('Recettes'); };
+    document.getElementById('dep-nouvelle').onclick = function () { budNouveau('Depenses'); budAllerFormulaire('Depenses'); };
+    document.getElementById('rec-nouvelle').onclick = function () { budNouveau('Recettes'); budAllerFormulaire('Recettes'); };
+
+    // ---- Budgets prévisionnels
+    var fb = document.getElementById('form-budgets');
+    fb.addEventListener('input', function () { BUD.budgetsModifies = true; budTotalFormulaire(); });
+    document.getElementById('bud-annuler').onclick = function () { BUD.budgetsModifies = false; budRemplirBudgets(); };
+    document.getElementById('bud-reprendre').onclick = budReprendrePrecedents;
+    document.getElementById('bud-enregistrer').onclick = budEnregistrerBudgets;
+
+    // ---- Listes
+    var colonnesCommunes = function (sens) {
+      var cols = [
+        { cle: 'date', titre: 'Date', type: 'date', classe: 'nowrap' },
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'libelle', titre: 'Libellé', classe: 'coupe',
+          valeur: function (l) { return [l.libelle, l.commentaire, l.justificatif].filter(Boolean).join(' '); },
+          rendu: function (l) {
+            return echapper(l.libelle) + (l.justificatif ? ' <span title="Justificatif : ' + echapper(l.justificatif) + '">&#128206;</span>' : '') +
+              (l.commentaire ? '<small>' + echapper(l.commentaire) + '</small>' : '');
+          },
+          exporter: [
+            { titre: 'Libellé', valeur: function (l) { return l.libelle; } },
+            { titre: 'Mode de paiement', valeur: function (l) { return l.modePaiement || ''; } },
+            { titre: 'Justificatif', valeur: function (l) { return l.justificatif || ''; } },
+            { titre: 'Commentaire', valeur: function (l) { return l.commentaire || ''; } }
+          ] },
+        { cle: 'categorie', titre: 'Catégorie', type: 'liste' },
+        { cle: 'sousCategorie', titre: 'Sous-catégorie', type: 'liste' }
+      ];
+      if (sens === 'Depenses') cols.push({ cle: 'prestataire', titre: 'Prestataire', type: 'liste', valeur: function (l) { return libellePrestataire(l.prestataireId); } });
+      else cols.push({ cle: 'adherent', titre: 'Adhérent', valeur: function (l) { return nomAdherent(l.adherentId); } });
+      cols.push(
+        { cle: 'activite', titre: 'Activité', type: 'liste', valeur: function (l) { return libelleActivite(l.activiteId); } },
+        { cle: 'montant', titre: 'Montant', type: 'montant', classe: 'number nowrap' },
+        { cle: 'budgete', titre: 'Budget', type: 'liste', rendu: function (l) {
+            return l.budgete === 'Hors budget' ? '<span class="badge badge-amber">Hors budget</span>' : '<span class="badge badge-blue">Budgété</span>'; } },
+        { cle: 'origine', titre: 'Origine', type: 'liste', rendu: function (l) {
+            return l.origine === 'Saisie manuelle' || !l.origine ? '<span class="badge badge-gray">Manuelle</span>'
+              : '<span class="badge badge-green" title="Créée automatiquement : se modifie depuis Activités">' + echapper(l.origine) + '</span>'; } }
+      );
+      return cols;
+    };
+    var filtresCommuns = function (sens) {
+      var f = [
+        { cle: 'categorie', titre: 'Catégorie' },
+        { cle: 'activite', titre: 'Activité', valeur: function (l) { return libelleActivite(l.activiteId) || '(aucune activité)'; } },
+        { cle: 'origine', titre: 'Origine', valeur: function (l) { return l.origine === 'Saisie manuelle' || !l.origine ? 'Manuelle' : 'Automatique'; } },
+        { cle: 'budgete', titre: 'Budget' },
+        { cle: 'mode', titre: 'Mode', valeur: function (l) { return l.modePaiement || '(non renseigné)'; } }
+      ];
+      if (sens === 'Depenses') f.push({ cle: 'prestataire', titre: 'Prestataire', valeur: function (l) { return libellePrestataire(l.prestataireId) || '(sans prestataire)'; } });
+      return f;
+    };
+    ['Depenses', 'Recettes'].forEach(function (t) {
+      APP.listes[t] = new Liste({
+        conteneur: t === 'Depenses' ? 'liste-depenses' : 'liste-recettes',
+        colonnes: colonnesCommunes(t),
+        lignes: function () { return t === 'Depenses' ? CALC.depensesAnnee(APP.annee) : CALC.recettesAnnee(APP.annee); },
+        filtres: filtresCommuns(t),
+        triDefaut: { cle: 'date', sens: -1 },
+        modifier: function (l) { budModifier(t, l); },
+        supprimer: function (l) { budSupprimer(t, l); },
+        compact: true, dense: true,
+        exportNom: t === 'Depenses' ? 'depenses' : 'recettes',
+        vide: 'Aucune ' + (t === 'Depenses' ? 'dépense' : 'recette') + ' enregistrée pour cette année.'
+      });
+    });
+    APP.listes.excedents = new Liste({
+      conteneur: 'liste-excedents',
+      colonnes: [
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'nomComplet', titre: 'Adhérent', valeur: function (a) { return a.nom + ' ' + a.prenom; } },
+        { cle: 'type', titre: 'Type', type: 'liste' },
+        { cle: 'attendu', titre: 'Attendu', type: 'montant', classe: 'number', filtre: false, valeur: function () { return Number(APP.d.parametres.COTISATION_DEFAUT || 0); } },
+        { cle: 'cotisation', titre: 'Versé', type: 'montant', classe: 'number', filtre: false },
+        { cle: 'excedent', titre: 'Excédent', type: 'montant', classe: 'number', filtre: false,
+          valeur: function (a) { return Number(a.cotisation) - Number(APP.d.parametres.COTISATION_DEFAUT || 0); },
+          rendu: function (a) { return '<span class="montant-positif">+' + fmtEuro(Number(a.cotisation) - Number(APP.d.parametres.COTISATION_DEFAUT || 0)) + '</span>'; } }
+      ],
+      lignes: budExcedents,
+      triDefaut: { cle: 'excedent', sens: -1 },
+      exportNom: 'cotisations_superieures',
+      vide: 'Aucune cotisation supérieure à l\'attendu pour cette année.'
+    });
+
+    budNouveau('Depenses');
+    budNouveau('Recettes');
+  },
+
+  rendre: function () {
+    budRendreIndicateurs();
+    document.querySelectorAll('#chantier-2 .annee-courante').forEach(function (e) { e.textContent = APP.annee; });
+    document.querySelectorAll('#chantier-2 .annee-precedente').forEach(function (e) { e.textContent = APP.annee - 1; });
+    ['Depenses', 'Recettes'].forEach(function (t) {
+      var f = budForm(t), sel = f.querySelector('[data-champ="categorie"]');
+      var cat = sel.value;
+      remplirSelect(sel, categoriesConnues(), { vide: '— Choisir une catégorie —' });
+      sel.value = cat;
+      remplirSousCategories(f.querySelector('[data-champ="sousCategorie"]'), sel.value, t === 'Depenses' ? 'Dépense' : 'Recette');
+      remplirActivites(f.querySelector('[data-champ="activiteId"]'));
+      var mode = f.querySelector('[data-champ="modePaiement"]'), mv = mode.value;
+      remplirSelect(mode, APP.d.schema.listes.MODE_PAIEMENT || [], { vide: '—' });
+      mode.value = mv;
+      var id = f.querySelector('[data-champ="id"]').value;
+      if (id && !parId(t, id)) budNouveau(t);
+      var champDate = f.querySelector('[data-champ="date"]');
+      if (!id && !champDate.value) champDate.value = budDateParDefaut();
+    });
+    remplirPrestataires(document.querySelector('#form-depense [data-champ="prestataireId"]'));
+    BUD.recherche.majListe();
+    BUD.recherche.afficher();
+    if (!BUD.budgetsModifies || BUD.anneeBudgets !== APP.annee) { BUD.budgetsModifies = false; budRemplirBudgets(); }
+    APP.listes.Depenses.rafraichir();
+    APP.listes.Recettes.rafraichir();
+    APP.listes.excedents.rafraichir();
+    var ex = budExcedents();
+    var total = ex.reduce(function (s, a) { return s + Number(a.cotisation) - Number(APP.d.parametres.COTISATION_DEFAUT || 0); }, 0);
+    document.getElementById('bud-badge-excedent').textContent = '+' + fmtEuro(total) + ' d\'excédent · ' + ex.length + ' adhérent(s)';
+  }
+});
+
+/* ---------------------------------------------------------------------
+   Indicateurs
+   ------------------------------------------------------------------- */
+function budEvolution(actuel, precedent, N) {
+  if (!precedent) return { texte: 'aucune donnée en ' + (N - 1), classe: 'kpi-trend neutre' };
+  var e = Math.round(100 * (actuel - precedent) / precedent);
+  return { texte: (e >= 0 ? '↑ +' : '↓ ') + e + ' % par rapport à ' + (N - 1), classe: 'kpi-trend' };
+}
+
+function budClasseProgression(pct) {
+  if (pct === null) return '';
+  return pct > 100 ? 'depasse' : (pct >= 80 ? 'attention' : 'ok');
+}
+
+function budRendreIndicateurs() {
+  var N = APP.annee;
+  var rec = CALC.somme(CALC.recettesAnnee(N)), recAvant = CALC.somme(CALC.recettesAnnee(N - 1));
+  var dep = CALC.somme(CALC.depensesAnnee(N)), depAvant = CALC.somme(CALC.depensesAnnee(N - 1));
+  var s = CALC.suiviBudget(N), t = s.total;
+
+  texteEl('bud-kpi-recettes', fmtEuro(rec, 0));
+  var er = budEvolution(rec, recAvant, N);
+  var eRec = document.getElementById('bud-kpi-recettes-detail'); eRec.textContent = er.texte; eRec.className = er.classe;
+  texteEl('bud-kpi-depenses', fmtEuro(dep, 0));
+  var ed = budEvolution(dep, depAvant, N);
+  var eDep = document.getElementById('bud-kpi-depenses-detail'); eDep.textContent = ed.texte; eDep.className = ed.classe;
+
+  // Solde budget = budget prévisionnel total − budget consommé
+  var solde = document.getElementById('bud-kpi-solde');
+  solde.textContent = (t.reste >= 0 ? '' : '− ') + fmtEuro(Math.abs(t.reste), 0);
+  solde.className = 'kpi-value' + (t.reste < 0 ? ' montant-negatif' : '');
+  texteEl('bud-kpi-solde-detail', t.budget
+    ? (t.pct === null ? '' : Math.round(100 - t.pct) + ' % du budget restant') + ' · consommé ' + fmtEuro(t.consomme, 0) + ' / ' + fmtEuro(t.budget, 0)
+    : 'aucun budget prévisionnel saisi pour ' + N);
+  document.getElementById('bud-kpi-solde-carte').className = 'kpi-card ' + (t.reste < 0 ? 'red' : 'primary');
+
+  texteEl('bud-kpi-hors', fmtEuro(t.hors, 0));
+  texteEl('bud-kpi-hors-detail', (s.depensesTotales ? Math.round(100 * t.hors / s.depensesTotales) : 0) + ' % des dépenses de ' + N);
+
+  // Tableau de suivi des 8 catégories
+  var html = '';
+  s.lignes.forEach(function (l) {
+    var p = l.pct === null ? null : Math.round(l.pct);
+    html += '<tr><td><strong>' + echapper(l.categorie) + '</strong></td>' +
+      '<td class="number">' + (l.budget ? fmtEuro(l.budget, 0) : '<span class="texte-discret">non saisi</span>') + '</td>' +
+      '<td class="number">' + fmtEuro(l.consomme) + '</td>' +
+      '<td class="number' + (l.reste < 0 ? ' montant-negatif' : '') + '">' + fmtEuro(l.reste) + '</td>' +
+      '<td class="center' + (p !== null && p > 100 ? ' montant-negatif' : '') + '">' + (p === null ? '—' : p + ' %') + '</td>' +
+      '<td><div class="progress-bar"><div class="progress-fill ' + budClasseProgression(l.pct) + '" style="width:' + Math.min(100, p || 0) + '%"></div></div></td>' +
+      '<td class="number">' + (l.hors ? fmtEuro(l.hors) : '—') + '</td></tr>';
+  });
+  var pt = t.pct === null ? null : Math.round(t.pct);
+  html += '<tr class="ligne-total"><td>Total ' + s.lignes.length + ' catégories</td><td class="number">' + fmtEuro(t.budget, 0) + '</td>' +
+    '<td class="number">' + fmtEuro(t.consomme) + '</td><td class="number' + (t.reste < 0 ? ' montant-negatif' : '') + '">' + fmtEuro(t.reste) + '</td>' +
+    '<td class="center">' + (pt === null ? '—' : pt + ' %') + '</td>' +
+    '<td><div class="progress-bar"><div class="progress-fill ' + budClasseProgression(t.pct) + '" style="width:' + Math.min(100, pt || 0) + '%"></div></div></td>' +
+    '<td class="number">' + fmtEuro(t.hors) + '</td></tr>';
+  document.getElementById('bud-suivi').innerHTML = html;
+
+  // Graphiques (communs avec le Tableau de bord : Js_Commun.html)
+  dessinerRecettesDepensesMois('bud-graph-mensuel', N);
+  dessinerDepensesCategories('bud-graph-categories', N, window.innerWidth > 1700 ? 'right' : 'bottom');
+}
+
+/* ---------------------------------------------------------------------
+   Saisie recette / dépense
+   ------------------------------------------------------------------- */
+function budForm(t) { return document.getElementById(t === 'Depenses' ? 'form-depense' : 'form-recette'); }
+function budPrefixe(t) { return t === 'Depenses' ? 'dep' : 'rec'; }
+function budAllerFormulaire(t) {
+  document.getElementById(t === 'Depenses' ? 'panneau-depense' : 'panneau-recette').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Date proposée pour une nouvelle saisie : aujourd'hui, ou le 31/12 si l'année affichée est passée. */
+function budDateParDefaut() {
+  var auj = APP.d ? APP.d.aujourdhui : '';
+  return APP.annee && auj && APP.annee < anneeDe(auj) ? APP.annee + '-12-31' : auj;
+}
+
+function budNouveau(t) {
+  var f = budForm(t), p = budPrefixe(t);
+  remplirFormulaire(f, { id: '', date: budDateParDefaut(), budgete: 'Budgété' });
+  if (t === 'Recettes' && BUD.recherche) BUD.recherche.afficher();
+  if (APP.d) remplirSousCategories(f.querySelector('[data-champ="sousCategorie"]'), '', t === 'Depenses' ? 'Dépense' : 'Recette');
+  texteEl(p + '-form-titre', t === 'Depenses' ? 'Formulaire de saisie dépense' : 'Formulaire de saisie recette');
+  texteEl(p + '-form-badge', t === 'Depenses' ? 'Nouvelle dépense' : 'Nouvelle recette');
+  texteEl(p + '-enregistrer', t === 'Depenses' ? 'Enregistrer la dépense' : 'Enregistrer la recette');
+  if (APP.listes[t]) APP.listes[t].surligner(null);
+}
+
+function budModifier(t, l) {
+  if (l.origine && l.origine !== 'Saisie manuelle') {
+    notifier((t === 'Depenses' ? 'La dépense ' : 'La recette ') + l.id + ' a été créée automatiquement (' + l.origine +
+      ') : elle se modifie depuis la rubrique Activités, pour éviter une double saisie.', 'info');
+    return;
+  }
+  var f = budForm(t), p = budPrefixe(t);
+  remplirFormulaire(f, l);
+  remplirSousCategories(f.querySelector('[data-champ="sousCategorie"]'), l.categorie, t === 'Depenses' ? 'Dépense' : 'Recette');
+  f.querySelector('[data-champ="sousCategorie"]').value = l.sousCategorie || '';
+  if (t === 'Recettes') BUD.recherche.afficher();
+  texteEl(p + '-form-titre', 'Modifier ' + l.id);
+  texteEl(p + '-form-badge', 'Modification');
+  texteEl(p + '-enregistrer', 'Enregistrer les modifications');
+  APP.listes[t].surligner(l.id);
+  budAllerFormulaire(t);
+}
+
+function budEnregistrer(t) {
+  var f = budForm(t);
+  var o = lireFormulaire(f);
+  var erreurs = validerObjet(t, o);
+  if (t === 'Recettes' && document.getElementById('rec-adherent-saisie').value.trim() && !o.adherentId) {
+    erreurs.push({ cle: 'adherentId', message: 'Adhérent : choisissez une personne dans la liste proposée (ou videz le champ).' });
+  }
+  afficherErreurs(f, erreurs);
+  if (erreurs.length) return;
+  var anneeSaisie = anneeDe(o.date);
+  appelServeur('enregistrer', [t, o])
+    .then(function (rep) {
+      budNouveau(t);
+      APP.listes[t].surligner(rep.id);
+      if (anneeSaisie !== APP.annee) notifier('Cette ' + (t === 'Depenses' ? 'dépense' : 'recette') + ' est datée de ' + anneeSaisie +
+        ' : elle apparaît quand l\'année ' + anneeSaisie + ' est sélectionnée en haut de page.', 'info');
+    })
+    .catch(function (err) { afficherErreurs(f, err.message.split('\n').map(function (m) { return { message: m }; })); });
+}
+
+function budSupprimer(t, l) {
+  if (l.origine && l.origine !== 'Saisie manuelle') { budModifier(t, l); return; }
+  confirmer('Supprimer ' + (t === 'Depenses' ? 'la dépense ' : 'la recette ') + l.id + ' — « ' + l.libelle + ' » (' + fmtEuro(l.montant) + ') ?',
+    { titre: 'Supprimer', bouton: 'Supprimer', danger: true })
+    .then(function (ok) {
+      if (!ok) return;
+      appelServeur('supprimer', [t, l.id], { attente: 'Suppression…' })
+        .then(function () { if (budForm(t).querySelector('[data-champ="id"]').value === l.id) budNouveau(t); })
+        .catch(function () {});
+    });
+}
+
+/* ---------------------------------------------------------------------
+   Budgets prévisionnels de l'année sélectionnée
+   ------------------------------------------------------------------- */
+function budRemplirBudgets() {
+  var N = APP.annee;
+  BUD.anneeBudgets = N;
+  var cats = categoriesConnues().length ? categoriesConnues() : (APP.d.schema.categoriesBudget || []);
+  CALC.budgetsAnnee(N).forEach(function (b) { if (cats.indexOf(b.categorie) < 0) cats.push(b.categorie); });
+  var avant = CALC.suiviBudget(N - 1);
+  var html = '';
+  cats.forEach(function (c) {
+    var b = CALC.budgetsAnnee(N).filter(function (x) { return x.categorie === c; })[0];
+    var la = avant.lignes.filter(function (x) { return x.categorie === c; })[0] || { budget: 0, consomme: 0 };
+    html += '<tr><td><strong>' + echapper(c) + '</strong></td>' +
+      '<td class="number"><input class="form-input saisie-montant" type="number" min="0" step="10" data-budget="' + echapper(c) +
+      '" value="' + (b ? b.montant : '') + '" placeholder="0" aria-label="Budget ' + echapper(c) + '"></td>' +
+      '<td class="number">' + (la.budget ? fmtEuro(la.budget, 0) : '—') + '</td>' +
+      '<td class="number">' + (la.consomme ? fmtEuro(la.consomme, 0) : '—') + '</td></tr>';
+  });
+  html += '<tr class="ligne-total"><td>Total</td><td class="number" id="bud-form-total"></td><td class="number">' + fmtEuro(avant.total.budget, 0) +
+    '</td><td class="number">' + fmtEuro(avant.total.consomme, 0) + '</td></tr>';
+  document.getElementById('bud-form-lignes').innerHTML = html;
+  effacerErreurs(document.getElementById('form-budgets'));
+  budTotalFormulaire();
+}
+
+function budTotalFormulaire() {
+  var t = 0;
+  document.querySelectorAll('#bud-form-lignes [data-budget]').forEach(function (i) { t += Number(i.value || 0); });
+  var c = document.getElementById('bud-form-total');
+  if (c) c.textContent = fmtEuro(t, 0);
+}
+
+function budReprendrePrecedents() {
+  var precedents = CALC.budgetsAnnee(APP.annee - 1);
+  if (!precedents.length) { notifier('Aucun budget saisi pour ' + (APP.annee - 1) + '.', 'info'); return; }
+  document.querySelectorAll('#bud-form-lignes [data-budget]').forEach(function (i) {
+    var b = precedents.filter(function (x) { return x.categorie === i.getAttribute('data-budget'); })[0];
+    i.value = b ? b.montant : '';
+  });
+  BUD.budgetsModifies = true;
+  budTotalFormulaire();
+  notifier('Montants ' + (APP.annee - 1) + ' recopiés : ajustez-les puis cliquez sur « Enregistrer ».', 'info');
+}
+
+function budEnregistrerBudgets() {
+  var f = document.getElementById('form-budgets');
+  var montants = {}, erreurs = [];
+  document.querySelectorAll('#bud-form-lignes [data-budget]').forEach(function (i) {
+    i.classList.remove('champ-erreur');
+    var v = i.value.trim();
+    if (v !== '' && (isNaN(Number(v)) || Number(v) < 0)) { erreurs.push({ message: '« ' + i.getAttribute('data-budget') + ' » : montant positif attendu.' }); i.classList.add('champ-erreur'); }
+    montants[i.getAttribute('data-budget')] = v;
+  });
+  afficherErreurs(f, erreurs);
+  if (erreurs.length) return;
+  appelServeur('enregistrerBudgets', [APP.annee, montants], { attente: 'Enregistrement des budgets…' })
+    .then(function () { BUD.budgetsModifies = false; budRemplirBudgets(); })
+    .catch(function (e) { afficherErreurs(f, e.message.split('\n').map(function (m) { return { message: m }; })); });
+}
+
+/* ---------------------------------------------------------------------
+   Cotisations supérieures à l'attendu
+   ------------------------------------------------------------------- */
+function budExcedents() {
+  var attendu = Number(APP.d.parametres.COTISATION_DEFAUT || 0);
+  return T('Adherents').filter(function (a) { return ANNEE.adherent(a, APP.annee) && Number(a.cotisation || 0) > attendu; });
+}
+</script>

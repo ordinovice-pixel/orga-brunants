@@ -1,0 +1,529 @@
+<script>
+/* =====================================================================
+   Js_Adherents.html — Rubrique « Adhérents » (lot 2)
+   ---------------------------------------------------------------------
+   Indicateurs : effectif, nouveaux arrivants, âge moyen, décès,
+                 H/F, titulaires/sympathisants, Île-de-France/province,
+                 ancienneté, tranches d'âge, participants / non-participants.
+   Saisie      : fiche adhérent complète (région calculée, conjoint,
+                 désinscription / décès avec date et motif).
+   Listes      : adhérents de l'année, archives (réinscription),
+                 historique d'un adhérent avec Participation Association.
+   Toutes les valeurs sont recalculées à chaque chargement / enregistrement
+   et à chaque changement d'année.
+   ===================================================================== */
+
+var ADH = { recherches: {} };
+
+enregistrerRubrique('chantier-1', {
+  titre: 'Adhérents',
+  sousTitre: 'Chantier 1 · Priorité haute',
+
+  init: function () {
+    var f = document.getElementById('form-adherent');
+    var L = APP_LISTES_ADH();
+    remplirSelect(f.querySelector('[data-champ="civilite"]'), L.CIVILITE, { vide: '—' });
+    remplirSelect(f.querySelector('[data-champ="sexe"]'), [{ valeur: 'F', texte: 'Femme (F)' }, { valeur: 'H', texte: 'Homme (H)' }], { vide: '—' });
+    remplirSelect(f.querySelector('[data-champ="type"]'), L.TYPE_ADH);
+    remplirSelect(f.querySelector('[data-champ="motifFin"]'), L.MOTIF_FIN, { vide: '— Choisir —' });
+
+    // Civilité → sexe proposé ; code postal → région ; cases de fin d'adhésion
+    f.querySelector('[data-champ="civilite"]').addEventListener('change', function () {
+      var sexe = f.querySelector('[data-champ="sexe"]');
+      if (!sexe.value) sexe.value = this.value === 'Mme' ? 'F' : (this.value === 'M.' ? 'H' : '');
+    });
+    f.querySelector('[data-champ="codePostal"]').addEventListener('input', adhMajRegion);
+    ['desinscrit', 'deces'].forEach(function (c) {
+      f.querySelector('[data-champ="' + c + '"]').addEventListener('change', function () { adhCasesFin(c); });
+    });
+    f.querySelector('[data-champ="dateDeces"]').addEventListener('change', function () {
+      var fin = f.querySelector('[data-champ="dateFin"]');
+      if (!fin.value) fin.value = this.value;
+    });
+
+    ADH.recherches.conjoint = brancherRechercheAdherent(
+      document.getElementById('adh-rattache-saisie'), f.querySelector('[data-champ="rattacheA"]'),
+      function (a) { return a.id !== f.querySelector('[data-champ="id"]').value; });
+    ADH.recherches.historique = brancherRechercheAdherent(
+      document.getElementById('hist-saisie'), document.getElementById('hist-adherent'));
+    document.getElementById('hist-adherent').addEventListener('change', adhRendreHistorique);
+    document.getElementById('hist-periode').addEventListener('change', adhRendreHistorique);
+
+    document.getElementById('adh-enregistrer').onclick = adhEnregistrer;
+    document.getElementById('adh-annuler').onclick = function () { adhNouvelleFiche(); };
+    document.getElementById('adh-nouveau').onclick = function () {
+      adhNouvelleFiche();
+      document.getElementById('panneau-fiche-adherent').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      f.querySelector('[data-champ="nom"]').focus();
+    };
+    document.getElementById('adh-arch-deces').onclick = function () {
+      APP.listes.archives.appliquerFiltres({ typeFin: 'Décès', anneeFin: APP.annee });
+    };
+    document.getElementById('adh-arch-autres').onclick = function () {
+      APP.listes.archives.appliquerFiltres({ typeFin: 'Autre fin d\'adhésion', anneeFin: APP.annee });
+    };
+    document.getElementById('adh-arch-toutes').onclick = function () { APP.listes.archives.reinitialiser(); };
+
+    // ---- Liste des adhérents de l'année
+    APP.listes.adherents = new Liste({
+      conteneur: 'liste-adherents',
+      colonnes: [
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'nom', titre: 'Nom', rendu: function (a) {
+            return '<strong>' + echapper(a.nom) + '</strong>' + adhLienConjoint(a); } },
+        { cle: 'prenom', titre: 'Prénom' },
+        { cle: 'type', titre: 'Type', type: 'liste', rendu: function (a) {
+            return '<span class="badge ' + (a.type === 'Titulaire' ? 'badge-blue' : 'badge-gray') + '">' + echapper(a.type) + '</span>'; } },
+        { cle: 'adresseComplete', titre: 'Adresse postale', classe: 'coupe', valeur: function (a) { return CALC.adresseComplete(a); } },
+        { cle: 'age', titre: 'Âge', type: 'nombre', classe: 'center', valeur: function (a) { return CALC.ageAnnee(a, APP.annee); } },
+        { cle: 'contact', titre: 'Téléphone · E-mail', classe: 'coupe',
+          valeur: function (a) { return [a.mobile, a.telFixe, a.email].filter(Boolean).join(' '); },
+          rendu: function (a) {
+            var tel = a.mobile || a.telFixe;
+            return (tel ? '<span class="nowrap">&#128222; ' + echapper(tel) + '</span>' : '') +
+              (a.mobile && a.telFixe ? '<small>' + echapper(a.telFixe) + ' (fixe)</small>' : '') +
+              (a.email ? '<small class="contact-mail">&#9993; ' + echapper(a.email).replace('@', '@<wbr>') + '</small>' : '<small>Pas d\'e-mail</small>');
+          },
+          exporter: [
+            { titre: 'Téléphone', valeur: function (a) { return a.mobile || a.telFixe || ''; } },
+            { titre: 'Téléphone fixe', valeur: function (a) { return a.mobile ? a.telFixe : ''; } },
+            { titre: 'E-mail', valeur: function (a) { return a.email || ''; } }
+          ] },
+        { cle: 'cotisation', titre: 'Cotisation', type: 'montant', classe: 'number retour' },
+        { cle: 'participation', titre: 'Participation Association (€)', type: 'montant', classe: 'number retour', filtre: false,
+          valeur: function (a) { return CALC.totalParticipation(a.id, APP.annee); },
+          rendu: function (a) {
+            return '<button type="button" class="lien-bouton" data-action="historique" data-id="' + echapper(a.id) +
+              '" title="Voir l\'historique des activités">' + fmtEuro(CALC.totalParticipation(a.id, APP.annee)) + '</button>'; } },
+        { cle: 'situation', titre: 'Désinscrit', type: 'liste', classe: 'center', valeur: function (a) { return CALC.situation(a) === 'Actif' ? 'Non' : CALC.situation(a); },
+          rendu: function (a) {
+            if (a.deces) return '<span class="badge badge-red">Décédé</span><small>' + fmtDate(a.dateDeces) + '</small>';
+            if (a.desinscrit) return '<span class="badge badge-gray">Désinscrit</span><small>' + fmtDate(a.dateFin) + '</small>';
+            return '<input type="checkbox" class="case-liste" data-action="desinscrire" data-id="' + echapper(a.id) + '" title="Désinscrire cet adhérent" aria-label="Désinscrire ' + echapper(a.nom + ' ' + a.prenom) + '">';
+          } }
+      ],
+      lignes: function () { return T('Adherents').filter(function (a) { return ANNEE.adherent(a, APP.annee); }); },
+      // la colonne Actions ne contient que Modifier / Supprimer : l'historique s'ouvre en cliquant le montant
+      filtres: [
+        { cle: 'type', titre: 'Type' },
+        { cle: 'region', titre: 'Région' },
+        { cle: 'sexe', titre: 'Sexe' },
+        { cle: 'maillon', titre: 'Maillon', valeur: function (a) { return a.recoitMaillon ? 'Maillon papier' : 'Pas de Maillon papier'; } },
+        { cle: 'mail', titre: 'Communications par mail', valeur: function (a) { return a.toutParMail ? 'Tout par mail' : 'Pas tout par mail'; } },
+        { cle: 'participe', titre: 'Participation', valeur: function (a) { return CALC.aParticipe(a.id, APP.annee) ? 'Participant' : 'Non-participant'; } }
+      ],
+      triDefaut: { cle: 'nom', sens: 1 },
+      classeLigne: function (a) { return CALC.estArchive(a) ? 'ligne-archivee' : ''; },
+      actions: [
+        { cle: 'desinscrire', libelle: '', visible: function () { return false; }, fn: adhDesinscrire },
+        { cle: 'historique', libelle: '', visible: function () { return false; }, fn: adhVoirHistorique }
+      ],
+      modifier: adhModifier,
+      supprimer: adhSupprimer,
+      compact: true,
+      dense: true,
+      exportNom: 'adherents',
+      vide: 'Aucun adhérent pour cette année.'
+    });
+
+    // ---- Archives
+    APP.listes.archives = new Liste({
+      conteneur: 'liste-archives',
+      colonnes: [
+        { cle: 'id', titre: 'N°', classe: 'nowrap' },
+        { cle: 'nom', titre: 'Nom', rendu: function (a) { return '<strong>' + echapper(a.nom) + '</strong>'; } },
+        { cle: 'prenom', titre: 'Prénom' },
+        { cle: 'type', titre: 'Type', type: 'liste' },
+        { cle: 'dateSortie', titre: 'Date de sortie', type: 'date', valeur: function (a) { return ANNEE.finAdhesion(a); } },
+        { cle: 'motifFin', titre: 'Motif', type: 'liste', rendu: function (a) {
+            return a.motifFin ? '<span class="badge ' + (a.motifFin === 'Décès' ? 'badge-red' : 'badge-gray') + '">' + echapper(a.motifFin) + '</span>' : ''; } },
+        { cle: 'contact', titre: 'Contact conservé', valeur: function (a) {
+            return a.email || (a.adresse ? 'Courrier postal' : (a.mobile || a.telFixe || '—')); } },
+        { cle: 'info', titre: 'Info diffusée', type: 'liste', valeur: function (a) { return a.neRienEnvoyer ? 'Non' : 'Oui'; },
+          rendu: function (a) { return a.neRienEnvoyer ? '<span class="badge badge-gray">Non</span>' : '<span class="badge badge-blue">Oui</span>'; } }
+      ],
+      lignes: function () { return T('Adherents').filter(CALC.estArchive); },
+      filtres: [
+        { cle: 'typeFin', titre: 'Type de fin', valeur: function (a) { return a.deces ? 'Décès' : 'Autre fin d\'adhésion'; } },
+        { cle: 'anneeFin', titre: 'Année de sortie', valeur: function (a) { return anneeDe(ANNEE.finAdhesion(a)) || ''; } }
+      ],
+      triDefaut: { cle: 'dateSortie', sens: -1 },
+      actions: [
+        { cle: 'reinscrire', libelle: '&#8617; Réinscrire', classe: 'btn-accent', titre: 'Remettre dans la liste des adhérents', fn: adhReinscrire },
+        { cle: 'historique', libelle: '&#128220;', titre: 'Historique des activités', fn: adhVoirHistorique }
+      ],
+      modifier: adhModifier,
+      supprimer: adhSupprimer,
+      compact: true,
+      dense: true,
+      exportNom: 'anciens_adherents',
+      vide: 'Aucun ancien adhérent dans les archives.'
+    });
+
+    adhNouvelleFiche();
+  },
+
+  rendre: function () {
+    adhRendreIndicateurs();
+    ADH.recherches.conjoint.majListe();
+    ADH.recherches.historique.majListe();
+    document.querySelectorAll('#chantier-1 .annee-courante').forEach(function (e) { e.textContent = APP.annee; });
+    var f = document.getElementById('form-adherent');
+    var idFiche = f.querySelector('[data-champ="id"]').value;
+    if (idFiche && !parId('Adherents', idFiche)) adhNouvelleFiche();   // fiche supprimée entre-temps
+    else ADH.recherches.conjoint.afficher();
+    if (!idFiche) {
+      adhCotisationParDefaut();
+      var di = f.querySelector('[data-champ="dateInscription"]');
+      if (!di.value) di.value = APP.d.aujourdhui;
+    }
+    APP.listes.adherents.rafraichir();
+    APP.listes.archives.rafraichir();
+    document.getElementById('adh-badge-archives').textContent = T('Adherents').filter(CALC.estArchive).length + ' fiche(s) archivée(s)';
+    adhRendreHistorique();
+  }
+});
+
+/** Listes de valeurs envoyées par le serveur. */
+function APP_LISTES_ADH() {
+  return (APP.d && APP.d.schema && APP.d.schema.listes) || {
+    CIVILITE: ['M.', 'Mme'], TYPE_ADH: ['Titulaire', 'Sympathisant'],
+    MOTIF_FIN: ['Déménagement', 'Non renouvellement', 'Décès', 'Santé', 'Autre']
+  };
+}
+
+/* ---------------------------------------------------------------------
+   Indicateurs
+   ------------------------------------------------------------------- */
+
+var TRANCHES_AGE = [
+  { libelle: 'Moins de 60 ans', min: 0, max: 59 },
+  { libelle: '60 – 70 ans', min: 60, max: 69 },
+  { libelle: '70 – 75 ans', min: 70, max: 74 },
+  { libelle: '75 – 80 ans', min: 75, max: 79 },
+  { libelle: '80 – 85 ans', min: 80, max: 84, avant: true },
+  { libelle: 'Plus de 85 ans', min: 85, max: 200, avant: true }
+];
+
+function adhRendreIndicateurs() {
+  var N = APP.annee;
+  var tous = T('Adherents');
+  var actifs = tous.filter(function (a) { return ANNEE.adherent(a, N); });
+  var total = actifs.length;
+  var compte = function (liste, f) { return liste.filter(f).length; };
+
+  // Effectif
+  var tit = compte(actifs, function (a) { return a.type === 'Titulaire'; });
+  var sym = compte(actifs, function (a) { return a.type === 'Sympathisant'; });
+  texteEl('adh-kpi-effectif', fmtNombre(total));
+  texteEl('adh-kpi-effectif-detail', tit + ' titulaires (' + pct(tit, total) + ' %) · ' + sym + ' sympathisants (' + pct(sym, total) + ' %)');
+
+  // Nouveaux arrivants (comparaison avec l'année précédente)
+  var nouveaux = compte(tous, function (a) { return anneeDe(a.dateInscription) === N; });
+  var avant = compte(tous, function (a) { return anneeDe(a.dateInscription) === N - 1; });
+  texteEl('adh-kpi-nouveaux', nouveaux);
+  var tendance = document.getElementById('adh-kpi-nouveaux-detail');
+  if (avant) {
+    var ecart = Math.round(100 * (nouveaux - avant) / avant);
+    tendance.textContent = (ecart >= 0 ? '↑ +' : '↓ ') + ecart + ' % par rapport à ' + (N - 1) + ' (' + avant + ')';
+    tendance.className = 'kpi-trend' + (ecart < 0 ? ' negative' : '');
+  } else {
+    tendance.textContent = 'compris dans l\'effectif total';
+    tendance.className = 'kpi-trend neutre';
+  }
+
+  // Âge moyen
+  var ages = actifs.map(function (a) { return CALC.ageAnnee(a, N); }).filter(function (x) { return x !== ''; });
+  var moyenne = ages.length ? ages.reduce(function (s, x) { return s + x; }, 0) / ages.length : null;
+  texteEl('adh-kpi-age', moyenne === null ? '—' : fmtDecimal(moyenne) + ' ans');
+  texteEl('adh-kpi-age-detail', 'sur ' + ages.length + ' personne(s) dont la date de naissance est connue' +
+    (total - ages.length ? ' (' + (total - ages.length) + ' sans date)' : ''));
+
+  // Décès de l'année
+  var deces = tous.filter(function (a) { return a.deces && anneeDe(a.dateDeces) === N; })
+    .sort(function (x, y) { return x.dateDeces.localeCompare(y.dateDeces); });
+  texteEl('adh-kpi-deces', deces.length);
+  texteEl('adh-kpi-deces-detail', deces.length ? deces.slice(0, 3).map(function (a) { return a.prenom + ' ' + a.nom; }).join(', ') +
+    (deces.length > 3 ? '…' : '') : 'aucun décès enregistré');
+
+  // Répartitions
+  document.getElementById('adh-badge-repartition').textContent = 'Sur les ' + total + ' adhérents et sympathisants de ' + N;
+  var h = compte(actifs, function (a) { return a.sexe === 'H'; }), fe = compte(actifs, function (a) { return a.sexe === 'F'; });
+  texteEl('adh-kpi-hf', h + ' / ' + fe);
+  texteEl('adh-kpi-hf-detail', pct(h, total) + ' % / ' + pct(fe, total) + ' %' + (total - h - fe ? ' · ' + (total - h - fe) + ' non renseigné(s)' : ''));
+  texteEl('adh-kpi-ts', tit + ' / ' + sym);
+  texteEl('adh-kpi-ts-detail', pct(tit, total) + ' % / ' + pct(sym, total) + ' %');
+  var idf = compte(actifs, function (a) { return a.region === 'Île-de-France'; });
+  var prov = compte(actifs, function (a) { return a.region === 'Province'; });
+  texteEl('adh-kpi-region', idf + ' / ' + prov);
+  texteEl('adh-kpi-region-detail', pct(idf, total) + ' % / ' + pct(prov, total) + ' %' +
+    (total - idf - prov ? ' · ' + (total - idf - prov) + ' sans code postal' : ' · CP ' + (APP.d.parametres.DEPARTEMENTS_IDF || '').replace(/\s+/g, '').replace(/,/g, '/')));
+  var anc = actifs.map(function (a) { return CALC.ancienneteAnnee(a, N); });
+  texteEl('adh-kpi-anciennete', anc.length ? fmtDecimal(anc.reduce(function (s, x) { return s + x; }, 0) / anc.length) + ' ans' : '—');
+
+  // Tranches d'âge
+  var html = '';
+  TRANCHES_AGE.forEach(function (t) {
+    var n = ages.filter(function (x) { return x >= t.min && x <= t.max; }).length;
+    var p = pct(n, ages.length);
+    html += '<tr' + (t.avant ? ' class="mise-en-avant"' : '') + '><td class="center">' + t.libelle + '</td><td class="center">' + n +
+      '</td><td class="center">' + p + ' %</td><td><div class="progress-bar"><div class="progress-fill" style="width:' + p +
+      '%;background:' + (t.avant ? 'var(--accent)' : (t.min >= 70 ? 'var(--primary)' : 'var(--secondary)')) + '"></div></div></td></tr>';
+  });
+  if (total - ages.length) {
+    html += '<tr><td class="center">Âge non renseigné</td><td class="center">' + (total - ages.length) + '</td><td class="center">—</td><td></td></tr>';
+  }
+  document.getElementById('adh-tranches').innerHTML = html;
+
+  // Participation aux activités
+  var participants = actifs.filter(function (a) { return CALC.aParticipe(a.id, N); });
+  var non = actifs.filter(function (a) { return !CALC.aParticipe(a.id, N); });
+  var nIdf = compte(non, function (a) { return a.region === 'Île-de-France'; });
+  var nProv = compte(non, function (a) { return a.region === 'Province'; });
+  texteEl('adh-kpi-participants', participants.length + ' / ' + total);
+  texteEl('adh-kpi-participants-detail', pct(participants.length, total) + ' % des adhérents de ' + N);
+  texteEl('adh-kpi-nonpart', non.length);
+  texteEl('adh-kpi-nonpart-detail', pct(non.length, total) + ' % à réengager');
+  texteEl('adh-kpi-nonpart-idf', nIdf);
+  texteEl('adh-kpi-nonpart-idf-detail', pct(nIdf, non.length) + ' % des non-participants');
+  texteEl('adh-kpi-nonpart-prov', nProv);
+  texteEl('adh-kpi-nonpart-prov-detail', pct(nProv, non.length) + ' % des non-participants');
+}
+
+/* ---------------------------------------------------------------------
+   Fiche adhérent (zone Saisie)
+   ------------------------------------------------------------------- */
+function adhForm() { return document.getElementById('form-adherent'); }
+
+function adhMajRegion() {
+  var cp = adhForm().querySelector('[data-champ="codePostal"]').value.trim();
+  var idf = String(APP.d ? APP.d.parametres.DEPARTEMENTS_IDF : '').split(/[^0-9]+/).filter(Boolean);
+  document.getElementById('adh-region').value = /^\d{5}$/.test(cp) ? (idf.indexOf(cp.slice(0, 2)) >= 0 ? 'Île-de-France' : 'Province') : '';
+}
+
+/** Affiche les champs de fin d'adhésion quand « Désinscrit » ou « Décès » est coché. */
+function adhCasesFin(source) {
+  var f = adhForm();
+  var des = f.querySelector('[data-champ="desinscrit"]');
+  var dec = f.querySelector('[data-champ="deces"]');
+  var motif = f.querySelector('[data-champ="motifFin"]');
+  if (source === 'deces' && dec.checked) { des.checked = false; motif.value = 'Décès'; }
+  if (source === 'desinscrit' && des.checked) { dec.checked = false; if (motif.value === 'Décès') motif.value = ''; }
+  if (source && (des.checked || dec.checked) && !f.querySelector('[data-champ="dateFin"]').value && !dec.checked) {
+    f.querySelector('[data-champ="dateFin"]').value = APP.d.aujourdhui;
+  }
+  document.getElementById('adh-bloc-fin').classList.toggle('hidden', !(des.checked || dec.checked));
+  document.getElementById('adh-groupe-deces').classList.toggle('hidden', !dec.checked);
+  motif.disabled = dec.checked;
+}
+
+function adhCotisationParDefaut() {
+  var c = adhForm().querySelector('[data-champ="cotisation"]');
+  if (!c.value && APP.d) c.value = APP.d.parametres.COTISATION_DEFAUT;
+}
+
+function adhNouvelleFiche() {
+  var f = adhForm();
+  remplirFormulaire(f, {
+    id: '', type: 'Titulaire', recoitMaillon: true, toutParMail: false, abonneFacebook: false, neRienEnvoyer: false,
+    desinscrit: false, deces: false, dateInscription: APP.d ? APP.d.aujourdhui : '',
+    cotisation: APP.d ? APP.d.parametres.COTISATION_DEFAUT : ''
+  });
+  ADH.recherches.conjoint && ADH.recherches.conjoint.afficher();
+  adhMajRegion();
+  adhCasesFin();
+  texteEl('adh-form-titre', 'Formulaire de saisie d\'un nouvel adhérent');
+  texteEl('adh-form-badge', 'Nouvelle fiche');
+  texteEl('adh-enregistrer', 'Enregistrer l\'adhérent');
+  if (APP.listes.adherents) { APP.listes.adherents.surligner(null); APP.listes.archives.surligner(null); }
+}
+
+function adhModifier(a) {
+  var f = adhForm();
+  remplirFormulaire(f, a);
+  ADH.recherches.conjoint.afficher();
+  adhMajRegion();
+  adhCasesFin();
+  texteEl('adh-form-titre', 'Modifier ' + a.id + ' — ' + a.nom + ' ' + a.prenom);
+  texteEl('adh-form-badge', CALC.situation(a) === 'Actif' ? 'Modification' : 'Fiche archivée');
+  texteEl('adh-enregistrer', 'Enregistrer les modifications');
+  APP.listes.adherents.surligner(a.id);
+  APP.listes.archives.surligner(a.id);
+  document.getElementById('panneau-fiche-adherent').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+/** Contrôles de la fiche avant envoi (les mêmes règles sont revérifiées par le serveur). */
+function adhControler(o) {
+  var e = validerObjet('Adherents', o);
+  var auj = APP.d.aujourdhui;
+  if (o.deces && !o.dateDeces) e.push({ cle: 'dateDeces', message: 'Décès coché : la « Date du décès » est obligatoire.' });
+  if (o.anneeEntreeJMB && o.dateSortieJMB && anneeDe(o.dateSortieJMB) < Number(o.anneeEntreeJMB)) e.push({ cle: 'dateSortieJMB', message: 'La « Date sortie JMB » est antérieure à l\'« Année entrée JMB ».' });
+  if (o.desinscrit && !o.dateFin) e.push({ cle: 'dateFin', message: 'Désinscrit coché : la « Date de fin » est obligatoire.' });
+  if (o.desinscrit && !o.motifFin) e.push({ cle: 'motifFin', message: 'Désinscrit coché : le « Motif de fin » est obligatoire.' });
+  if (o.dateNaissance && o.dateNaissance > auj) e.push({ cle: 'dateNaissance', message: 'La date de naissance est dans le futur.' });
+  if (o.dateNaissance && o.dateInscription && o.dateInscription < o.dateNaissance) e.push({ cle: 'dateInscription', message: 'La date d\'inscription est antérieure à la date de naissance.' });
+  if (o.dateFin && o.dateInscription && o.dateFin < o.dateInscription && (o.desinscrit || o.deces)) e.push({ cle: 'dateFin', message: 'La date de fin est antérieure à la date d\'inscription.' });
+  if (o.dateDeces && o.dateDeces > auj) e.push({ cle: 'dateDeces', message: 'La date du décès est dans le futur.' });
+  var saisieConjoint = document.getElementById('adh-rattache-saisie');
+  if (saisieConjoint.value.trim() && !o.rattacheA) e.push({ cle: 'rattacheA', message: 'Conjoint : choisissez une personne dans la liste proposée (ou videz le champ).' });
+  return e;
+}
+
+function adhEnregistrer() {
+  var f = adhForm();
+  var o = lireFormulaire(f);
+  if (o.deces) o.motifFin = 'Décès';
+  var erreurs = adhControler(o);
+  afficherErreurs(f, erreurs);
+  if (erreurs.length) return;
+  var avant = o.id ? parId('Adherents', o.id) : null;
+  var versArchives = (o.desinscrit || o.deces) && !(avant && CALC.estArchive(avant));
+  appelServeur('enregistrer', ['Adherents', o])
+    .then(function (rep) {
+      adhNouvelleFiche();
+      APP.listes.adherents.surligner(rep.id);
+      APP.listes.archives.surligner(rep.id);
+      if (versArchives) notifier('La fiche ' + rep.id + ' est passée dans « Anciens adhérents (archives) ».', 'info');
+    })
+    .catch(function (err) {
+      afficherErreurs(f, err.message.split('\n').map(function (m) { return { message: m }; }));
+    });
+}
+
+/* ---------------------------------------------------------------------
+   Désinscription, réinscription, suppression
+   ------------------------------------------------------------------- */
+
+function adhDesinscrire(a) {
+  fenetreFormulaire({
+    titre: 'Désinscrire ' + a.nom + ' ' + a.prenom + ' (' + a.id + ')',
+    intro: 'La fiche sera conservée dans « Anciens adhérents (archives) ». Elle pourra être réinscrite plus tard.',
+    champsHtml:
+      '<div class="form-group"><label class="form-label">Motif de fin <span class="required">*</span></label>' +
+      '<select class="form-select" data-champ="motifFin"><option value="">— Choisir —</option>' + optionsHtml(APP_LISTES_ADH().MOTIF_FIN) + '</select></div>' +
+      '<div class="form-group"><label class="form-label" id="fen-libelle-date">Date de fin <span class="required">*</span></label>' +
+      '<input class="form-input" type="date" data-champ="dateFin"></div>',
+    valeurs: { motifFin: '', dateFin: APP.d.aujourdhui },
+    bouton: 'Désinscrire',
+    danger: true,
+    auChangement: function (form) {
+      var deces = form.querySelector('[data-champ="motifFin"]').value === 'Décès';
+      form.querySelector('#fen-libelle-date').innerHTML = (deces ? 'Date du décès' : 'Date de fin') + ' <span class="required">*</span>';
+    },
+    valider: function (o) {
+      var e = [];
+      if (!o.motifFin) e.push({ cle: 'motifFin', message: 'Choisissez le motif de fin.' });
+      if (!o.dateFin) e.push({ cle: 'dateFin', message: 'Saisissez la date.' });
+      else if (o.dateFin > APP.d.aujourdhui) e.push({ cle: 'dateFin', message: 'La date ne peut pas être dans le futur.' });
+      else if (a.dateInscription && o.dateFin < a.dateInscription) e.push({ cle: 'dateFin', message: 'La date est antérieure à la date d\'inscription (' + fmtDate(a.dateInscription) + ').' });
+      return e;
+    }
+  }).then(function (o) {
+    if (!o) return;
+    appelServeur('desinscrire', [a.id, o], { attente: 'Enregistrement de la désinscription…' }).catch(function () {});
+  });
+}
+
+function adhReinscrire(a) {
+  fenetreFormulaire({
+    titre: 'Réinscrire ' + a.nom + ' ' + a.prenom + ' (' + a.id + ')',
+    intro: (a.deces ? 'Attention : cette fiche est marquée « décédé ». Ne la réinscrivez que pour corriger une erreur. ' : '') +
+      'La date de réinscription devient la date d\'inscription ; l\'ancienne période d\'adhésion est notée dans le commentaire.',
+    champsHtml:
+      '<div class="form-group"><label class="form-label">Date de réinscription <span class="required">*</span></label>' +
+      '<input class="form-input" type="date" data-champ="date"></div>' +
+      '<div class="form-group"><label class="form-label">Type</label>' +
+      '<select class="form-select" data-champ="type">' + optionsHtml(APP_LISTES_ADH().TYPE_ADH) + '</select></div>',
+    valeurs: { date: APP.d.aujourdhui, type: a.type || 'Titulaire' },
+    bouton: 'Réinscrire',
+    danger: a.deces,
+    valider: function (o) {
+      var e = [];
+      if (!o.date) e.push({ cle: 'date', message: 'Saisissez la date de réinscription.' });
+      else if (o.date > APP.d.aujourdhui) e.push({ cle: 'date', message: 'La date ne peut pas être dans le futur.' });
+      return e;
+    }
+  }).then(function (o) {
+    if (!o) return;
+    appelServeur('reinscrire', [a.id, o], { attente: 'Réinscription…' })
+      .then(function (rep) { APP.listes.adherents.surligner(rep.id); })
+      .catch(function () {});
+  });
+}
+
+function adhSupprimer(a) {
+  confirmer('Supprimer définitivement la fiche ' + a.id + ' — ' + a.nom + ' ' + a.prenom + ' ?\n\n' +
+    'Pour un adhérent qui quitte l\'association, utilisez plutôt « Désinscrit » : la fiche est conservée dans les archives.\n' +
+    'La suppression est refusée si la personne apparaît ailleurs (inscriptions, mobil-home, conjoint…).',
+    { titre: 'Supprimer un adhérent', bouton: 'Supprimer définitivement', danger: true })
+    .then(function (ok) {
+      if (!ok) return;
+      appelServeur('supprimer', ['Adherents', a.id], { attente: 'Suppression…' }).catch(function () {});
+    });
+}
+
+/** « + conjoint : Prénom NOM (ADH-…) » sous le nom, dans les deux sens du rattachement. */
+function adhLienConjoint(a) {
+  var c = a.rattacheA ? parId('Adherents', a.rattacheA) : null;
+  if (!c) {
+    var inverses = memo('conjointsInverses', function () {
+      var m = {};
+      T('Adherents').forEach(function (x) { if (x.rattacheA) m[x.rattacheA] = x; });
+      return m;
+    });
+    c = inverses[a.id];
+  }
+  return c ? '<small>+ conjoint : ' + echapper(c.prenom + ' ' + (c.nom !== a.nom ? c.nom + ' ' : '')) + '(' + echapper(c.id) + ')</small>' : '';
+}
+
+/* ---------------------------------------------------------------------
+   Historique d'un adhérent
+   ------------------------------------------------------------------- */
+function adhVoirHistorique(a) {
+  document.getElementById('hist-adherent').value = a.id;
+  ADH.recherches.historique.afficher();
+  adhRendreHistorique();
+  document.getElementById('panneau-historique').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function adhRendreHistorique() {
+  var cible = document.getElementById('hist-resultat');
+  var id = document.getElementById('hist-adherent').value;
+  var a = id ? parId('Adherents', id) : null;
+  if (!a) {
+    cible.innerHTML = '<p class="texte-discret">Sélectionnez un adhérent pour afficher son historique d\'activités.</p>';
+    return;
+  }
+  var toutes = document.getElementById('hist-periode').value === 'toutes';
+  var lignes = CALC.participations(a.id, toutes ? null : APP.annee);
+  var periode = toutes ? 'toutes années' : String(APP.annee);
+  if (!lignes.length) {
+    cible.innerHTML = '<p class="texte-discret" style="padding:10px;background:var(--light-bg);border-radius:4px">' +
+      'Aucune activité pour ' + echapper(a.prenom + ' ' + a.nom) + ' (' + periode + ').</p>';
+    return;
+  }
+  var tPaye = 0, tCout = 0, tPa = 0;
+  var html = '<div class="table-scroll"><table class="data-table table-encadree"><thead><tr>' +
+    '<th class="center">Code</th><th class="center">Activité</th><th class="center">Date</th><th class="center">Catégorie</th>' +
+    '<th class="center">Payé par l\'adhérent</th><th class="center">Coût par personne</th>' +
+    '<th class="center">Participation Association</th><th class="center">%</th></tr></thead><tbody>';
+  lignes.forEach(function (l) {
+    tPaye += l.paye; tCout += Number(l.cout || 0); tPa += l.pa;
+    html += '<tr><td class="center nowrap">' + echapper(l.code) + '</td><td class="center"><strong>' + echapper(l.nom) + '</strong></td>' +
+      '<td class="center">' + fmtDate(l.date) + (l.dateFin ? ' → ' + fmtDate(l.dateFin) : '') + '</td>' +
+      '<td class="center">' + echapper(l.categorie) + '</td>' +
+      '<td class="center">' + (l.paye ? fmtEuro(l.paye) : 'Gratuit') + '</td>' +
+      '<td class="center">' + (l.cout === '' ? '—' : fmtEuro(l.cout)) + '</td>' +
+      '<td class="center" style="color:var(--green);font-weight:700">' + fmtEuro(l.pa) + '</td>' +
+      '<td class="center nowrap">' + fmtPct(l.pct) + '</td></tr>';
+  });
+  html += '<tr class="ligne-total"><td colspan="4" class="center">Cumul — ' + lignes.length + ' activité(s)</td>' +
+    '<td class="center">' + fmtEuro(tPaye) + '</td><td class="center">' + fmtEuro(tCout) + '</td>' +
+    '<td class="center" style="color:var(--green)">' + fmtEuro(tPa) + '</td><td class="center">' + fmtPct(tCout ? 100 * tPa / tCout : 0) + '</td></tr>';
+  html += '</tbody></table></div>';
+  html += '<p class="form-hint" style="margin-top:8px"><strong>' + echapper(a.prenom + ' ' + a.nom) + '</strong> — ' + periode +
+    ' — Participation Association cumulée : <strong style="color:var(--green)">' + fmtEuro(tPa) + '</strong>. ' +
+    'Calcul : coût par personne − montant payé par l\'adhérent (ex. activité à 100 €, payé 30 € → 70 € soit 70 %).</p>';
+  cible.innerHTML = html;
+}
+</script>

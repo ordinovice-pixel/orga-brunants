@@ -1,12 +1,19 @@
 # 06 — Journal des évolutions
 
-Mise à jour : 22/10/2026
+Mise à jour : 02/11/2026
 
 Une ligne par étape, la plus récente en haut. Le détail des décisions est dans `03-decisions.md`.
 
 | Date | Version / étape | Ce qui a changé | Décisions |
 |---|---|---|---|
+| 02/11/2026 | **Transcription sur GitHub** | Le dépôt reçoit tout l'outil : code lot 6c (21 fichiers), simulateur, tests et versions de référence, livrables, guide ; README complet (raison du projet, fonctionnalités, avantages, stack, guide HTML, méthode IA) ; `docs/Presentation_vitrine.md` anonymisée ; `docs/Description_des_tables.md`. Données de test rendues fictives avant le dépôt | DEC-090 |
+| 22/10/2026 | **Lot 7 — Documentation** | Doc claude.ai « Documentation de l'outil Les Brunants » (installation et maintenance, prise en main avec 10 exercices, description des tables) ; dépannage multi-comptes Google ajouté | — |
 | 22/10/2026 | **Guide d'utilisation (bureau)** | `livrables/guide/Guide_utilisation_Brunants.html` : fichier HTML autonome (~3 Mo), volet vert foncé, zones bleu / vert / jaune de l'outil, une partie par rubrique (Indicateurs, Saisie, Listes, Tutos), 16 tutos dont les 10 exercices de la Prise en main, glossaire, index et « Je veux… », recherche libre. 68 captures prises dans l'aperçu local avec les données fictives. Sources et scripts de régénération dans `guide/` | DEC-062 |
+| 22/10/2026 | **Lot 6c — Adhérents réels** | Protection des vrais adhérents (réinitialisation et `setup` ne les touchent plus), filtre « À compléter », 8.3 Dons, 24 sauvegardes ; 398 adhérents importés par Jeff, vérifiés | DEC-087, 088, 089 |
+| 22/10/2026 | **Lot 6b — Catégories du bureau** | Catégories du dossier budgétaire V5 + 8. Subvention et Adhésions, champ « Ce qu'elle recouvre », données fictives reclassées | DEC-087 |
+| 19-22/10/2026 | **Lot 6 — Import et sauvegardes** | Assistant d'import (CSV / Excel, 3 modes), modèle d'import, liste / vérification / restauration des sauvegardes, liens « 📎 Ouvrir » | DEC-084, 085, 086 |
+| 19/10/2026 | **Lot 5 — Tableau de bord** | Tableau de bord avec alertes calculées, calendrier, Procédures / AG / NAS repris du POC, remboursement en recette négative, dates d'échéances personnalisables | DEC-077 à 083 |
+| 18-19/10/2026 | **Lots 4b / 4c** | Retouches (libellés, graphiques chiffrés, couleurs recettes / dépenses), test d'import dans une copie, import robuste aux 0 perdus | DEC-013, 023, 045, 070 à 076 |
 | 16/10/2026 | Dépôt GitHub | Premier commit envoyé sur `ordinovice-pixel/orga-brunants` (README, `.gitignore`, memory bank, docs) | DEC-033 |
 | 16/10/2026 | Memory bank | Création de la memory bank (9 fichiers) | — |
 | 12/10/2026 | **Lot 4 — Activités** | Inscriptions et échéances, recettes / dépenses automatiques, remboursement, mobil-home avec campings et plafond 2 × 60 €, mode de paiement / justificatif / commentaire, fiche d'inscription Doc + PDF, notification mail, coût par activité, réinitialisation. 11 fichiers modifiés ; nouvelle autorisation Google (Docs) | DEC-051, 052, 054, 055 |

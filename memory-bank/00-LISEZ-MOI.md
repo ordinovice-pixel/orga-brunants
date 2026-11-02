@@ -1,6 +1,6 @@
 # Memory bank — Outil de gestion « Les Brunants »
 
-Mise à jour : 16/10/2026 · Tenue par Jeff (OrdiNovice) et Claude
+Mise à jour : 02/11/2026 · Tenue par Jeff (OrdiNovice) et Claude
 
 Cette memory bank est la **trace de référence** du projet : ce qui a été décidé, où on en est, quels fichiers existent et à quoi ils servent. Elle évite de tout redemander ou de rescanner les dossiers à chaque conversation.
 
@@ -29,6 +29,6 @@ Cette memory bank est la **trace de référence** du projet : ce qui a été dé
 ## Pour Claude, au début d'une conversation
 
 - Lire `02-etat-avancement.md` puis le fichier utile pour la demande.
-- **Le dossier de travail de Claude ne survit pas d'une conversation à l'autre.** La version de référence du code est le **dernier ZIP livré** (voir `05`). Pour reprendre le développement, demander à Jeff de joindre ce ZIP ; ne pas repartir de zéro ni réécrire un fichier de mémoire.
+- **Le dossier de travail de Claude ne survit pas d'une conversation à l'autre.** La version de référence du code est le **dépôt GitHub** `ordinovice-pixel/orga-brunants` (dossier `apps_script/`, voir `05`). Pour reprendre le développement, cloner le dépôt (à défaut, demander le dernier ZIP à Jeff) ; ne pas repartir de zéro ni réécrire un fichier de mémoire.
 - Méthode inchangée : modifications ciblées sur la version précédente, jamais de réécriture complète (voir DEC-030).
 - Proposer en fin de séance la mise à jour de la memory bank, puis **commiter** dans le dépôt GitHub privé (voir DEC-033 et `08`).

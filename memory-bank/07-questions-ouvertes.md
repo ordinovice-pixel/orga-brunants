@@ -1,29 +1,20 @@
 # 07 — Questions ouvertes
 
-Mise à jour : 16/10/2026
+Mise à jour : 02/11/2026
 
 Quand une question est tranchée, elle devient une décision dans `03-decisions.md` et est retirée d'ici.
 
-## A. Choix du lot 4, à valider par Jeff avant le lot 5
+## A. Points à valider
 
-| N° | Choix proposé par Claude | Alternative |
-|---|---|---|
-| Q-01 | Un remboursement crée une **dépense « Budgété »** dans la catégorie de l'activité ; la recette d'origine reste visible | Déduire le remboursement des recettes |
-| Q-02 | Les 2 aides mobil-home vont aux **2 premières semaines du calendrier**, pas aux 2 premières saisies | Ordre de saisie |
-| Q-03 | Dépense et recette de mobil-home datées du **jour de l'enregistrement** | Datées de la semaine louée |
-| Q-04 | Dates prévues des échéances réparties automatiquement jusqu'à la veille de l'activité (corrigibles dans l'onglet) | — |
-| Q-05 | Prix modifié après des inscriptions : échéances existantes inchangées, l'outil le signale | Recalcul des échéances non payées |
-| Q-06 | **Le bureau a-t-il ou veut-il un groupe Google des adhérents ?** Sans lui, une annonce à tous dépasse le quota de 100 e-mails par jour | Envois en plusieurs jours, ou outil d'envoi externe |
-| Q-07 | Fiche d'inscription **pré-remplie** avec les inscrits du moment ; lignes vides jusqu'au nombre de places | Fiche entièrement vierge |
+Aucun pour l'instant. Lot 6 : Q-64 → DEC-088, Q-65 → DEC-085 (choix 1, toutes les tables), Q-66 → DEC-089 (vrais adhérents importés dès maintenant, en mode entraînement). Lot 6b : Q-67 à Q-69 → DEC-087. Dépôt GitHub : DEC-090.
 
 ## B. En attente d'informations du bureau
 
 | N° | Sujet | Qui | Bloquant pour |
 |---|---|---|---|
-| Q-10 | Noms définitifs des **sous-catégories** de recettes et dépenses (les actuelles sont fictives) | Président / trésorière | Import réel (lot 6) |
+| Q-06 | **Adresses des listes de diffusion Gmail** des adhérents (sans elles, une annonce à tous dépasse le quota de 100 e-mails par jour). Jeff les donnera plus tard ; **rappel automatique chaque lundi de novembre à mars** | Jeff / bureau | Passage en mode réel |
 | Q-11 | **Liste de ce que le CA doit voir** (calendrier, inscriptions, évolution du budget…) et choix : droits différenciés ou outil léger séparé | Président | Après le MVP |
-| Q-12 | Liste des **prestataires réels** et des **campings** | Bureau | Import réel |
-| Q-13 | Fichier réel des adhérents (230+ lignes, ~20 colonnes) | Guy / président | Lot 6 |
+| Q-12 | Liste des **prestataires réels**, des **campings**, des **activités réelles** et des **comptes** (DEC-082 : plus tard). Ils pourront être chargés avec l'assistant d'import | Bureau | Passage complet au réel |
 | Q-14 | Suivi « intendance » : contenu attendu | Bureau | À définir |
 | Q-15 | Rubrique **AG** : fonctionnement attendu (inscription, venue seul ou accompagné, sondages) | Bureau | Version suivante |
 
@@ -35,5 +26,14 @@ Quand une question est tranchée, elle devient une décision dans `03-decisions.
 | Q-21 | Rattachement des couples pour n'envoyer qu'un Maillon postal par foyer (champ « rattaché à » présent, usage à décider) |
 | Q-22 | Plafond de 600 € de participation par personne : contrôle automatique dans la fiche activité ou simple mention ? |
 | Q-23 | Format de la formation du CA |
-| Q-24 | Volet RGPD : responsable du fichier, politique de conformité, durée de conservation des archives |
-| Q-25 | Date et modalités du partage de l'outil avec le bureau, puis du passage en mode réel |
+| Q-24 | Volet RGPD : responsable du fichier, politique de conformité, durée de conservation des archives (plus pressant maintenant que les vrais adhérents sont dans l'outil) |
+| Q-25 | Date et modalités du partage de l'outil avec le bureau, puis du passage complet en mode réel (vider activités et comptes fictifs, couper le mode entraînement) |
+
+## D. Import des vraies données
+
+Les règles sont tranchées : voir DEC-070 à DEC-076. Import fait par Jeff le 22/10 après installation du lot 6c (DEC-089).
+
+| N° | Point restant |
+|---|---|
+| Q-49 | Date de fin provisoire des anciens adhérents (31/12/2024, choix de Claude) : convient-elle, ou le bureau connaît-il les vraies dates ? |
+| Q-50 | **Dates d'entrée** provisoires (01/01/2000) : Jeff les complète directement dans l'outil (filtre « À compléter »), plus besoin de refabriquer le CSV |

@@ -1,0 +1,1210 @@
+<script>
+/* =====================================================================
+   Js_Commun.html — Socle de l'interface (partagé par toutes les rubriques)
+   ---------------------------------------------------------------------
+   - APP : état de l'application (données, année choisie)
+   - appelServeur() : échanges avec Apps Script (google.script.run)
+   - sélecteur d'année + règles de rattachement à une année
+   - navigation entre rubriques
+   - notifications, écran d'attente, fenêtre de confirmation
+   - formulaires : lecture, remplissage, contrôles de saisie
+   - Liste : composant générique (recherche, filtres, tri, filtre en tête
+     de colonne, Modifier / Supprimer, export CSV)
+   ===================================================================== */
+
+var APP = {
+  d: null,            // dernières données reçues du serveur (chargerTout)
+  annee: null,        // année sélectionnée en haut de page
+  rubrique: 'dashboard',
+  listes: {},         // listes génériques créées par les rubriques
+  _index: {},         // tables indexées par ID (recalculées à chaque chargement)
+  _cache: {}          // calculs mémorisés (vidés à chaque chargement)
+};
+
+/** Calcul mémorisé jusqu'au prochain chargement de données. */
+function memo(cle, fn) {
+  if (!(cle in APP._cache)) APP._cache[cle] = fn();
+  return APP._cache[cle];
+}
+
+/** Registre des rubriques : chaque fichier Js_<rubrique> s'y inscrit. */
+var RUBRIQUES = {};
+function enregistrerRubrique(id, def) { RUBRIQUES[id] = def; }
+
+/* ---------------------------------------------------------------------
+   Accès aux données
+   ------------------------------------------------------------------- */
+function T(table) { return (APP.d && APP.d.tables && APP.d.tables[table]) || []; }
+
+function parId(table, id) {
+  if (!APP._index[table]) {
+    var m = {};
+    T(table).forEach(function (r) { m[r.id] = r; });
+    APP._index[table] = m;
+  }
+  return APP._index[table][id];
+}
+
+function schemaTable(table) { return APP.d.schema.tables[table]; }
+function champSchema(table, cle) {
+  return schemaTable(table).champs.filter(function (c) { return c.cle === cle; })[0];
+}
+
+/* ---------------------------------------------------------------------
+   Mise en forme
+   ------------------------------------------------------------------- */
+function echapper(s) {
+  return String(s === null || s === undefined ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function sansAccents(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+
+/** AAAA-MM-JJ → JJ/MM/AAAA */
+function fmtDate(iso) {
+  if (!iso) return '';
+  var p = String(iso).slice(0, 10).split('-');
+  return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : String(iso);
+}
+/** « AAAA-MM-JJ HH:MM:SS » → « JJ/MM/AAAA HH:MM » */
+function fmtDateHeure(s) { return s ? fmtDate(s) + (s.length > 10 ? ' ' + s.slice(11, 16) : '') : ''; }
+
+/**
+ * Justificatif d'une recette ou d'une dépense : un lien (https://…, drive.google.com/…) devient
+ * « 📎 Ouvrir » cliquable (nouvel onglet) ; un simple texte (n° de facture) reste affiché tel quel.
+ */
+function urlJustificatif(j) {
+  var t = String(j || '').trim();
+  if (/^https?:\/\/\S+$/i.test(t)) return t;
+  if (/^(www\.|drive\.google\.com|docs\.google\.com)\S*$/i.test(t)) return 'https://' + t;
+  return '';
+}
+function lienJustificatif(j) {
+  if (!j) return '';
+  var url = urlJustificatif(j);
+  if (url) return ' <a class="lien-justif" href="' + echapper(url) + '" target="_blank" rel="noopener noreferrer" title="Ouvrir le justificatif : ' + echapper(j) + '">&#128206; Ouvrir</a>';
+  return ' <span class="texte-justif" title="Justificatif">&#128206; ' + echapper(j) + '</span>';
+}
+
+/* Petits utilitaires de dates (côté navigateur) */
+function isoVersDateClient(iso) { return new Date(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)), 12); }
+function ajouterJoursClient(iso, n) {
+  var d = isoVersDateClient(iso); d.setDate(d.getDate() + n);
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
+var MOIS_LONGS = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+function fmtDateLongue(iso) {
+  if (!iso) return '';
+  var j = Number(iso.slice(8, 10));
+  return (j === 1 ? '1er' : j) + ' ' + MOIS_LONGS[Number(iso.slice(5, 7)) - 1] + ' ' + iso.slice(0, 4);
+}
+/** « 12/11/2026 » ou « 2026-11-12 » → « 2026-11-12 » ('' si illisible). */
+function texteVersIsoClient(t) {
+  var m = String(t || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (m) return m[3] + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2);
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(t || '')) ? t : '';
+}
+
+
+function fmtEuro(n, decimales) {
+  if (n === '' || n === null || n === undefined || isNaN(n)) return '';
+  var d = decimales === undefined ? (Math.round(n) === Number(n) ? 0 : 2) : decimales;
+  return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: d, maximumFractionDigits: d }) + ' €';
+}
+function fmtNombre(n) { return (n === '' || n === null || n === undefined) ? '' : Number(n).toLocaleString('fr-FR'); }
+function fmtPct(n) { return (n === '' || n === null || isNaN(n)) ? '' : Math.round(n) + ' %'; }
+function fmtOuiNon(b) { return b ? 'Oui' : 'Non'; }
+function fmtDecimal(n) { return Number(n).toLocaleString('fr-FR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); }
+/** Pourcentage arrondi (0 si total nul). */
+function pct(n, total) { return total ? Math.round(100 * n / total) : 0; }
+/** Options HTML d'un <select> à partir d'une liste de valeurs. */
+function optionsHtml(valeurs) {
+  return valeurs.map(function (v) { return '<option value="' + echapper(v) + '">' + echapper(v) + '</option>'; }).join('');
+}
+/** Remplace le texte d'un élément par son id. */
+function texteEl(id, texte) { document.getElementById(id).textContent = texte; }
+
+/** Valeur affichée d'un champ selon son type. */
+function texteChamp(v, type) {
+  switch (type) {
+    case 'date': return fmtDate(v);
+    case 'montant': return fmtEuro(v);
+    case 'nombre': return fmtNombre(v);
+    case 'oui_non': return fmtOuiNon(v);
+    case 'datetime': return fmtDateHeure(v);
+    default: return v === null || v === undefined ? '' : String(v);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   Année sélectionnée et règles de rattachement (prompt §3.2)
+   ------------------------------------------------------------------- */
+function anneeDe(iso) { return iso ? Number(String(iso).slice(0, 4)) : null; }
+
+var ANNEE = {
+  /** Adhérent actif à un moment de N : inscrit au plus tard le 31/12/N, fin au plus tôt le 01/01/N. */
+  adherent: function (a, N) {
+    if (!a.dateInscription || a.dateInscription > N + '-12-31') return false;
+    var fin = ANNEE.finAdhesion(a);
+    return !fin || fin >= N + '-01-01';
+  },
+  /** Date de fin effective : date de fin, sinon date de décès. */
+  finAdhesion: function (a) { return a.dateFin || (a.deces ? a.dateDeces : '') || ''; },
+  /** Recette / dépense : année de la date de paiement ou d'encaissement. */
+  mouvement: function (m, N) { return anneeDe(m.date) === N; },
+  /** Activité : année de sa date de début. */
+  activite: function (act, N) { return anneeDe(act.dateDebut) === N; },
+  /** Inscription : rattachée à l'année de son activité. */
+  inscription: function (ins, N) { var act = parId('Activites', ins.activiteId); return !!act && ANNEE.activite(act, N); },
+  /** Échéance : rattachée à l'année de l'activité de son inscription. */
+  echeance: function (e, N) { var ins = parId('Inscriptions', e.inscriptionId); return !!ins && ANNEE.inscription(ins, N); },
+  /** Budget et location de mobil-home : champ Année. */
+  champAnnee: function (x, N) { return Number(x.annee) === N; }
+};
+
+/** Années proposées : déduites des données + année en cours. */
+function anneesDisponibles() {
+  var s = {};
+  var courante = anneeDe(APP.d.aujourdhui);
+  s[courante] = true;
+  T('Recettes').concat(T('Depenses')).forEach(function (m) { if (m.date) s[anneeDe(m.date)] = true; });
+  T('Activites').forEach(function (a) { if (a.dateDebut) s[anneeDe(a.dateDebut)] = true; });
+  T('Budgets').concat(T('MobilHome')).forEach(function (b) { if (b.annee) s[Number(b.annee)] = true; });
+  return Object.keys(s).map(Number).filter(function (a) { return a > 1900; }).sort(function (a, b) { return b - a; });
+}
+
+function majSelecteurAnnee() {
+  var sel = document.getElementById('annee-select');
+  var annees = anneesDisponibles();
+  if (!APP.annee || annees.indexOf(APP.annee) < 0) APP.annee = anneeDe(APP.d.aujourdhui);
+  sel.innerHTML = annees.map(function (a) {
+    return '<option value="' + a + '"' + (a === APP.annee ? ' selected' : '') + '>' + a + '</option>';
+  }).join('');
+}
+
+/** Les éléments portant data-titre-annee="Effectif total" deviennent « Effectif total 2026 ». */
+function majTitresAnnee() {
+  document.querySelectorAll('[data-titre-annee]').forEach(function (e) {
+    e.textContent = e.getAttribute('data-titre-annee') + ' ' + APP.annee;
+  });
+}
+
+/* ---------------------------------------------------------------------
+   Échanges avec le serveur
+   ------------------------------------------------------------------- */
+function afficherChargement(texte) {
+  document.getElementById('chargement-texte').textContent = texte || 'Chargement…';
+  document.getElementById('chargement').classList.remove('hidden');
+}
+function masquerChargement() { document.getElementById('chargement').classList.add('hidden'); }
+
+/** Nettoie un message d'erreur Apps Script (« Exception: », « Error: »). */
+function messageErreur(err) {
+  var m = (err && err.message) ? err.message : String(err);
+  return m.replace(/^(Exception|Error|Erreur)\s*:\s*/i, '');
+}
+
+/**
+ * Appelle une fonction du serveur. Renvoie une promesse.
+ * Si la réponse contient des données fraîches (donnees), tout l'écran est mis à jour.
+ */
+function appelServeur(fonction, args, options) {
+  options = options || {};
+  if (!options.silencieux) afficherChargement(options.attente || 'Enregistrement en cours…');
+  return new Promise(function (resoudre, rejeter) {
+    var run = google.script.run
+      .withSuccessHandler(function (rep) {
+        masquerChargement();
+        if (options.donneesDirectes) recevoirDonnees(rep);
+        else if (rep && rep.donnees) recevoirDonnees(rep.donnees);
+        if (rep && rep.message && !options.sansMessage) notifier(rep.message, 'succes');
+        resoudre(rep);
+      })
+      .withFailureHandler(function (err) {
+        masquerChargement();
+        var m = messageErreur(err);
+        if (!options.sansMessageErreur) notifier(m, 'erreur');
+        rejeter(new Error(m));
+      });
+    run[fonction].apply(run, args || []);
+  });
+}
+
+/** Chargement complet (ouverture de l'outil et bouton « Actualiser »). */
+function chargerDonnees(manuel) {
+  return appelServeur('chargerTout', [], { attente: manuel ? 'Actualisation depuis le classeur…' : 'Chargement des données…', sansMessage: true, donneesDirectes: true })
+    .then(function () {
+      if (manuel) {
+        var n = APP.d.avertissements.length;
+        notifier('Données actualisées depuis le classeur.' + (n ? '\n' + n + ' ligne(s) à corriger : voir Administration.' : ''), n ? 'info' : 'succes');
+      }
+    })
+    .catch(function () { /* message déjà affiché */ });
+}
+
+/** Réception de données fraîches : on met tout l'écran à jour. */
+function recevoirDonnees(d) {
+  APP.d = d;
+  APP._index = {};
+  APP._cache = {};
+  majSelecteurAnnee();
+  majEntete();
+  rendreTout();
+}
+
+function majEntete() {
+  var p = APP.d.parametres;
+  document.getElementById('bandeau-entrainement').classList.toggle('hidden', !p.MODE_ENTRAINEMENT);
+  document.getElementById('bandeau-email').textContent = p.EMAIL_TEST || '(e-mail de test à renseigner)';
+  document.getElementById('utilisateur').textContent = '👤 ' + APP.d.utilisateur;
+  document.getElementById('version-outil').textContent = 'Version opérationnelle · ' + APP.d.version;
+
+  var av = APP.d.avertissements;
+  var bandeau = document.getElementById('bandeau-avertissements');
+  if (!av.length) { bandeau.classList.add('hidden'); return; }
+  var ignorees = av.filter(function (a) { return a.niveau === 'Ignorée'; }).length;
+  var aVerifier = av.length - ignorees;
+  var morceaux = [];
+  if (ignorees) morceaux.push('<strong>' + ignorees + ' ligne(s) ignorée(s)</strong>');
+  if (aVerifier) morceaux.push('<strong>' + aVerifier + ' ligne(s) à vérifier</strong>');
+  bandeau.innerHTML = '&#9888;&#65039; Le classeur contient ' + morceaux.join(' et ') +
+    ' (saisie à la main incomplète ou illisible). <button class="btn btn-secondary btn-sm" id="voir-avertissements">Voir le détail</button>';
+  bandeau.classList.remove('hidden');
+  document.getElementById('voir-avertissements').onclick = function () {
+    allerA('administration');
+    setTimeout(function () { document.getElementById('panneau-avertissements').scrollIntoView({ behavior: 'smooth' }); }, 50);
+  };
+}
+
+function majBadgeNav() {
+  var b = document.getElementById('badge-adherents');
+  var actifs = T('Adherents').filter(function (a) { return ANNEE.adherent(a, APP.annee); });
+  var tit = actifs.filter(function (a) { return a.type === 'Titulaire'; }).length;
+  b.textContent = tit + '/' + (actifs.length - tit);
+  b.title = 'Titulaires / sympathisants ' + APP.annee;
+  b.classList.toggle('hidden', actifs.length === 0);
+}
+
+/** Redessine toutes les rubriques (après chargement, enregistrement ou changement d'année). */
+function rendreTout() {
+  majTitresAnnee();
+  majBadgeNav();
+  Object.keys(RUBRIQUES).forEach(function (id) {
+    var r = RUBRIQUES[id];
+    if (!r.rendre) return;
+    try { r.rendre(); }
+    catch (e) {
+      if (window.console) console.error(e);
+      notifier('Erreur d\'affichage dans « ' + (r.titre || id) + ' » : ' + e.message, 'erreur');
+    }
+  });
+}
+
+/* ---------------------------------------------------------------------
+   Navigation
+   ------------------------------------------------------------------- */
+function allerA(section) {
+  document.querySelectorAll('.nav-item').forEach(function (n) { n.classList.toggle('active', n.getAttribute('data-section') === section); });
+  document.querySelectorAll('.section-content').forEach(function (s) { s.classList.toggle('active', s.id === section); });
+  var r = RUBRIQUES[section] || {};
+  document.getElementById('topbar-title').textContent = r.titre || '';
+  document.getElementById('topbar-subtitle').textContent = r.sousTitre || '';
+  APP.rubrique = section;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+/* ---------------------------------------------------------------------
+   Notifications et confirmation
+   ------------------------------------------------------------------- */
+function notifier(message, type) {
+  type = type || 'succes';
+  var zone = document.getElementById('notifications');
+  var n = document.createElement('div');
+  n.className = 'notification ' + type;
+  n.setAttribute('role', type === 'erreur' ? 'alert' : 'status');
+  n.innerHTML = echapper(message).replace(/\n/g, '<br>') + '<button class="notification-fermer" aria-label="Fermer">&times;</button>';
+  n.querySelector('button').onclick = function () { n.remove(); };
+  zone.appendChild(n);
+  while (zone.children.length > 3) zone.removeChild(zone.firstChild);   // 3 messages au plus à l'écran
+  setTimeout(function () { n.remove(); }, type === 'erreur' ? 12000 : 6000);
+}
+
+/**
+ * Fenêtre de confirmation. Renvoie une promesse (true = confirmé).
+ * options : titre, bouton, danger, double (deuxième confirmation)
+ */
+function confirmer(message, options) {
+  options = options || {};
+  return new Promise(function (resoudre) {
+    var fond = document.getElementById('modale');
+    fond.innerHTML = '<div class="modale' + (options.danger ? ' danger' : '') + '" role="dialog" aria-modal="true">' +
+      '<div class="modale-titre">' + echapper(options.titre || 'Confirmation') + '</div>' +
+      '<div class="modale-texte">' + echapper(message) + '</div>' +
+      '<div class="modale-actions"><button class="btn btn-secondary" data-r="non">Annuler</button>' +
+      '<button class="btn ' + (options.danger ? 'btn-danger' : 'btn-primary') + '" data-r="oui">' + echapper(options.bouton || 'Confirmer') + '</button></div></div>';
+    fond.classList.remove('hidden');
+    fond.querySelector('[data-r="oui"]').focus();
+    function fermer(rep) {
+      fond.classList.add('hidden'); fond.innerHTML = '';
+      document.removeEventListener('keydown', clavier);
+      if (rep && options.double) {
+        confirmer('Confirmez une seconde fois : cette opération ne peut pas être annulée.',
+          { titre: 'Seconde confirmation', bouton: options.bouton, danger: true }).then(resoudre);
+      } else {
+        resoudre(rep);
+      }
+    }
+    function clavier(e) { if (e.key === 'Escape') fermer(false); }
+    document.addEventListener('keydown', clavier);
+    fond.querySelector('[data-r="oui"]').onclick = function () { fermer(true); };
+    fond.querySelector('[data-r="non"]').onclick = function () { fermer(false); };
+    fond.onclick = function (e) { if (e.target === fond) fermer(false); };
+  });
+}
+
+/**
+ * Petite fenêtre de saisie. options : titre, intro (texte), champsHtml (HTML avec data-champ),
+ * valeurs (pré-remplissage), bouton, danger, valider(obj) → [{cle, message}] (facultatif),
+ * auChangement(form) (facultatif). Renvoie une promesse : l'objet saisi, ou null si annulé.
+ */
+function fenetreFormulaire(options) {
+  return new Promise(function (resoudre) {
+    var fond = document.getElementById('modale');
+    fond.innerHTML = '<div class="modale' + (options.danger ? ' danger' : '') + '" role="dialog" aria-modal="true">' +
+      '<div class="modale-titre">' + echapper(options.titre) + '</div>' +
+      '<form class="modale-texte modale-form" onsubmit="return false;" autocomplete="off">' +
+      (options.intro ? '<p style="margin-bottom:12px">' + echapper(options.intro) + '</p>' : '') +
+      '<div class="form-erreurs hidden"></div>' + options.champsHtml + '</form>' +
+      '<div class="modale-actions"><button class="btn btn-secondary" data-r="non">Annuler</button>' +
+      '<button class="btn ' + (options.danger ? 'btn-danger' : 'btn-primary') + '" data-r="oui">' + echapper(options.bouton || 'Valider') + '</button></div></div>';
+    var form = fond.querySelector('form');
+    remplirFormulaire(form, options.valeurs || {});
+    fond.classList.remove('hidden');
+    if (options.auChangement) {
+      form.addEventListener('change', function () { options.auChangement(form); });
+      options.auChangement(form);
+    }
+    var premier = form.querySelector('[data-champ]');
+    if (premier) premier.focus();
+    function fermer(rep) {
+      fond.classList.add('hidden'); fond.innerHTML = '';
+      document.removeEventListener('keydown', clavier);
+      resoudre(rep);
+    }
+    function clavier(e) { if (e.key === 'Escape') fermer(null); }
+    document.addEventListener('keydown', clavier);
+    fond.querySelector('[data-r="non"]').onclick = function () { fermer(null); };
+    fond.querySelector('[data-r="oui"]').onclick = function () {
+      var obj = lireFormulaire(form);
+      var erreurs = options.valider ? options.valider(obj) : [];
+      afficherErreurs(form, erreurs);
+      if (!erreurs.length) fermer(obj);
+    };
+  });
+}
+
+/**
+ * Champ « adhérent » avec recherche : on tape un nom, la liste propose « NOM Prénom — ADH-0012 ».
+ * L'ID choisi est rangé dans le champ caché (data-champ). filtre(a) limite les adhérents proposés.
+ */
+function brancherRechercheAdherent(saisie, cache, filtre) {
+  var idListe = saisie.getAttribute('list');
+  function libelle(a) { return a.nom + ' ' + a.prenom + ' — ' + a.id; }
+  function lire() {
+    var m = saisie.value.match(/(ADH-\d+)\s*$/);
+    var a = m ? parId('Adherents', m[1]) : null;
+    cache.value = a ? a.id : '';
+    saisie.classList.toggle('champ-erreur', !!saisie.value.trim() && !a);
+    cache.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+  saisie.addEventListener('change', lire);
+  saisie.addEventListener('input', function () { if (/ADH-\d+$/.test(saisie.value)) lire(); });
+  return {
+    /** Met à jour les propositions (à appeler après chaque chargement de données). */
+    majListe: function () {
+      var adh = T('Adherents').filter(function (a) { return !filtre || filtre(a); })
+        .sort(function (x, y) { return (x.nom + x.prenom).localeCompare(y.nom + y.prenom, 'fr'); });
+      document.getElementById(idListe).innerHTML = adh.map(function (a) {
+        return '<option value="' + echapper(libelle(a)) + '">';
+      }).join('');
+    },
+    /** Affiche l'adhérent correspondant à l'ID du champ caché. */
+    afficher: function () {
+      var a = cache.value ? parId('Adherents', cache.value) : null;
+      saisie.value = a ? libelle(a) : (cache.value || '');
+      saisie.classList.remove('champ-erreur');
+    }
+  };
+}
+
+/* =====================================================================
+   GRAPHIQUES (Chart.js) — libellés en caractères UTF-8 directs, jamais d'entités HTML
+   ===================================================================== */
+var GRAPHIQUES = {};
+var COULEURS_CATEGORIES = ['#1A5276', '#2E86C1', '#F39C12', '#27AE60', '#8E44AD', '#C0392B', '#16A085', '#7F8C8D'];
+
+/** Crée ou recrée un graphique dans le <canvas id="…">. */
+function dessinerGraphique(id, config) {
+  var canvas = document.getElementById(id);
+  if (!canvas) return;
+  if (!window.Chart) {
+    canvas.parentNode.innerHTML = '<p class="texte-discret" style="padding:20px">Graphique indisponible : la bibliothèque Chart.js n\'a pas pu être chargée (connexion internet).</p>';
+    return;
+  }
+  if (GRAPHIQUES[id]) GRAPHIQUES[id].destroy();
+  config.options = config.options || {};
+  config.options.responsive = true;
+  config.options.maintainAspectRatio = false;
+  GRAPHIQUES[id] = new Chart(canvas, config);
+}
+
+/**
+ * Camembert ou anneau dont les valeurs et les % sont écrits directement sur le graphique
+ * (et répétés dans la légende) : aucun survol n'est nécessaire pour les lire.
+ * options : type ('doughnut' ou 'pie'), libelles, valeurs, couleurs, format (valeur → texte, euros par défaut),
+ *           formatCourt (texte écrit sur la part, format par défaut),
+ *           idCanvas (pour placer la légende à droite ou dessous selon la largeur disponible), legende ('right' / 'bottom').
+ * Les parts de moins de 4 % ne sont pas écrites sur le dessin (illisibles) mais restent chiffrées dans la légende.
+ */
+function configSecteurs(o) {
+  var valeurs = o.valeurs, libelles = o.libelles;
+  var total = valeurs.reduce(function (s, v) { return s + Number(v || 0); }, 0);
+  var fmt = o.format || function (v) { return fmtEuro(v, 0); };
+  var fmtCourt = o.formatCourt || fmt;
+  function pctTexte(v) { return total ? Math.round(100 * v / total) + ' %' : '0 %'; }
+  var canvas = o.idCanvas ? document.getElementById(o.idCanvas) : null;
+  // légende : imposée (o.legende = 'right' ou 'bottom'), sinon à droite si la place le permet
+  var largeur = canvas ? canvas.parentNode.clientWidth : 0;
+  var large = o.legende ? o.legende === 'right' : (largeur === 0 || largeur > 760);
+  var cfg = {
+    type: o.type || 'doughnut',
+    data: { labels: libelles, datasets: [{ data: valeurs, backgroundColor: o.couleurs, borderColor: '#FFFFFF', borderWidth: 2 }] },
+    options: {
+      cutout: (o.type || 'doughnut') === 'pie' ? 0 : '45%',
+      layout: { padding: 6 },
+      plugins: {
+        legend: {
+          position: large ? 'right' : 'bottom',
+          labels: {
+            boxWidth: 14,
+            generateLabels: function (chart) {
+              var base = Chart.overrides.doughnut.plugins.legend.labels.generateLabels(chart);
+              base.forEach(function (l, i) { l.text = libelles[i] + ' — ' + fmt(valeurs[i]) + ' (' + pctTexte(valeurs[i]) + ')'; });
+              return base;
+            }
+          }
+        },
+        tooltip: { callbacks: { label: function (ctx) { return (ctx.label ? ctx.label + ' : ' : '') + fmt(ctx.parsed) + ' · ' + pctTexte(ctx.parsed); } } },
+        datalabels: {
+          color: '#FFFFFF',
+          textAlign: 'center',
+          font: { weight: 'bold', size: 13 },
+          textStrokeColor: 'rgba(0,0,0,0.45)',
+          textStrokeWidth: 3,
+          anchor: 'end', align: 'start', offset: 10, clamp: true,
+          display: function (ctx) { var v = Number(ctx.dataset.data[ctx.dataIndex] || 0); return total > 0 && v / total >= 0.04; },
+          formatter: function (v) { return fmtCourt(v) + '\n' + pctTexte(v); }
+        }
+      }
+    }
+  };
+  if (window.ChartDataLabels) cfg.plugins = [window.ChartDataLabels];
+  return cfg;
+}
+
+/** Graphique « Recettes vs Dépenses » de l'année N, mois par mois, montants écrits au-dessus des barres. */
+function dessinerRecettesDepensesMois(idCanvas, N) {
+  var parMois = function (lignes) {
+    var m = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    lignes.forEach(function (l) { m[Number(l.date.slice(5, 7)) - 1] += Number(l.montant || 0); });
+    return m.map(function (x) { return Math.round(x * 100) / 100; });
+  };
+  dessinerGraphique(idCanvas, {
+    type: 'bar',
+    data: { labels: MOIS_COURTS, datasets: [
+      { label: 'Recettes ' + N, data: parMois(CALC.recettesAnnee(N)), backgroundColor: '#27AE60', borderRadius: 3 },
+      { label: 'Dépenses ' + N, data: parMois(CALC.depensesAnnee(N)), backgroundColor: '#C0392B', borderRadius: 3 }
+    ] },
+    options: {
+      layout: { padding: { top: 8 } },
+      plugins: {
+        legend: { position: 'bottom' },
+        tooltip: { callbacks: { label: infobulleEuros() } },
+        // montants écrits au-dessus de chaque barre (verticalement : 24 barres sur la largeur)
+        datalabels: {
+          anchor: 'end', align: 'end', rotation: -90, offset: 2, clamp: true,
+          color: function (ctx) { return ctx.datasetIndex === 0 ? '#1E8449' : '#922B21'; },
+          font: { size: 11, weight: 'bold' },
+          display: function (ctx) { return Number(ctx.dataset.data[ctx.dataIndex]) > 0; },
+          formatter: function (v) { return fmtEuro(v, 0); }
+        }
+      },
+      scales: { y: { beginAtZero: true, grace: '22%', ticks: { callback: function (v) { return fmtEuro(v, 0); } } } }
+    },
+    plugins: window.ChartDataLabels ? [window.ChartDataLabels] : []
+  });
+}
+
+/** Anneau « Répartition des dépenses par catégorie » de l'année N (montants et % écrits sur le graphique). */
+function dessinerDepensesCategories(idCanvas, N, legende) {
+  var s = CALC.suiviBudget(N);
+  var cats = s.lignes.filter(function (l) { return l.consomme + l.hors > 0; });
+  dessinerGraphique(idCanvas, configSecteurs({
+    type: 'doughnut',
+    idCanvas: idCanvas,
+    legende: legende,
+    libelles: cats.map(function (l) { return l.categorie; }),
+    valeurs: cats.map(function (l) { return Math.round((l.consomme + l.hors) * 100) / 100; }),
+    couleurs: cats.map(function (l) { return COULEURS_CATEGORIES[s.lignes.indexOf(l) % COULEURS_CATEGORIES.length]; })
+  }));
+}
+
+/** Infobulle « 1 234 € » (et « · 12 % » si total fourni). */
+function infobulleEuros(total) {
+  return function (ctx) {
+    var v = ctx.parsed && typeof ctx.parsed === 'object' ? (ctx.parsed.y !== undefined ? ctx.parsed.y : ctx.parsed.x) : ctx.parsed;
+    var t = (ctx.dataset.label && ctx.chart.config.type !== 'doughnut' ? ctx.dataset.label + ' : ' : (ctx.label ? ctx.label + ' : ' : '')) + fmtEuro(v, 0);
+    return total ? t + ' · ' + Math.round(100 * v / total) + ' %' : t;
+  };
+}
+
+/* =====================================================================
+   LISTES DE CHOIX COMMUNES
+   ===================================================================== */
+var MOIS_COURTS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+
+function libelleActivite(id) { var a = id ? parId('Activites', id) : null; return a ? a.nom : (id || ''); }
+function libellePrestataire(id) { var p = id ? parId('Prestataires', id) : null; return p ? p.raisonSociale : (id || ''); }
+function nomAdherent(id) { var a = id ? parId('Adherents', id) : null; return a ? a.nom + ' ' + a.prenom : (id || ''); }
+
+/** Catégories distinctes (ordre des catégories budgétaires, puis les autres : « 8. Subvention et Adhésions »…). */
+function categoriesConnues() {
+  var ordre = (APP.d && APP.d.schema.categoriesBudget) || [];
+  var autres = valeursDistinctes(T('Categories').map(function (c) { return c.categorie; })).filter(function (c) { return ordre.indexOf(c) < 0; });
+  return ordre.filter(function (c) { return T('Categories').some(function (x) { return x.categorie === c; }); }).concat(autres);
+}
+
+/**
+ * Catégories utilisables pour les recettes (« Recette »), les dépenses (« Dépense ») ou les activités (« Les deux ») :
+ * celles qui ont au moins une sous-catégorie de ce type (ou une ligne sans sous-catégorie de ce type).
+ * Ex. « 8. Subvention et Adhésions » (recettes seulement) n'est pas proposée pour une dépense ni une activité.
+ */
+function categoriesPour(sens) {
+  return categoriesConnues().filter(function (cat) {
+    return T('Categories').some(function (c) { return c.categorie === cat && (c.type === 'Les deux' || c.type === sens); });
+  });
+}
+
+/** Remplit la liste des sous-catégories d'une catégorie, pour les recettes (« Recette ») ou les dépenses (« Dépense »). */
+function remplirSousCategories(select, categorie, sens) {
+  var lignes = T('Categories').filter(function (c) {
+    return c.categorie === categorie && c.sousCategorie && (c.type === sens || c.type === 'Les deux');
+  });
+  var sous = lignes.map(function (c) { return c.sousCategorie; });
+  var actuelle = select.value;
+  remplirSelect(select, valeursDistinctes(sous), { vide: categorie ? '— Aucune —' : '— Choisir d\'abord une catégorie —' });
+  if (sous.indexOf(actuelle) >= 0) select.value = actuelle;
+  select.setAttribute('data-categorie', categorie || '');
+  Array.prototype.forEach.call(select.options, function (o) {   // descriptif au survol de chaque choix
+    var c = lignes.filter(function (x) { return x.sousCategorie === o.value; })[0];
+    if (c && c.descriptif) o.title = c.descriptif;
+  });
+  if (!select._descriptif) { select._descriptif = true; select.addEventListener('change', function () { majDescriptifSousCategorie(select); }); }
+  majDescriptifSousCategorie(select);
+}
+
+/** Sous la liste des sous-catégories : « Ce qu'elle recouvre » (descriptif fourni par le bureau), pour bien affecter la ligne. */
+function majDescriptifSousCategorie(select) {
+  var groupe = select.parentNode;
+  var zone = groupe.querySelector('.descriptif-souscat');
+  if (!zone) { zone = document.createElement('div'); zone.className = 'form-hint descriptif-souscat'; groupe.appendChild(zone); }
+  var cat = select.getAttribute('data-categorie') || '';
+  var c = T('Categories').filter(function (x) { return x.categorie === cat && x.sousCategorie === select.value; })[0];
+  if (c && c.descriptif) { zone.innerHTML = '<strong>Ce qu\'elle recouvre :</strong> ' + echapper(c.descriptif); zone.classList.remove('hidden'); }
+  else if (cat && !select.value && select.options.length > 1) { zone.textContent = 'Choisissez une sous-catégorie : son contenu s\'affiche ici (passez la souris sur les choix pour les comparer).'; zone.classList.remove('hidden'); }
+  else { zone.textContent = ''; zone.classList.add('hidden'); }
+}
+
+/** Activités, de la plus récente à la plus ancienne : « ACT-2026-005 · Séjour dans le Jura (12/09/2026) ». */
+function remplirActivites(select) {
+  var acts = T('Activites').slice().sort(function (a, b) { return String(b.dateDebut).localeCompare(String(a.dateDebut)); });
+  remplirSelect(select, acts.map(function (a) { return { valeur: a.id, texte: a.id + ' · ' + a.nom + ' (' + fmtDate(a.dateDebut) + ')' }; }), { vide: '— Aucune —' });
+}
+
+/** Prestataires par ordre alphabétique, « Autre » en dernier. */
+function remplirPrestataires(select) {
+  var p = T('Prestataires').filter(function (x) { return x.id !== 'PRE-000'; })
+    .sort(function (a, b) { return a.raisonSociale.localeCompare(b.raisonSociale, 'fr'); });
+  var autre = parId('Prestataires', 'PRE-000');
+  var valeurs = p.map(function (x) { return { valeur: x.id, texte: x.raisonSociale }; });
+  if (autre) valeurs.push({ valeur: autre.id, texte: 'Autre (prestataire non listé)' });
+  remplirSelect(select, valeurs, { vide: '— Aucun —' });
+}
+
+/* =====================================================================
+   CALCULS MÉTIER COMMUNS (utilisés par plusieurs rubriques)
+   ===================================================================== */
+var CALC = {
+  aujourdhui: function () { return APP.d.aujourdhui; },
+
+  /** Date de référence de l'année N : aujourd'hui pour l'année en cours ou future, sinon le 31/12/N. */
+  dateReference: function (N) {
+    var auj = CALC.aujourdhui();
+    return N >= anneeDe(auj) ? auj : N + '-12-31';
+  },
+
+  /** Âge en années révolues à une date ISO ('' si date de naissance inconnue). */
+  age: function (naissance, a) {
+    if (!naissance || !a) return '';
+    var n = Number(a.slice(0, 4)) - Number(naissance.slice(0, 4));
+    if (a.slice(5) < naissance.slice(5)) n--;
+    return n;
+  },
+
+  /** Durée en années (décimale) entre deux dates ISO. */
+  annees: function (debut, fin) {
+    if (!debut || !fin || fin < debut) return 0;
+    return (new Date(fin + 'T12:00:00') - new Date(debut + 'T12:00:00')) / (365.25 * 86400000);
+  },
+
+  /** Archivé = désinscrit ou décédé. */
+  estArchive: function (a) { return !!(a.desinscrit || a.deces); },
+
+  /** Date à laquelle on regarde un adhérent pour l'année N (sa fin d'adhésion si elle est antérieure). */
+  dateObservation: function (a, N) {
+    var ref = CALC.dateReference(N);
+    var fin = ANNEE.finAdhesion(a);
+    return fin && fin < ref ? fin : ref;
+  },
+
+  ageAnnee: function (a, N) { return CALC.age(a.dateNaissance, CALC.dateObservation(a, N)); },
+
+  ancienneteAnnee: function (a, N) { return CALC.annees(a.dateInscription, CALC.dateObservation(a, N)); },
+
+  situation: function (a) { return a.deces ? 'Décédé' : (a.desinscrit ? 'Désinscrit' : 'Actif'); },
+
+  adresseComplete: function (a) {
+    return [a.adresse, a.complementAdresse, ((a.codePostal || '') + ' ' + (a.ville || '')).trim()]
+      .filter(function (x) { return x; }).join(', ');
+  },
+
+  /** Coût par personne d'une activité : coût réel, sinon prix + participation. */
+  coutParPersonne: function (act) {
+    if (act.coutReelParPersonne !== '' && act.coutReelParPersonne !== undefined) return Number(act.coutReelParPersonne);
+    var prix = Number(act.prixParPersonne || 0), part = Number(act.participationEuro || 0);
+    return (prix || part) ? prix + part : '';
+  },
+
+  /**
+   * Lignes de participation d'un adhérent (activités suivies + locations de mobil-home),
+   * pour l'année N (ou toutes les années si N est null).
+   * Participation Association = coût par personne − montant payé par l'adhérent ;
+   * % = participation / coût. Ex. : activité à 100 €, l'adhérent paie 30 € → 70 € et 70 %.
+   */
+  participations: function (adhId, N) {
+    var parAdh = memo('participationsParAdherent', function () {
+      var m = {};
+      T('Inscriptions').forEach(function (ins) {
+        if (ins.statut === 'Désinscrit') return;
+        var act = parId('Activites', ins.activiteId);
+        if (!act) return;
+        var cout = CALC.coutParPersonne(act);
+        var paye = ins.montantDu !== '' ? Number(ins.montantDu) : Number(act.prixParPersonne || 0);
+        var pa = cout === '' ? 0 : Math.max(0, cout - paye);
+        (m[ins.adherentId] = m[ins.adherentId] || []).push({
+          type: 'Activité', code: act.id, nom: act.nom, date: act.dateDebut, dateFin: act.dateFin,
+          categorie: act.categorie, paye: paye, cout: cout, pa: pa,
+          pct: cout ? 100 * pa / cout : (pa > 0 ? 100 : 0), annee: anneeDe(act.dateDebut)
+        });
+      });
+      T('MobilHome').forEach(function (mh) {
+        var cout = Number(mh.coutLocation || 0), pa = Number(mh.aideAsso || 0);
+        (m[mh.adherentId] = m[mh.adherentId] || []).push({
+          type: 'Mobil-home', code: mh.id, nom: 'Location mobil-home', date: mh.semaine, dateFin: '',
+          categorie: APP.d.schema.mobilHome.categorie, paye: mh.montantPayeAdherent !== '' ? Number(mh.montantPayeAdherent) : Math.max(0, cout - pa),
+          cout: cout, pa: pa, pct: cout ? 100 * pa / cout : 0, annee: Number(mh.annee)
+        });
+      });
+      Object.keys(m).forEach(function (k) { m[k].sort(function (x, y) { return String(y.date).localeCompare(String(x.date)); }); });
+      return m;
+    });
+    var lignes = parAdh[adhId] || [];
+    return N === null || N === undefined ? lignes : lignes.filter(function (l) { return l.annee === N; });
+  },
+
+  /** Total de Participation Association d'un adhérent pour l'année N. */
+  totalParticipation: function (adhId, N) {
+    return CALC.participations(adhId, N).reduce(function (s, l) { return s + l.pa; }, 0);
+  },
+
+  /** A participé à au moins une activité ou un mobil-home en N. */
+  aParticipe: function (adhId, N) { return CALC.participations(adhId, N).length > 0; },
+
+  /* ---------- Budget & Compta ---------- */
+  somme: function (lignes) { return lignes.reduce(function (s, l) { return s + Number(l.montant || 0); }, 0); },
+  recettesAnnee: function (N) { return T('Recettes').filter(function (r) { return ANNEE.mouvement(r, N); }); },
+  depensesAnnee: function (N) { return T('Depenses').filter(function (d) { return ANNEE.mouvement(d, N); }); },
+  budgetsAnnee: function (N) { return T('Budgets').filter(function (b) { return Number(b.annee) === N; }); },
+
+  /**
+   * Suivi budgétaire de l'année N, par catégorie :
+   * budget prévisionnel, dépenses « Budgété » (consommé), reste, %, hors budget.
+   * Solde budget = budget prévisionnel total − budget consommé.
+   */
+  suiviBudget: function (N) {
+    return memo('suiviBudget' + N, function () {
+      var deps = CALC.depensesAnnee(N), budgets = CALC.budgetsAnnee(N);
+      var cats = (APP.d.schema.categoriesBudget || []).slice();
+      deps.concat(budgets).forEach(function (x) { if (x.categorie && cats.indexOf(x.categorie) < 0) cats.push(x.categorie); });
+      var lignes = cats.map(function (c) {
+        var budget = CALC.somme(budgets.filter(function (b) { return b.categorie === c; }));
+        var consomme = CALC.somme(deps.filter(function (d) { return d.categorie === c && d.budgete !== 'Hors budget'; }));
+        var hors = CALC.somme(deps.filter(function (d) { return d.categorie === c && d.budgete === 'Hors budget'; }));
+        return { categorie: c, budget: budget, consomme: consomme, reste: budget - consomme, pct: budget ? 100 * consomme / budget : null, hors: hors };
+      });
+      var tot = { categorie: 'Total', budget: 0, consomme: 0, hors: 0 };
+      lignes.forEach(function (l) { tot.budget += l.budget; tot.consomme += l.consomme; tot.hors += l.hors; });
+      tot.reste = tot.budget - tot.consomme;
+      tot.pct = tot.budget ? 100 * tot.consomme / tot.budget : null;
+      return { lignes: lignes, total: tot, depensesTotales: CALC.somme(deps) };
+    });
+  }
+};
+
+/* ---------------------------------------------------------------------
+   Formulaires : les champs portent data-champ="<clé du schéma>"
+   ------------------------------------------------------------------- */
+function lireFormulaire(form) {
+  var o = {};
+  form.querySelectorAll('[data-champ]').forEach(function (e) {
+    o[e.getAttribute('data-champ')] = e.type === 'checkbox' ? e.checked : String(e.value).trim();
+  });
+  // boutons radio : <input type="radio" data-radio="budgete" value="…">
+  form.querySelectorAll('[data-radio]').forEach(function (e) {
+    if (e.checked) o[e.getAttribute('data-radio')] = e.value;
+  });
+  return o;
+}
+
+function remplirFormulaire(form, obj) {
+  form.querySelectorAll('[data-champ]').forEach(function (e) {
+    var v = obj[e.getAttribute('data-champ')];
+    if (e.type === 'checkbox') e.checked = v === true;
+    else e.value = (v === undefined || v === null) ? '' : v;
+  });
+  var groupes = {};
+  form.querySelectorAll('[data-radio]').forEach(function (e) { (groupes[e.getAttribute('data-radio')] = groupes[e.getAttribute('data-radio')] || []).push(e); });
+  Object.keys(groupes).forEach(function (cle) {
+    var v = obj[cle];
+    var trouve = groupes[cle].some(function (e) { return e.value === v; });
+    groupes[cle].forEach(function (e, i) { e.checked = trouve ? e.value === v : i === 0; });
+  });
+  effacerErreurs(form);
+}
+
+function effacerErreurs(form) {
+  form.querySelectorAll('.champ-erreur').forEach(function (e) { e.classList.remove('champ-erreur'); });
+  var boite = form.querySelector('.form-erreurs');
+  if (boite) { boite.classList.add('hidden'); boite.innerHTML = ''; }
+}
+
+function afficherErreurs(form, erreurs) {
+  effacerErreurs(form);
+  if (!erreurs.length) return;
+  erreurs.forEach(function (e) {
+    if (!e.cle) return;
+    var champ = form.querySelector('[data-champ="' + e.cle + '"]');
+    if (champ) champ.classList.add('champ-erreur');
+  });
+  var boite = form.querySelector('.form-erreurs');
+  if (boite) {
+    boite.innerHTML = '<strong>Merci de corriger :</strong><ul>' +
+      erreurs.map(function (e) { return '<li>' + echapper(e.message) + '</li>'; }).join('') + '</ul>';
+    boite.classList.remove('hidden');
+  }
+  var premier = form.querySelector('.champ-erreur');
+  if (premier) premier.focus();
+}
+
+var RE_EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/** Contrôles de saisie (mêmes règles que le serveur). Renvoie [{cle, message}]. */
+function validerObjet(table, obj) {
+  var erreurs = [];
+  schemaTable(table).champs.forEach(function (ch) {
+    if (ch.type === 'id' || ch.type === 'calcule' || ch.type === 'oui_non' || !(ch.cle in obj)) return;
+    var v = obj[ch.cle];
+    var titre = '« ' + ch.titre + ' »';
+    if (v === '' || v === null || v === undefined) {
+      if (ch.requis) erreurs.push({ cle: ch.cle, message: titre + ' est obligatoire.' });
+      return;
+    }
+    var n = Number(String(v).replace(',', '.'));
+    switch (ch.type) {
+      case 'email': if (!RE_EMAIL.test(v)) erreurs.push({ cle: ch.cle, message: titre + ' : adresse e-mail invalide.' }); break;
+      case 'cp': if (!/^\d{5}$/.test(v)) erreurs.push({ cle: ch.cle, message: titre + ' : 5 chiffres attendus.' }); break;
+      case 'tel': if (!/^[0-9+ .()\-]{6,20}$/.test(v)) erreurs.push({ cle: ch.cle, message: titre + ' : numéro de téléphone invalide.' }); break;
+      case 'date': if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) erreurs.push({ cle: ch.cle, message: titre + ' : date invalide.' }); break;
+      case 'montant':
+        if (isNaN(n)) erreurs.push({ cle: ch.cle, message: titre + ' doit être un nombre.' });
+        else if (n < 0) erreurs.push({ cle: ch.cle, message: titre + ' doit être positif.' });
+        else if (ch.strict && n === 0) erreurs.push({ cle: ch.cle, message: titre + ' doit être supérieur à 0.' });
+        break;
+      case 'nombre':
+        if (isNaN(n)) { erreurs.push({ cle: ch.cle, message: titre + ' doit être un nombre.' }); break; }
+        if (ch.entier && Math.round(n) !== n) erreurs.push({ cle: ch.cle, message: titre + ' doit être un nombre entier.' });
+        if (ch.min !== undefined && n < ch.min) erreurs.push({ cle: ch.cle, message: titre + ' doit être au moins ' + ch.min + '.' });
+        if (ch.max !== undefined && n > ch.max) erreurs.push({ cle: ch.cle, message: titre + ' doit être au plus ' + ch.max + '.' });
+        break;
+      case 'liste': if (ch.valeurs.indexOf(v) < 0) erreurs.push({ cle: ch.cle, message: titre + ' : valeur non autorisée.' }); break;
+    }
+  });
+  return erreurs;
+}
+
+/** Remplit un <select> avec une liste de valeurs (ou d'objets {valeur, texte}). */
+function remplirSelect(select, valeurs, options) {
+  options = options || {};
+  var actuelle = select.value;
+  var html = options.vide !== undefined ? '<option value="">' + echapper(options.vide) + '</option>' : '';
+  html += valeurs.map(function (v) {
+    var val = typeof v === 'object' ? v.valeur : v;
+    var txt = typeof v === 'object' ? v.texte : v;
+    return '<option value="' + echapper(val) + '">' + echapper(txt) + '</option>';
+  }).join('');
+  select.innerHTML = html;
+  if (actuelle && valeurs.some(function (v) { return (typeof v === 'object' ? v.valeur : v) === actuelle; })) select.value = actuelle;
+}
+
+/* ---------------------------------------------------------------------
+   Téléchargement d'un fichier (export CSV)
+   ------------------------------------------------------------------- */
+function telecharger(nomFichier, contenu, type) {
+  var blob = new Blob([contenu], { type: type || 'text/csv;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = nomFichier;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+}
+
+/* =====================================================================
+   COMPOSANT LISTE GÉNÉRIQUE
+   ---------------------------------------------------------------------
+   new Liste({
+     conteneur: 'id-du-div',
+     colonnes: [{ cle, titre, type ('texte'|'date'|'montant'|'nombre'|'oui_non'|'datetime'),
+                  valeur: fn(ligne) (facultatif), rendu: fn(ligne) → HTML (facultatif),
+                  filtre: 'texte'|'liste'|false (auto par défaut), classe: 'number'|'center' }],
+     lignes: fn() → tableau d'objets ayant un champ id,
+     filtres: [{ cle, titre, valeur: fn(ligne) (facultatif), valeurs: fn() (facultatif) }],
+     triDefaut: { cle, sens: 1|-1 },
+     modifier: fn(ligne), supprimer: fn(ligne)   (facultatifs : sinon pas de bouton),
+     exportNom: 'adherents', vide: 'Aucune ligne.'
+   })
+   ===================================================================== */
+function Liste(o) {
+  this.o = o;
+  this.etat = { recherche: '', tri: o.triDefaut ? o.triDefaut.cle : null, sens: o.triDefaut ? o.triDefaut.sens : 1,
+                filtres: {}, colonnes: {}, page: 1, parPage: o.parPage === undefined ? 25 : o.parPage };
+  this.construire();
+}
+
+Liste.prototype.valeur = function (col, ligne) {
+  return col.valeur ? col.valeur(ligne) : ligne[col.cle];
+};
+Liste.prototype.texte = function (col, ligne) {
+  return texteChamp(this.valeur(col, ligne), col.type);
+};
+Liste.prototype.typeFiltre = function (col) {
+  if (col.filtre !== undefined) return col.filtre;
+  return (col.type === 'oui_non' || col.type === 'liste') ? 'liste' : 'texte';
+};
+
+Liste.prototype.construire = function () {
+  var self = this, o = this.o;
+  var c = document.getElementById(o.conteneur);
+  var avecActions = !!(o.modifier || o.supprimer || (o.actions && o.actions.length));
+  var html = '<div class="liste-barre">' +
+    '<input type="search" class="form-input liste-recherche" placeholder="&#128269; Rechercher…" aria-label="Rechercher">';
+  (o.filtres || []).forEach(function (f, i) {
+    html += '<select class="form-select liste-filtre" data-i="' + i + '" aria-label="' + echapper(f.titre) + '"></select>';
+  });
+  html += '<button type="button" class="btn btn-secondary btn-sm liste-raz" title="Effacer recherche, filtres et tri">&#10005; Effacer les filtres</button>' +
+    '<span class="liste-compteur"></span>' +
+    '<button type="button" class="btn btn-secondary btn-sm liste-export">&#128229; Exporter en CSV</button></div>' +
+    '<div class="table-scroll"><table class="data-table' + (o.dense ? ' dense' : '') + (avecActions ? ' avec-actions' : '') + '"><thead><tr>';
+  o.colonnes.forEach(function (col, i) {
+    html += '<th class="triable ' + (col.classe || '') + '" data-i="' + i + '" title="Cliquer pour trier">' + echapper(col.titre) +
+      '<span class="tri-icone">&#8693;</span></th>';
+  });
+  if (avecActions) html += '<th class="center">Actions</th>';
+  html += '</tr><tr class="filtres-colonnes">';
+  o.colonnes.forEach(function (col, i) {
+    var tf = self.typeFiltre(col);
+    if (tf === 'liste') html += '<th><select data-col="' + i + '" aria-label="Filtrer ' + echapper(col.titre) + '"></select></th>';
+    else if (tf === 'texte') html += '<th><input type="text" data-col="' + i + '" placeholder="Filtrer…" aria-label="Filtrer ' + echapper(col.titre) + '"></th>';
+    else html += '<th></th>';
+  });
+  if (avecActions) html += '<th></th>';
+  html += '</tr></thead><tbody></tbody></table></div>' +
+    '<div class="liste-pied"><label>Lignes par page <select class="liste-parpage" aria-label="Lignes par page">' +
+    [25, 50, 100, 0].map(function (n) { return '<option value="' + n + '">' + (n || 'Toutes') + '</option>'; }).join('') +
+    '</select></label><span class="liste-pages"><button type="button" class="btn btn-secondary btn-sm liste-prec">&#8249; Précédente</button>' +
+    '<span class="liste-page"></span><button type="button" class="btn btn-secondary btn-sm liste-suiv">Suivante &#8250;</button></span></div>';
+  c.innerHTML = html;
+
+  this.el = {
+    recherche: c.querySelector('.liste-recherche'),
+    compteur: c.querySelector('.liste-compteur'),
+    tbody: c.querySelector('tbody'),
+    entetes: c.querySelectorAll('th.triable'),
+    filtres: c.querySelectorAll('.liste-filtre'),
+    filtresCol: c.querySelectorAll('.filtres-colonnes [data-col]'),
+    pied: c.querySelector('.liste-pied'),
+    parPage: c.querySelector('.liste-parpage'),
+    page: c.querySelector('.liste-page'),
+    prec: c.querySelector('.liste-prec'),
+    suiv: c.querySelector('.liste-suiv')
+  };
+  this.el.parPage.value = String(this.etat.parPage);
+  // toute modification de recherche, filtre ou tri ramène à la première page
+  function premierePage() { self.etat.page = 1; self.rendreCorps(); }
+  this.el.recherche.addEventListener('input', function () { self.etat.recherche = this.value; premierePage(); });
+  this.el.filtres.forEach(function (s) {
+    s.addEventListener('change', function () { self.etat.filtres[this.getAttribute('data-i')] = this.value; premierePage(); });
+  });
+  this.el.filtresCol.forEach(function (e) {
+    e.addEventListener(e.tagName === 'SELECT' ? 'change' : 'input', function () {
+      self.etat.colonnes[this.getAttribute('data-col')] = this.value;
+      this.classList.toggle('actif', !!this.value);
+      premierePage();
+    });
+  });
+  this.el.entetes.forEach(function (th) {
+    th.addEventListener('click', function () {
+      var cle = o.colonnes[Number(th.getAttribute('data-i'))].cle;
+      if (self.etat.tri === cle) self.etat.sens = -self.etat.sens; else { self.etat.tri = cle; self.etat.sens = 1; }
+      premierePage();
+    });
+  });
+  this.el.parPage.addEventListener('change', function () { self.etat.parPage = Number(this.value); premierePage(); });
+  this.el.prec.addEventListener('click', function () { self.etat.page--; self.rendreCorps(); });
+  this.el.suiv.addEventListener('click', function () { self.etat.page++; self.rendreCorps(); });
+  c.querySelector('.liste-raz').addEventListener('click', function () { self.reinitialiser(); });
+  c.querySelector('.liste-export').addEventListener('click', function () { self.exporterCsv(); });
+  this.el.tbody.addEventListener('click', function (e) {
+    var b = e.target.closest('[data-action]');
+    if (!b) return;
+    var ligne = self.parId[b.getAttribute('data-id')];
+    if (!ligne) return;
+    var action = b.getAttribute('data-action');
+    if (b.type === 'checkbox') e.preventDefault();   // la case ne change qu'après confirmation
+    if (action === 'modifier') o.modifier(ligne);
+    else if (action === 'supprimer') o.supprimer(ligne);
+    else {
+      var a = (o.actions || []).filter(function (x) { return x.cle === action; })[0];
+      if (a) a.fn(ligne, b);
+    }
+  });
+};
+
+Liste.prototype.reinitialiser = function () {
+  this.etat.recherche = ''; this.etat.filtres = {}; this.etat.colonnes = {}; this.etat.page = 1;
+  this.etat.tri = this.o.triDefaut ? this.o.triDefaut.cle : null;
+  this.etat.sens = this.o.triDefaut ? this.o.triDefaut.sens : 1;
+  this.el.recherche.value = '';
+  this.el.filtresCol.forEach(function (e) { e.value = ''; e.classList.remove('actif'); });
+  this.rafraichir();
+};
+
+/** À appeler quand les données ont changé : met à jour les listes de filtres puis le corps. */
+Liste.prototype.rafraichir = function () {
+  var self = this, o = this.o;
+  this.donnees = o.lignes();
+  // Filtres de la barre
+  (o.filtres || []).forEach(function (f, i) {
+    var valeurs = f.valeurs ? f.valeurs() : valeursDistinctes(self.donnees.map(function (l) {
+      return f.valeur ? f.valeur(l) : l[f.cle];
+    }));
+    remplirSelect(self.el.filtres[i], valeurs, { vide: f.titre + ' : tous' });
+    if (self.etat.filtres[i] && valeurs.map(String).indexOf(self.etat.filtres[i]) < 0) self.etat.filtres[i] = '';
+    self.el.filtres[i].value = self.etat.filtres[i] || '';
+  });
+  // Filtres en tête de colonne (listes)
+  this.el.filtresCol.forEach(function (e) {
+    if (e.tagName !== 'SELECT') return;
+    var col = o.colonnes[Number(e.getAttribute('data-col'))];
+    var valeurs = valeursDistinctes(self.donnees.map(function (l) { return self.texte(col, l); }));
+    remplirSelect(e, valeurs, { vide: 'Tous' });
+    var v = self.etat.colonnes[e.getAttribute('data-col')] || '';
+    e.value = valeurs.indexOf(v) >= 0 ? v : '';
+  });
+  this.rendreCorps();
+};
+
+function valeursDistinctes(liste) {
+  var vus = {};
+  liste.forEach(function (v) { if (v !== '' && v !== null && v !== undefined) vus[v] = true; });
+  return Object.keys(vus).sort(function (a, b) { return a.localeCompare(b, 'fr', { numeric: true }); });
+}
+
+Liste.prototype.lignesFiltrees = function () {
+  var self = this, o = this.o, e = this.etat;
+  var rech = sansAccents(e.recherche).trim();
+  var mots = rech ? rech.split(/\s+/) : [];
+  var lignes = (this.donnees || []).filter(function (l) {
+    var ok = (o.filtres || []).every(function (f, i) {
+      var sel = e.filtres[i];
+      if (!sel) return true;
+      return String(f.valeur ? f.valeur(l) : l[f.cle]) === sel;
+    });
+    if (!ok) return false;
+    ok = o.colonnes.every(function (col, i) {
+      var v = e.colonnes[i];
+      if (!v) return true;
+      var t = self.texte(col, l);
+      return self.typeFiltre(col) === 'liste' ? t === v : sansAccents(t).indexOf(sansAccents(v)) >= 0;
+    });
+    if (!ok) return false;
+    if (!mots.length) return true;
+    var tout = sansAccents(o.colonnes.map(function (col) { return self.texte(col, l); }).join(' ') + ' ' + (l.id || ''));
+    return mots.every(function (m) { return tout.indexOf(m) >= 0; });
+  });
+  if (e.tri) {
+    var col = o.colonnes.filter(function (c) { return c.cle === e.tri; })[0];
+    if (col) {
+      lignes.sort(function (a, b) {
+        var va = self.valeur(col, a), vb = self.valeur(col, b);
+        var videA = va === '' || va === null || va === undefined, videB = vb === '' || vb === null || vb === undefined;
+        if (videA !== videB) return videA ? 1 : -1;   // les vides toujours à la fin
+        if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * e.sens;
+        if (typeof va === 'boolean') return ((va ? 1 : 0) - (vb ? 1 : 0)) * e.sens;
+        return String(va).localeCompare(String(vb), 'fr', { numeric: true, sensitivity: 'base' }) * e.sens;
+      });
+    }
+  }
+  return lignes;
+};
+
+Liste.prototype.rendreCorps = function () {
+  var self = this, o = this.o;
+  var lignes = this.lignesFiltrees();
+  this.parId = {};
+  this.el.entetes.forEach(function (th) {
+    var col = o.colonnes[Number(th.getAttribute('data-i'))];
+    var trie = self.etat.tri === col.cle;
+    th.classList.toggle('trie', trie);
+    th.querySelector('.tri-icone').innerHTML = trie ? (self.etat.sens > 0 ? '&#9650;' : '&#9660;') : '&#8693;';
+  });
+  var avecActions = !!(o.modifier || o.supprimer || (o.actions && o.actions.length));
+  var nbCol = o.colonnes.length + (avecActions ? 1 : 0);
+  var html = '';
+  // Pagination (la page de la ligne surlignée est affichée en priorité)
+  var pp = this.etat.parPage;
+  var nbPages = pp ? Math.max(1, Math.ceil(lignes.length / pp)) : 1;
+  if (this.allerASurlignee && this.surlignee) {
+    var pos = lignes.map(function (l) { return l.id; }).indexOf(this.surlignee);
+    if (pos >= 0 && pp) this.etat.page = Math.floor(pos / pp) + 1;
+  }
+  this.allerASurlignee = false;
+  this.etat.page = Math.min(Math.max(1, this.etat.page || 1), nbPages);
+  var visibles = pp ? lignes.slice((this.etat.page - 1) * pp, this.etat.page * pp) : lignes;
+  lignes.forEach(function (l) { self.parId[l.id] = l; });
+  visibles.forEach(function (l) {
+    var classes = (self.surlignee === l.id ? 'ligne-surlignee ' : '') + (o.classeLigne ? o.classeLigne(l) || '' : '');
+    html += '<tr' + (classes.trim() ? ' class="' + classes.trim() + '"' : '') + '>';
+    o.colonnes.forEach(function (col) {
+      html += '<td class="' + (col.classe || '') + '">' + (col.rendu ? col.rendu(l) : echapper(self.texte(col, l))) + '</td>';
+    });
+    if (avecActions) {
+      html += '<td class="cellule-actions">' +
+        (o.actions || []).filter(function (a) { return !a.visible || a.visible(l); }).map(function (a) {
+          return '<button type="button" class="btn ' + (a.classe || 'btn-secondary') + ' btn-sm" data-action="' + a.cle +
+            '" data-id="' + echapper(l.id) + '" title="' + echapper(a.titre || a.libelle) + '">' + a.libelle + '</button>';
+        }).join('') +
+        (o.modifier ? '<button type="button" class="btn btn-secondary btn-sm" data-action="modifier" data-id="' + echapper(l.id) + '" title="Modifier" aria-label="Modifier ' + echapper(l.id) + '">&#9998;' + (o.compact ? '' : ' Modifier') + '</button>' : '') +
+        (o.supprimer ? '<button type="button" class="btn btn-secondary btn-sm" data-action="supprimer" data-id="' + echapper(l.id) + '" title="Supprimer" aria-label="Supprimer ' + echapper(l.id) + '">&#128465;' + (o.compact ? '' : ' Supprimer') + '</button>' : '') +
+        '</td>';
+    }
+    html += '</tr>';
+  });
+  if (!lignes.length) {
+    html = '<tr><td class="liste-vide" colspan="' + nbCol + '">' +
+      echapper((this.donnees || []).length ? 'Aucune ligne ne correspond à la recherche ou aux filtres.' : (o.vide || 'Aucune ligne.')) + '</td></tr>';
+  }
+  this.el.tbody.innerHTML = html;
+  this.el.compteur.innerHTML = '<strong>' + lignes.length + '</strong> ligne(s) sur ' + (this.donnees || []).length;
+  this.el.page.textContent = 'Page ' + this.etat.page + ' / ' + nbPages;
+  this.el.prec.disabled = this.etat.page <= 1;
+  this.el.suiv.disabled = this.etat.page >= nbPages;
+  this.el.pied.classList.toggle('hidden', lignes.length <= 25 && pp === 25);
+  this.affichees = lignes;   // l'export CSV prend toutes les lignes filtrées, pas seulement la page
+};
+
+/** Export CSV (séparateur « ; », compatible Excel / LibreOffice) des lignes affichées. */
+Liste.prototype.exporterCsv = function () {
+  var self = this, o = this.o;
+  var cellule = function (s) { s = String(s === null || s === undefined ? '' : s); return /[;"\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  // une colonne peut s'exporter en plusieurs colonnes (col.exporter), ex. « Contact » → téléphone + e-mail
+  var cols = [];
+  o.colonnes.forEach(function (col) {
+    if (col.exporter) col.exporter.forEach(function (x) { cols.push({ titre: x.titre, valeur: x.valeur, type: x.type || 'texte' }); });
+    else cols.push(col);
+  });
+  var lignes = [cols.map(function (c) { return cellule(c.titre); }).join(';')];
+  (this.affichees || []).forEach(function (l) {
+    lignes.push(cols.map(function (col) {
+      var v = self.valeur(col, l);
+      if (col.type === 'montant' || col.type === 'nombre') return v === '' || v === null || v === undefined ? '' : String(v).replace('.', ',');
+      return cellule(self.texte(col, l));
+    }).join(';'));
+  });
+  var nom = (o.exportNom || 'liste') + '_' + APP.annee + '_' + APP.d.aujourdhui + '.csv';
+  telecharger(nom, '﻿' + lignes.join('\r\n'));
+  notifier('Export « ' + nom + ' » : ' + (this.affichees || []).length + ' ligne(s).', 'info');
+};
+
+/** Applique des filtres de la barre par clé, ex. { motifFin: 'Décès', anneeFin: '2026' } (les autres sont effacés). */
+Liste.prototype.appliquerFiltres = function (valeurs) {
+  var self = this;
+  this.etat.filtres = {};
+  (this.o.filtres || []).forEach(function (f, i) {
+    if (valeurs[f.cle] !== undefined) self.etat.filtres[i] = String(valeurs[f.cle]);
+  });
+  this.rafraichir();
+};
+
+/** Met une ligne en évidence (par ex. celle en cours de modification). */
+Liste.prototype.surligner = function (id) { this.surlignee = id || null; this.allerASurlignee = !!id; this.rendreCorps(); };
+
+/* ---------------------------------------------------------------------
+   Démarrage
+   ------------------------------------------------------------------- */
+function demarrer() {
+  if (window.Chart && window.ChartDataLabels) {
+    Chart.defaults.font.family = 'Calibri, Segoe UI, sans-serif';
+    Chart.defaults.font.size = 14;
+    Chart.defaults.color = '#5D6D7E';
+  }
+  document.querySelectorAll('.nav-item').forEach(function (item) {
+    item.addEventListener('click', function () { allerA(item.getAttribute('data-section')); });
+  });
+  document.getElementById('annee-select').addEventListener('change', function () {
+    APP.annee = Number(this.value);
+    rendreTout();
+    notifier('Affichage de l\'année ' + APP.annee + '.', 'info');
+  });
+  document.getElementById('btn-actualiser').addEventListener('click', function () { chargerDonnees(true); });
+  document.getElementById('btn-sauvegarder').addEventListener('click', sauvegarderMaintenant);
+  Object.keys(RUBRIQUES).forEach(function (id) { if (RUBRIQUES[id].init) RUBRIQUES[id].init(); });
+  allerA('dashboard');
+  chargerDonnees(false);
+}
+
+function sauvegarderMaintenant() {
+  appelServeur('sauvegarderMaintenant', [], { attente: 'Sauvegarde en cours (copie + export .xlsx)…' }).catch(function () {});
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', demarrer);
+else setTimeout(demarrer, 0);
+</script>
